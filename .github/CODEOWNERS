@@ -1,0 +1,36 @@
+# CODEOWNERS
+#
+# GitHub uses this file to automatically request reviews from the right people
+# whenever a pull request touches a particular path.
+#
+# Syntax: <path-pattern>  <@owner> [<@owner> ...]
+# Patterns are evaluated top-to-bottom; the last matching rule wins.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+
+# ── Clarity smart contracts ───────────────────────────────────────────────────
+# Any change inside the contracts/ workspace requires review from the
+# contracts team to guard against logic bugs and mainnet deployment risk.
+contracts/**                    @streampay-org/contracts-team
+
+# ── SDK package ───────────────────────────────────────────────────────────────
+# The public-facing SDK has its own team responsible for API stability,
+# semver, and publication to the npm registry.
+packages/sdk/**                 @streampay-org/sdk-team
+
+# ── Environment config templates ─────────────────────────────────────────────
+# These files define which environment variables the application expects.
+# A change here may indicate a new secret is being introduced — security
+# team must verify no real value has been accidentally included.
+.env.example                    @streampay-org/security-team
+**/*.toml.example               @streampay-org/security-team
+
+# ── Security-sensitive root files ────────────────────────────────────────────
+# The .gitignore is the first line of defence against secret leakage.
+# Any modification must be reviewed by the security team.
+.gitignore                      @streampay-org/security-team
+
+# ── GitHub configuration ─────────────────────────────────────────────────────
+# Changes to workflow files, action configs, and this CODEOWNERS file itself
+# can affect CI/CD security; require a security-team sign-off.
+.github/**                      @streampay-org/security-team
