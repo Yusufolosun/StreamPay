@@ -3,7 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "description": "StreamPay — Stacks Blockchain Recurring Payments Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "build:all": "turbo run build",
+    "test": "turbo run test",
+    "test:all": "turbo run test",
+    "lint": "turbo run lint",
+    "lint:all": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "prepare": "husky",
     "test:hooks": "node scripts/__tests__/hooks.test.js",
     "scan:secrets": "node scripts/scan-secrets.js",
@@ -24,6 +38,6 @@
     "lint-staged": "^16.4.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
