@@ -60,6 +60,12 @@
 
 ---
 
+## Commit count confirmation
+
+- [ ] I confirm this PR contains exactly 24 commits, representing granular, independently reviewable work.
+
+---
+
 ## Additional notes
 
 <!-- Anything else a reviewer should know: performance tradeoffs, known
