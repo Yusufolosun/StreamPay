@@ -44,10 +44,10 @@ developer, `develop` adds overhead without any measurable benefit:
 
 ### `feat/<task-number>-<short-description>`
 - **Purpose**: New features and enhancements.
-- **Branch from**: `develop`
-- **Merge into**: `develop` via pull request
+- **Branch from**: `main`
+- **Merge into**: `main` via pull request
 - **Examples**:
-  - `feat/42-streaming-payment-contract`
+  - `feat/08-stream-core-contract`
   - `feat/56-frontend-dashboard`
 
 ### `fix/<task-number>-<short-description>`
