@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # StreamPay Pre-commit Security Hooks
 # Run checks in order, halt on first failure
 
