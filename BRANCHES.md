@@ -1,8 +1,9 @@
 # Branch Strategy
 
 This document describes the branching model for the StreamPay monorepo.
-All contributors must follow these conventions. Deviating from this model
-requires a team discussion and an update to this file.
+StreamPay is a **solo-developer project**. The model is intentionally simple:
+one permanent production branch (`main`) and a set of short-lived work branches.
+Deviating from this model requires a deliberate decision and an update to this file.
 
 ---
 
