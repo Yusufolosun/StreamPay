@@ -4,7 +4,19 @@
   "private": true,
   "description": "StreamPay — Stacks Blockchain Recurring Payments Platform",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "scan:secrets": "node scripts/scan-secrets.js",
+    "guard:env": "node scripts/guard-env-files.js",
+    "guard:toml": "node scripts/guard-mainnet-toml.js",
+    "guard:size": "node scripts/guard-large-files.js"
+  },
+  "lint-staged": {
+    "*": [
+      "node scripts/scan-secrets.js",
+      "node scripts/guard-env-files.js",
+      "node scripts/guard-mainnet-toml.js",
+      "node scripts/guard-large-files.js"
+    ]
   },
   "devDependencies": {
     "husky": "^9.1.7",
