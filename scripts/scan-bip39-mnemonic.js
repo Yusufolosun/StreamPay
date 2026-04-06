@@ -1,28 +1,25 @@
 #!/usr/bin/env node
+/**
+ * BIP-39 Mnemonic Sequence Scanner
+ * Detects potential BIP-39 seed phrases in staged files
+ */
+
 const fs = require('fs');
 const path = require('path');
 
-// BIP-39 English wordlist (2048 words)
-// This is the standard English wordlist from BIP-39 specification
-const BIP39_WORDLIST = [
-  'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract',
-  'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid',
-  'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual',
-  'adapt', 'add', 'addict', 'address', 'adjust', 'admit', 'adult', 'advance',
-  'advice', 'aerobic', 'affair', 'afford', 'afraid', 'again', 'age', 'agent',
-  'agree', 'ahead', 'aim', 'air', 'airport', 'aisle', 'alarm', 'album',
-  'alcohol', 'alert', 'alien', 'all', 'alley', 'allow', 'almost', 'alone',
-  'alpha', 'already', 'also', 'alter', 'always', 'amateur', 'amazing', 'among',
-  'amount', 'amused', 'analyst', 'anchor', 'ancient', 'anger', 'angle', 'angry',
-  'animal', 'ankle', 'announce', 'annual', 'another', 'answer', 'antenna', 'antique',
-  'anxiety', 'any', 'apart', 'apology', 'appear', 'apple', 'approve', 'april',
-  'arch', 'arctic', 'area', 'arena', 'argue', 'arm', 'armed', 'armor',
-  'army', 'around', 'arrange', 'arrest', 'arrive', 'arrow', 'art', 'artefact',
-  'artist', 'artwork', 'ask', 'aspect', 'assault', 'asset', 'assist', 'assume',
-  'asthma', 'athlete', 'atom', 'attack', 'attend', 'attitude', 'attract', 'auction',
-  'audit', 'august', 'aunt', 'author', 'auto', 'autumn', 'average', 'avocado',
-  'avoid', 'awake', 'aware', 'away', 'awesome', 'awful', 'awkward', 'axis'
-];
+// Load the complete BIP-39 wordlist from external JSON file
+const WORDLIST_PATH = path.join(__dirname, 'bip39-wordlist.json');
+let BIP39_WORDLIST;
+
+try {
+  BIP39_WORDLIST = JSON.parse(fs.readFileSync(WORDLIST_PATH, 'utf8'));
+} catch (error) {
+  console.error('Error loading BIP-39 wordlist:', error.message);
+  process.exit(1);
+}
+
+// Create a Set for O(1) lookups
+const BIP39_SET = new Set(BIP39_WORDLIST);
 
 const CONFIG_PATH = path.join(__dirname, '..', '.secretscanrc.json');
 
@@ -36,9 +33,9 @@ function loadConfig() {
   }
 }
 
-// Check if word is in BIP-39 wordlist
+// Check if word is in BIP-39 wordlist (using Set for O(1) lookup)
 function isBip39Word(word) {
-  return BIP39_WORDLIST.includes(word.toLowerCase());
+  return BIP39_SET.has(word.toLowerCase());
 }
 
 // Detect potential mnemonic sequences
