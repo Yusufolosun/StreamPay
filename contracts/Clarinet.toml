@@ -1,0 +1,21 @@
+[project]
+name = "streampay"
+description = "StreamPay - Recurring payments on Stacks blockchain"
+authors = []
+telemetry = false
+cache_dir = "./.cache"
+requirements = []
+
+[contracts.stream-core]
+path = "contracts/stream-core.clar"
+clarity_version = 2
+epoch = 2.5
+
+[repl.analysis]
+passes = ["check_checker"]
+
+[repl.analysis.check_checker]
+strict = true
+trusted_sender = false
+trusted_caller = false
+callee_filter = false

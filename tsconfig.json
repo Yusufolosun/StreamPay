@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@streampay/sdk": ["packages/sdk/src"],
+      "@streampay/types": ["packages/types/src"],
+      "@streampay/utils": ["packages/utils/src"]
+    }
+  },
+  "references": [
+    { "path": "apps/web" },
+    { "path": "apps/api" },
+    { "path": "packages/sdk" },
+    { "path": "packages/types" },
+    { "path": "packages/utils" }
+  ],
+  "include": [],
+  "exclude": ["node_modules", "dist", "build", ".next"]
+}

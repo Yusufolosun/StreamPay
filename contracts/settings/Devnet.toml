@@ -1,0 +1,15 @@
+[network]
+name = "devnet"
+stacks_node_rpc_address = "http://localhost:20443"
+
+[accounts.deployer]
+mnemonic = "<YOUR_MNEMONIC_HERE>"
+balance = 100_000_000_000_000
+
+[accounts.wallet_1]
+mnemonic = "<YOUR_MNEMONIC_HERE>"
+balance = 100_000_000_000_000
+
+[accounts.wallet_2]
+mnemonic = "<YOUR_MNEMONIC_HERE>"
+balance = 100_000_000_000_000
