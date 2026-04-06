@@ -82,6 +82,7 @@ developer, `develop` adds overhead without any measurable benefit:
 
 ## Naming Rules
 
+- Always include the task number in the prefix (e.g., `feat/08-stream-core-contract`)
 - Use lowercase letters, numbers, and hyphens only — no slashes beyond the prefix
 - Keep descriptions short and descriptive (3–5 words max after the task number)
 - Link the branch name to a GitHub issue or Linear task number where possible
