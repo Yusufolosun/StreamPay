@@ -16,21 +16,21 @@ contracts/**                    @contracts-team
 # ── SDK package ───────────────────────────────────────────────────────────────
 # The public-facing SDK has its own team responsible for API stability,
 # semver, and publication to the npm registry.
-packages/sdk/**                 @streampay-org/sdk-team
+packages/sdk/**                 @sdk-team
 
 # ── Environment config templates ─────────────────────────────────────────────
 # These files define which environment variables the application expects.
 # A change here may indicate a new secret is being introduced — security
 # team must verify no real value has been accidentally included.
-.env.example                    @streampay-org/security-team
-**/*.toml.example               @streampay-org/security-team
+.env.example                    @security-team
+**/*.toml.example               @security-team
 
 # ── Security-sensitive root files ────────────────────────────────────────────
 # The .gitignore is the first line of defence against secret leakage.
 # Any modification must be reviewed by the security team.
-.gitignore                      @streampay-org/security-team
+.gitignore                      @security-team
 
 # ── GitHub configuration ─────────────────────────────────────────────────────
 # Changes to workflow files, action configs, and this CODEOWNERS file itself
 # can affect CI/CD security; require a security-team sign-off.
-.github/**                      @streampay-org/security-team
+.github/**                      @security-team
