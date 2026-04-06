@@ -1,0 +1,14 @@
+{
+  "name": "streampay",
+  "version": "0.0.0",
+  "private": true,
+  "description": "StreamPay — Stacks Blockchain Recurring Payments Platform",
+  "scripts": {},
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
