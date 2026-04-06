@@ -93,5 +93,5 @@ developer, `develop` adds overhead without any measurable benefit:
 | Target branch | Strategy     | Rationale                                      |
 |---------------|--------------|------------------------------------------------|
 | `main`        | Squash merge | Clean, linear history on the production branch |
-| `develop`     | Merge commit | Preserves feature context in the integration log |
-| `security/*`  | Squash merge | Single focused commit on both `main` and `develop` |
+| `security/*`  | Squash merge | Single focused commit on `main`                |
+| `chore/*`     | Squash merge | Single unified commit for housekeeping tasks   |
