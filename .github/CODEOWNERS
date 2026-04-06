@@ -11,7 +11,7 @@
 # ── Clarity smart contracts ───────────────────────────────────────────────────
 # Any change inside the contracts/ workspace requires review from the
 # contracts team to guard against logic bugs and mainnet deployment risk.
-contracts/**                    @streampay-org/contracts-team
+contracts/**                    @contracts-team
 
 # ── SDK package ───────────────────────────────────────────────────────────────
 # The public-facing SDK has its own team responsible for API stability,
