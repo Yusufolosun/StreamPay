@@ -5,6 +5,7 @@
   "description": "StreamPay — Stacks Blockchain Recurring Payments Platform",
   "scripts": {
     "prepare": "husky",
+    "test:hooks": "node scripts/__tests__/hooks.test.js",
     "scan:secrets": "node scripts/scan-secrets.js",
     "guard:env": "node scripts/guard-env-files.js",
     "guard:toml": "node scripts/guard-mainnet-toml.js",
