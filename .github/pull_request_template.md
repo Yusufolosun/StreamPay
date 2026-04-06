@@ -32,8 +32,6 @@
 - [ ] `clarinet check` passes with no errors or warnings
 - [ ] `clarinet test` passes (all unit tests green)
 - [ ] Frontend builds without errors (`npm run build` or equivalent)
-- [ ] Backend API tests pass (`npm test` in `apps/api`)
-- [ ] SDK tests pass (`npm test` in `packages/sdk`)
 
 ---
 
