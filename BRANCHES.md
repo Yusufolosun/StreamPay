@@ -51,14 +51,13 @@ developer, `develop` adds overhead without any measurable benefit:
   - `feat/56-frontend-dashboard`
 
 ### `fix/<task-number>-<short-description>`
-- **Purpose**: Bug fixes found in `develop` or reported against a released
-  version. Hotfixes targeting `main` directly must also be back-merged into
-  `develop`.
-- **Branch from**: `develop` (or `main` for hotfixes)
-- **Merge into**: `develop` (and `main` for hotfixes) via pull request
+- **Purpose**: Bug fixes. All bug fixes — whether hotfixes or planned — target
+  `main` directly. There is no `develop` to back-merge into.
+- **Branch from**: `main`
+- **Merge into**: `main` via pull request
 - **Examples**:
+  - `fix/15-claim-arithmetic`
   - `fix/91-escrow-release-overflow`
-  - `fix/103-api-rate-limit`
 
 ### `security/<short-description>`
 - **Purpose**: Security patches. These follow a fast-track review process:
