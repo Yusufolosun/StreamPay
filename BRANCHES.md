@@ -7,6 +7,24 @@ Deviating from this model requires a deliberate decision and an update to this f
 
 ---
 
+## Design Rationale
+
+A `develop` integration branch is standard in team environments where multiple
+developers need a shared staging area before code reaches `main`. For a solo
+developer, `develop` adds overhead without any measurable benefit:
+
+- There is no coordination problem to solve — one developer knows the full state
+  of the codebase at all times.
+- A second long-lived branch doubles the bookkeeping: every commit must
+  eventually land on `main`, and merge conflicts are resolved twice.
+- The CI pipeline would need to run against two branches instead of one,
+  consuming extra CI minutes with zero additional safety.
+- **Decision**: All short-lived branches merge directly to `main`. This is the
+  simplest model that still enforces review (via pull requests) and keeps
+  history clean and auditable.
+
+---
+
 ## Permanent Branches
 
 ### `main`
