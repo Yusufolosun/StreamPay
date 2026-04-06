@@ -69,6 +69,15 @@ developer, `develop` adds overhead without any measurable benefit:
   - `security/46-api-hardening`
   - `security/rotate-npm-token`
 
+### `chore/<task-number>-<short-description>`
+- **Purpose**: Housekeeping, configuration, documentation, or dependency updates
+  that do not change production code logic.
+- **Branch from**: `main`
+- **Merge into**: `main` via pull request (or direct push if trivial)
+- **Examples**:
+  - `chore/04-monorepo-scaffold`
+  - `chore/19-update-eslint-rules`
+
 ---
 
 ## Naming Rules
