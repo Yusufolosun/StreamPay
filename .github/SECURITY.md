@@ -18,6 +18,12 @@ you explicitly ask to be credited in the advisory.
 
 ---
 
+## Bug Bounty
+
+Currently, StreamPay does not operate a paid bug bounty program. We deeply appreciate researchers who take the time to responsibly disclose vulnerabilities to us, and we are happy to publicly credit you in our advisories.
+
+---
+
 ## Scope
 
 The following components are in scope for responsible disclosure:
