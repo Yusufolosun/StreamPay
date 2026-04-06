@@ -38,15 +38,6 @@ developer, `develop` adds overhead without any measurable benefit:
   - Status checks (CI, Clarinet tests) must pass before merge
   - Branch history must be linear (squash or rebase merges only)
 
-### `develop`
-- **Purpose**: Integration branch. All feature and fix branches are merged here
-  first so the work is validated together before promoting to `main`.
-- **Protection rules**:
-  - Requires a pull request
-  - CI and Clarinet tests must pass
-  - Direct push by maintainers is allowed only for trivial merge conflict
-    resolutions — use sparingly
-
 ---
 
 ## Short-lived Branch Prefixes
