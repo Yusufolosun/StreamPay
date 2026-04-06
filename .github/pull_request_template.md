@@ -24,8 +24,6 @@
 - [ ] No secrets, private keys, mnemonics, or API tokens appear anywhere in the diff
 - [ ] The `.gitignore` was consulted — any new sensitive file patterns are covered
 - [ ] No `.env` file (or variant) was added or modified; only `.env.example` may be changed
-- [ ] Dependencies added in this PR have been checked for known vulnerabilities (`npm audit`)
-- [ ] Contract changes do not expose a new attack surface (reentrancy, overflow, access control)
 
 ---
 
