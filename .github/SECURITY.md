@@ -40,7 +40,7 @@ The following are **out of scope**:
 
 ## Response Timeline
 
-| Milestone | Commitment |
+| **Milestone** | **Commitment** |
 |-----------|------------|
 | Initial acknowledgement | Within **48 hours** of receiving the report |
 | Triage and severity assessment | Within **5 business days** |
