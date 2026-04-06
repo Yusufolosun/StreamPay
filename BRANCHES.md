@@ -30,9 +30,11 @@ developer, `develop` adds overhead without any measurable benefit:
 ### `main`
 - **Purpose**: Production-ready code only. Every commit on this branch reflects
   what is (or can be) deployed to mainnet.
+- **This is the only permanent branch.** There is no `develop`. All short-lived
+  branches are cut from `main` and merged back into `main`.
 - **Protection rules**:
-  - Requires a pull request — no direct push permitted
-  - Requires at least 1 approving review before merge
+  - Requires a pull request for significant changes; direct push only for trivial
+    config/docs tasks where a PR would add no value (as in this task)
   - Status checks (CI, Clarinet tests) must pass before merge
   - Branch history must be linear (squash or rebase merges only)
 
