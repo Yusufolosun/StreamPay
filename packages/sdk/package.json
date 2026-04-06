@@ -1,0 +1,79 @@
+{
+  "name": "@streampay/sdk",
+  "version": "0.1.0",
+  "description": "StreamPay SDK for interacting with payment streams on Stacks",
+  "author": "StreamPay Team",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc --project tsconfig.esm.json",
+    "build:cjs": "tsc --project tsconfig.cjs.json",
+    "build:types": "tsc --project tsconfig.types.json",
+    "dev": "tsc --watch --project tsconfig.esm.json",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@stacks/connect": "^7.0.0",
+    "@stacks/transactions": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@stacks/connect": ">=7.0.0",
+    "@stacks/transactions": ">=6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@stacks/connect": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "stacks",
+    "blockchain",
+    "payments",
+    "recurring",
+    "streams",
+    "defi"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/streampay/streampay.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/streampay/streampay/issues"
+  },
+  "homepage": "https://github.com/streampay/streampay#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
