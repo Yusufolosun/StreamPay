@@ -59,14 +59,14 @@ developer, `develop` adds overhead without any measurable benefit:
   - `fix/15-claim-arithmetic`
   - `fix/91-escrow-release-overflow`
 
-### `security/<short-description>`
-- **Purpose**: Security patches. These follow a fast-track review process:
-  a single reviewer from `@security-team` can approve and merge without
-  waiting for the standard CI queue where a delay would increase exposure.
+### `security/<task-number>-<short-description>`
+- **Purpose**: Security patches. Fast-track review: a single review is
+  sufficient. Do not delay merging a critical patch while waiting for a full
+  CI queue — speed of deployment matters for security fixes.
 - **Branch from**: `main` (patches must reach production as fast as possible)
-- **Merge into**: `main` then back-merged into `develop`
+- **Merge into**: `main` via pull request (fast-tracked, no back-merge needed)
 - **Examples**:
-  - `security/patch-mnemonic-exposure`
+  - `security/46-api-hardening`
   - `security/rotate-npm-token`
 
 ---
