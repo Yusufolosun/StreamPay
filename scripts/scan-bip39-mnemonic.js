@@ -1,0 +1,130 @@
+#!/usr/bin/env node
+/**
+ * BIP-39 Mnemonic Sequence Scanner
+ * Detects potential BIP-39 seed phrases in staged files
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Load the complete BIP-39 wordlist from external JSON file
+const WORDLIST_PATH = path.join(__dirname, 'bip39-wordlist.json');
+let BIP39_WORDLIST;
+
+try {
+  BIP39_WORDLIST = JSON.parse(fs.readFileSync(WORDLIST_PATH, 'utf8'));
+} catch (error) {
+  console.error('Error loading BIP-39 wordlist:', error.message);
+  process.exit(1);
+}
+
+// Create a Set for O(1) lookups
+const BIP39_SET = new Set(BIP39_WORDLIST);
+
+const CONFIG_PATH = path.join(__dirname, '..', '.secretscanrc.json');
+
+function loadConfig() {
+  try {
+    const configContent = fs.readFileSync(CONFIG_PATH, 'utf8');
+    return JSON.parse(configContent);
+  } catch (error) {
+    console.error('Error loading .secretscanrc.json:', error.message);
+    process.exit(1);
+  }
+}
+
+// Check if word is in BIP-39 wordlist (using Set for O(1) lookup)
+function isBip39Word(word) {
+  return BIP39_SET.has(word.toLowerCase());
+}
+
+// Detect potential mnemonic sequences
+function detectMnemonicSequence(text, wordCounts) {
+  const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  const findings = [];
+  
+  for (const targetCount of wordCounts) {
+    for (let i = 0; i <= words.length - targetCount; i++) {
+      const sequence = words.slice(i, i + targetCount);
+      const bip39Matches = sequence.filter(isBip39Word).length;
+      
+      // If 90%+ of words match BIP-39 wordlist, flag as potential mnemonic
+      if (bip39Matches >= targetCount * 0.9) {
+        findings.push({
+          wordCount: targetCount,
+          matchRatio: bip39Matches / targetCount,
+          preview: sequence.slice(0, 3).join(' ') + '...'
+        });
+      }
+    }
+  }
+  
+  return findings;
+}
+
+function scanFileForMnemonics(filePath, wordCounts) {
+  const findings = [];
+  
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const lines = content.split('\n');
+    
+    lines.forEach((line, index) => {
+      const detected = detectMnemonicSequence(line, wordCounts);
+      detected.forEach(d => {
+        findings.push({
+          line: index + 1,
+          wordCount: d.wordCount,
+          preview: d.preview
+        });
+      });
+    });
+  } catch (error) {
+    // Skip unreadable files
+  }
+  
+  return findings;
+}
+
+function main() {
+  const config = loadConfig();
+  
+  if (!config.patterns.bip39Mnemonic.enabled) {
+    process.exit(0);
+  }
+  
+  const wordCounts = config.patterns.bip39Mnemonic.wordCounts || [12, 24];
+  const files = process.argv.slice(2);
+  
+  if (files.length === 0) {
+    process.exit(0);
+  }
+  
+  let hasViolations = false;
+  
+  for (const file of files) {
+    const findings = scanFileForMnemonics(file, wordCounts);
+    
+    if (findings.length > 0) {
+      hasViolations = true;
+      console.error('\n' + String.fromCharCode(10060) + ' BLOCKED: Potential BIP-39 mnemonic detected in ' + file);
+      findings.forEach(finding => {
+        console.error('   Line ' + finding.line + ': ' + finding.wordCount + '-word sequence starting with "' + finding.preview + '"');
+      });
+    }
+  }
+  
+  if (hasViolations) {
+    console.error('\n' + String.fromCharCode(128274) + ' Mnemonic seed phrases must not be committed.');
+    console.error('   Remove the seed phrase or use environment variables.\n');
+    process.exit(1);
+  }
+  
+  process.exit(0);
+}
+
+module.exports = { scanFileForMnemonics, detectMnemonicSequence };
+
+if (require.main === module) {
+  main();
+}

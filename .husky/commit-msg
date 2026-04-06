@@ -1,0 +1,4 @@
+# StreamPay Commit Message Hook
+# Validates conventional commits format
+
+node scripts/validate-commit-msg.js $1
