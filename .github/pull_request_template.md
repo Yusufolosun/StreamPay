@@ -13,9 +13,7 @@
 - [ ] `feat`     — new feature
 - [ ] `fix`      — bug fix
 - [ ] `security` — security patch
-- [ ] `docs`     — documentation only
-- [ ] `chore`    — build process, tooling, or dependency update
-- [ ] `refactor` — code change that neither fixes a bug nor adds a feature
+- [ ] `chore`    — build process, tooling, documentation, or dependency update
 
 ---
 
