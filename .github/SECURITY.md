@@ -27,7 +27,6 @@ The following components are in scope for responsible disclosure:
 | **Smart contracts** | All Clarity contracts under `contracts/` deployed on Stacks mainnet or testnet |
 | **SDK** | The `packages/sdk` npm package and any helper libraries it exposes |
 | **Frontend** | The Next.js application under `apps/web` (XSS, wallet interaction flaws, CSP bypass) |
-| **Backend API** | The Node.js API under `apps/api` (authentication, authorisation, injection) |
 
 The following are **out of scope**:
 
