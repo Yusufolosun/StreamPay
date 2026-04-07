@@ -1,11 +1,4 @@
-// TODO: Implement root layout with providers
-// - Add Stacks wallet provider
-// - Add global styles
-// - Add metadata configuration
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
-}
+// TODO: Implement Next.js App Router root layout.
+// TODO: Add providers, metadata, and global UI shell.
+
+export {};
