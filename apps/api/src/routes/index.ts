@@ -1,6 +1,4 @@
-// TODO: Export route handlers
-// - /api/streams - Stream management endpoints
-// - /api/payments - Payment processing endpoints
-// - /api/health - Health check endpoint
+// TODO: Export API route modules from this barrel file.
+// TODO: Add streams, payments, and health endpoints.
 
 export {};

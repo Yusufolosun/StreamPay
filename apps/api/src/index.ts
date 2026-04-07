@@ -1,7 +1,4 @@
-// TODO: Implement Express server entry point
-// - Configure middleware (cors, helmet, rate limiting)
-// - Mount API routes
-// - Add error handling middleware
-// - Connect to Stacks node for transaction monitoring
+// TODO: Implement API server bootstrap.
+// TODO: Wire middleware, routes, and error handling.
 
 export {};
