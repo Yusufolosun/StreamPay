@@ -5,3 +5,6 @@
 ;; Author: <AUTHOR_NAME>
 ;; Deployment Date: <YYYY-MM-DD>
 ;; Implements: N/A
+;; Dependencies: stream-core, stream-nft
+;; Security Notes:
+;; - <SECURITY_REVIEW_PENDING>
