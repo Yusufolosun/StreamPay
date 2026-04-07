@@ -3,7 +3,7 @@ name = "devnet"
 stacks_node_rpc_address = "http://localhost:20443"
 
 [accounts.deployer]
-mnemonic = "<YOUR_MNEMONIC_HERE>"
+mnemonic = "${DEPLOYER_MNEMONIC}"
 balance = 100_000_000_000_000
 
 [accounts.wallet_1]
