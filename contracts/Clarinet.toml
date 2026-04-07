@@ -1,7 +1,7 @@
 [project]
 name = "streampay"
-description = "StreamPay - Recurring payments on Stacks blockchain"
-authors = []
+description = "StreamPay Clarinet 2.x scaffold for recurring payments on Stacks"
+authors = ["StreamPay Core Team"]
 telemetry = false
 cache_dir = "./.cache"
 requirements = []
