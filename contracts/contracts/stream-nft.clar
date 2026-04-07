@@ -5,3 +5,6 @@
 ;; Author: <AUTHOR_NAME>
 ;; Deployment Date: <YYYY-MM-DD>
 ;; Implements: SIP-009
+;; Dependencies: stream-core, stream-conditions
+;; Security Notes:
+;; - <SECURITY_REVIEW_PENDING>
