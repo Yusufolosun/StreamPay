@@ -1,18 +1,31 @@
 [project]
 name = "streampay"
-description = "StreamPay - Recurring payments on Stacks blockchain"
-authors = []
+description = "StreamPay Clarinet 2.x scaffold for recurring payments on Stacks"
+authors = ["StreamPay Core Team"]
 telemetry = false
 cache_dir = "./.cache"
 requirements = []
+
+[accounts.deployer]
+mnemonic = "${DEPLOYER_MNEMONIC}"
+balance = 100_000_000_000_000
 
 [contracts.stream-core]
 path = "contracts/stream-core.clar"
 clarity_version = 2
 epoch = 2.5
 
-[repl.analysis]
-passes = ["check_checker"]
+[contracts.stream-conditions]
+path = "contracts/stream-conditions.clar"
+clarity_version = 2
+epoch = 2.5
+
+[contracts.stream-nft]
+path = "contracts/stream-nft.clar"
+clarity_version = 2
+epoch = 2.5
+
+analysis.passes = ["check_checker"]
 
 [repl.analysis.check_checker]
 strict = true

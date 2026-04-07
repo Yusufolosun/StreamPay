@@ -1,4 +1,8 @@
-// TODO: Add Clarinet-based contract tests for stream-core.
-// TODO: Cover creation, claims, cancellation, and authorization paths.
+import { describe } from "@hirosystems/clarinet-sdk";
 
-export {};
+describe("stream-core", () => {
+	// TODO: add setup for stream-core contract tests
+	// TODO: add stream creation and cancellation scenarios
+	// TODO: add rate accrual and fee-path assertions
+	// TODO: add authorization and edge-case coverage
+});

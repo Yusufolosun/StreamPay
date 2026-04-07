@@ -37,6 +37,8 @@ settings/
 # NOTE: devnet deployment receipts are generally safe to track, but mainnet and
 # testnet receipts should be carefully reviewed before committing, as they may
 # reference funded wallet addresses and deployment keys.
+# mainnet receipts reference funded wallets - never commit
+contracts/deployments/mainnet.yaml
 **/deployments/mainnet*
 **/deployments/testnet*
 
