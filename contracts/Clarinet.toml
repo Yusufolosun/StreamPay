@@ -15,6 +15,16 @@ path = "contracts/stream-core.clar"
 clarity_version = 2
 epoch = 2.5
 
+[contracts.stream-conditions]
+path = "contracts/stream-conditions.clar"
+clarity_version = 2
+epoch = 2.5
+
+[contracts.stream-nft]
+path = "contracts/stream-nft.clar"
+clarity_version = 2
+epoch = 2.5
+
 analysis.passes = ["check_checker"]
 
 [repl.analysis.check_checker]
