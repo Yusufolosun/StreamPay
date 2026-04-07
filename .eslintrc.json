@@ -39,7 +39,15 @@
     {
       "files": ["packages/sdk/**/*.ts"],
       "rules": {
-        "no-console": "error"
+        "no-console": "off",
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "console",
+            "property": "log",
+            "message": "Use structured logging instead of console.log in @streampay/sdk."
+          }
+        ]
       }
     },
     {
