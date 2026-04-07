@@ -1,7 +1,4 @@
-// TODO: Export middleware functions
-// - Authentication middleware
-// - Request validation middleware
-// - Rate limiting middleware
-// - Error handling middleware
+// TODO: Export API middleware modules from this barrel file.
+// TODO: Add auth, validation, and rate-limit middleware.
 
 export {};

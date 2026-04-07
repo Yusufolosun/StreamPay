@@ -2,20 +2,6 @@
   "$schema": "https://json.schemastore.org/prettierrc",
   "singleQuote": true,
   "tabWidth": 2,
-  "useTabs": false,
   "printWidth": 100,
-  "trailingComma": "es5",
-  "semi": true,
-  "bracketSpacing": true,
-  "arrowParens": "always",
-  "endOfLine": "lf",
-  "overrides": [
-    {
-      "files": "*.md",
-      "options": {
-        "printWidth": 80,
-        "proseWrap": "always"
-      }
-    }
-  ]
+  "trailingComma": "all"
 }
