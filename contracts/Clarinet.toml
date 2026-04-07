@@ -15,8 +15,7 @@ path = "contracts/stream-core.clar"
 clarity_version = 2
 epoch = 2.5
 
-[repl.analysis]
-passes = ["check_checker"]
+analysis.passes = ["check_checker"]
 
 [repl.analysis.check_checker]
 strict = true
