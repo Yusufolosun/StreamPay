@@ -1,9 +1,6 @@
 {
   "name": "@streampay/utils",
   "version": "0.1.0",
-  "description": "Shared pure utilities for StreamPay",
-  "author": "StreamPay Team",
-  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -11,30 +8,17 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./package.json": "./package.json"
+      "import": "./dist/index.js"
+    }
   },
   "files": [
     "dist",
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "lint": "eslint src --ext .ts",
+    "build": "echo \"TODO: build shared utilities\"",
+    "lint": "echo \"TODO: add utils lint\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "clean": "rimraf dist"
-  },
-  "devDependencies": {
-    "rimraf": "^5.0.0",
-    "typescript": "^5.4.0",
-    "vitest": "^1.6.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "test": "echo \"TODO: add utils package tests\""
   }
 }
