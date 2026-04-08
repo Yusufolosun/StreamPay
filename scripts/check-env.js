@@ -29,8 +29,8 @@ const ENV_EXAMPLE_PATHS = [
   'packages/sdk/.env.example',
 ];
 
-// Required warning banner pattern
-const WARNING_BANNER_PATTERN = /WARNING.*Copy to \.env\.local.*Never commit/i;
+// Required warning banner pattern (matches the structured banner format)
+const WARNING_BANNER_PATTERN = /WARNING.*\.env\.local.*[Nn]ever commit/is;
 
 // Patterns that might indicate real values
 const SUSPICIOUS_PATTERNS = [
