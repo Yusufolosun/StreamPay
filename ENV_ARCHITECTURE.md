@@ -92,7 +92,7 @@ This document defines the environment variable architecture for the StreamPay mo
 
 ## Environment Promotion Path
 
-StreamPay follows a three-stage environment promotion workflow:
+StreamPay follows a three-stage environment promotion workflow. Each stage has specific requirements and variable values.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
