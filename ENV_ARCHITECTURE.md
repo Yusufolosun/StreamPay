@@ -183,7 +183,7 @@ StreamPay follows a three-stage environment promotion workflow. Each stage has s
 
 ## Secret Rotation Checklist
 
-Use this checklist when rotating secrets. Each secret type has different procedures and impacts.
+Use this checklist when rotating secrets. Each secret type has different procedures, impacts, and downtime considerations. Plan rotations during low-traffic periods.
 
 ### JWT_SECRET Rotation
 
