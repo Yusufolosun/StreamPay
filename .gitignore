@@ -325,10 +325,10 @@ docker-compose.override.yaml
 !**/scripts/**
 !**/__tests__/**
 !**/hooks/**
-!**/utils/**
-!**/helpers/**
-!**/types/**
-!**/config/**
+!**/src/utils/**
+!**/src/helpers/**
+!**/src/types/**
+!**/src/config/**
 !**/public/**
 !**/docs/**
 !**/migrations/**
