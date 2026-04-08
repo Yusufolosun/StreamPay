@@ -63,6 +63,18 @@ This document defines the environment variable architecture for the StreamPay mo
 | `SDK_TEST_CONTRACT_ADDRESS` | Test | Test target contract | `ST1XXX.stream-core` |
 | `SDK_TEST_PRIVATE_KEY` | Test | Testnet-only signing key | `<64-char-hex>` |
 
+### packages/types
+
+| Variable | Required | Description | Example Format |
+|----------|----------|-------------|----------------|
+| *(none currently)* | — | TypeScript types package (no runtime config) | — |
+
+### packages/utils
+
+| Variable | Required | Description | Example Format |
+|----------|----------|-------------|----------------|
+| *(none currently)* | — | Utility functions package (no runtime config) | — |
+
 ---
 
 ## Naming Conventions
