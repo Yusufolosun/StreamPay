@@ -27,6 +27,8 @@ const ENV_EXAMPLE_PATHS = [
   'apps/api/.env.example',
   'contracts/.env.example',
   'packages/sdk/.env.example',
+  'packages/types/.env.example',
+  'packages/utils/.env.example',
 ];
 
 // Required warning banner pattern (matches the structured banner format)
