@@ -27,6 +27,8 @@ const ENV_FILES = [
   { source: 'apps/api/.env.example', target: 'apps/api/.env.local' },
   { source: 'contracts/.env.example', target: 'contracts/.env.local' },
   { source: 'packages/sdk/.env.example', target: 'packages/sdk/.env.local' },
+  { source: 'packages/types/.env.example', target: 'packages/types/.env.local' },
+  { source: 'packages/utils/.env.example', target: 'packages/utils/.env.local' },
 ];
 
 function copyEnvFile(source, target) {
