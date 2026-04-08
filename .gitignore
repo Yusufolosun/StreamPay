@@ -71,6 +71,20 @@ contracts/deployments/mainnet.yaml
 !.env.example
 !.env.template
 
+# Ensure .env files in workspaces are still ignored (override re-include patterns)
+apps/**/.env
+apps/**/.env.*
+!apps/**/.env.example
+!apps/**/.env.template
+contracts/.env
+contracts/.env.*
+!contracts/.env.example
+!contracts/.env.template
+packages/**/.env
+packages/**/.env.*
+!packages/**/.env.example
+!packages/**/.env.template
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. Private Keys and Cryptographic Material
@@ -300,7 +314,9 @@ docker-compose.override.yaml
 # Re-include source code files that might match patterns (e.g. token-related modules)
 !**/src/**
 !**/lib/**
-!**/contracts/**
+!**/contracts/*.clar
+!**/contracts/*.toml
+!**/contracts/README.md
 !**/components/**
 !**/pages/**
 !**/app/**
