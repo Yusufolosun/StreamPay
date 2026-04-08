@@ -24,7 +24,8 @@
     "guard:env": "node scripts/guard-env-files.js",
     "guard:toml": "node scripts/guard-mainnet-toml.js",
     "guard:size": "node scripts/guard-large-files.js",
-    "check:env": "node scripts/check-env.js"
+    "check:env": "node scripts/check-env.js",
+    "setup:env": "node scripts/setup-env.js"
   },
   "lint-staged": {
     "*": [
