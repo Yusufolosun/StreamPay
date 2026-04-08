@@ -288,13 +288,25 @@ npm run lint:secrets
 ### Copy Commands for New Developers
 
 ```bash
-# Set up all .env.local files from templates
+# Option 1: Use the setup script (recommended)
+npm run setup:env
+
+# Option 2: Manual copy
 cp apps/web/.env.example apps/web/.env.local
 cp apps/api/.env.example apps/api/.env.local
 cp contracts/.env.example contracts/.env.local
 cp packages/sdk/.env.example packages/sdk/.env.local
+cp packages/types/.env.example packages/types/.env.local
+cp packages/utils/.env.example packages/utils/.env.local
 
 # Then fill in values in each .env.local file
+```
+
+### Validate Environment Configuration
+
+```bash
+# Check all .env.example files are valid
+npm run check:env
 ```
 
 ### Environment Variable Loading Order (Next.js)
