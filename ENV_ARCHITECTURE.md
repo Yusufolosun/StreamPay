@@ -69,6 +69,8 @@ This document defines the environment variable architecture for the StreamPay mo
 
 ### Prefix Rules
 
+Understanding prefixes is critical for security. The wrong prefix can expose secrets to the browser.
+
 | Prefix | Scope | Exposure | Usage |
 |--------|-------|----------|-------|
 | `NEXT_PUBLIC_` | Frontend | **Public** (bundled in JS) | Browser-safe config only |
