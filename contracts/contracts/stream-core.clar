@@ -59,3 +59,8 @@
 	{ sender: principal }
 	{ stream-ids: (list 50 uint) }
 )
+
+(define-map recipient-streams
+	{ recipient: principal }
+	{ stream-ids: (list 50 uint) }
+)
