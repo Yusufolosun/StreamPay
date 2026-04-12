@@ -46,3 +46,11 @@
 		created-at: uint
 	}
 )
+
+(define-map stream-balances
+	{ stream-id: uint }
+	{
+		last-checkpoint-block: uint,
+		last-checkpoint-balance: uint
+	}
+)
