@@ -64,3 +64,5 @@
 	{ recipient: principal }
 	{ stream-ids: (list 50 uint) }
 )
+
+(define-data-var stream-id-nonce uint u0)
