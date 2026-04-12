@@ -14,3 +14,7 @@
 (define-constant MAX-FEE-BPS u100)
 (define-constant MAX-STREAM-DURATION u12614400)
 (define-constant MIN-STREAM-AMOUNT u1000)
+
+(define-constant err-not-authorised (err u1000))
+(define-constant err-stream-not-found (err u1001))
+(define-constant err-stream-already-exists (err u1002))
