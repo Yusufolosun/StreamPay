@@ -81,6 +81,9 @@
 ;; kept as a singleton data-var to guarantee monotonic ids without scanning maps
 ;; invariant: value starts at u0 and only increases by one per newly created stream
 (define-data-var stream-id-nonce uint u0)
+;; stores the active protocol fee in basis points for fee calculations across all streams
+;; mutable variable allows governance updates without redeploying contract code
+;; invariant: protocol-fee-bps <= MAX-FEE-BPS at all times
 (define-data-var protocol-fee-bps uint PROTOCOL-FEE-BPS)
 (define-data-var total-volume-streamed uint u0)
 (define-data-var is-paused bool false)
