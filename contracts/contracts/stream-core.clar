@@ -69,6 +69,9 @@
 	{ stream-ids: (list 50 uint) }
 )
 
+;; stores reverse index of stream ids received by each recipient for inbox-like retrieval
+;; mirrors sender-streams structure to keep read paths symmetric and predictable
+;; invariant: list length <= 50 and each stream-id in the list maps to a stream whose recipient equals the key principal
 (define-map recipient-streams
 	{ recipient: principal }
 	{ stream-ids: (list 50 uint) }
