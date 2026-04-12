@@ -68,3 +68,4 @@
 (define-data-var stream-id-nonce uint u0)
 (define-data-var protocol-fee-bps uint PROTOCOL-FEE-BPS)
 (define-data-var total-volume-streamed uint u0)
+(define-data-var is-paused bool false)
