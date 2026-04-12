@@ -77,6 +77,9 @@
 	{ stream-ids: (list 50 uint) }
 )
 
+;; stores the next stream identifier nonce used to mint unique stream ids
+;; kept as a singleton data-var to guarantee monotonic ids without scanning maps
+;; invariant: value starts at u0 and only increases by one per newly created stream
 (define-data-var stream-id-nonce uint u0)
 (define-data-var protocol-fee-bps uint PROTOCOL-FEE-BPS)
 (define-data-var total-volume-streamed uint u0)
