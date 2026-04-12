@@ -61,6 +61,9 @@
 	}
 )
 
+;; stores reverse index of stream ids created by each sender for wallet and analytics queries
+;; capped list keeps storage bounded and makes cardinality checks explicit at write time
+;; invariant: list length <= 50 and each stream-id in the list maps to a stream whose sender equals the key principal
 (define-map sender-streams
 	{ sender: principal }
 	{ stream-ids: (list 50 uint) }
