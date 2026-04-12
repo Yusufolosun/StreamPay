@@ -54,3 +54,8 @@
 		last-checkpoint-balance: uint
 	}
 )
+
+(define-map sender-streams
+	{ sender: principal }
+	{ stream-ids: (list 50 uint) }
+)
