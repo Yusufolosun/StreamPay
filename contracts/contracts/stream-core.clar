@@ -18,3 +18,6 @@
 (define-constant err-not-authorised (err u1000))
 (define-constant err-stream-not-found (err u1001))
 (define-constant err-stream-already-exists (err u1002))
+(define-constant err-invalid-amount (err u1003))
+(define-constant err-invalid-rate (err u1004))
+(define-constant err-invalid-recipient (err u1005))
