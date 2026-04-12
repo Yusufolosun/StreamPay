@@ -21,3 +21,6 @@
 (define-constant err-invalid-amount (err u1003))
 (define-constant err-invalid-rate (err u1004))
 (define-constant err-invalid-recipient (err u1005))
+(define-constant err-stream-paused (err u1006))
+(define-constant err-stream-active (err u1007))
+(define-constant err-insufficient-balance (err u1008))
