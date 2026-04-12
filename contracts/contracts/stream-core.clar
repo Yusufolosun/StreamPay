@@ -29,3 +29,20 @@
 (define-constant err-stream-expired (err u1011))
 (define-constant err-invalid-duration (err u1012))
 (define-constant err-too-many-streams (err u1013))
+
+(define-map streams
+	{ stream-id: uint }
+	{
+		sender: principal,
+		recipient: principal,
+		token-contract: (optional principal),
+		deposit-amount: uint,
+		rate-per-block: uint,
+		start-block: uint,
+		end-block: uint,
+		claimed-amount: uint,
+		is-paused: bool,
+		is-cancelled: bool,
+		created-at: uint
+	}
+)
