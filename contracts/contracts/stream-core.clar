@@ -27,3 +27,5 @@
 (define-constant err-zero-address (err u1009))
 (define-constant err-fee-too-high (err u1010))
 (define-constant err-stream-expired (err u1011))
+(define-constant err-invalid-duration (err u1012))
+(define-constant err-too-many-streams (err u1013))
