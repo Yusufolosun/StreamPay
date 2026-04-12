@@ -30,6 +30,9 @@
 (define-constant err-invalid-duration (err u1012))
 (define-constant err-too-many-streams (err u1013))
 
+;; stores canonical stream state keyed by stream-id so all lifecycle operations read/write one source of truth
+;; uses a single tuple to keep related fields atomically updated and minimise cross-map consistency risk
+;; invariant: sender/recipient are non-zero principals, start-block <= end-block, and claimed-amount <= deposit-amount
 (define-map streams
 	{ stream-id: uint }
 	{
