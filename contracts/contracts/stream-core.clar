@@ -12,3 +12,5 @@
 (define-constant CONTRACT-OWNER tx-sender)
 (define-constant PROTOCOL-FEE-BPS u25)
 (define-constant MAX-FEE-BPS u100)
+(define-constant MAX-STREAM-DURATION u12614400)
+(define-constant MIN-STREAM-AMOUNT u1000)
