@@ -50,6 +50,9 @@
 	}
 )
 
+;; stores derived checkpoint state per stream-id to make incremental accrual and claim math efficient
+;; split from streams so high-frequency balance updates avoid mutating the full metadata tuple
+;; invariant: last-checkpoint-block is monotonic per stream and last-checkpoint-balance never exceeds remaining stream balance
 (define-map stream-balances
 	{ stream-id: uint }
 	{
