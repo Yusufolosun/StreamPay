@@ -8,3 +8,5 @@
 ;; Implements: N/A
 ;; Security Notes:
 ;; - <SECURITY_REVIEW_PENDING>
+
+(define-constant CONTRACT-OWNER tx-sender)
