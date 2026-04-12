@@ -89,4 +89,7 @@
 ;; aggregated counter avoids expensive recomputation from per-stream history
 ;; invariant: total-volume-streamed is monotonic and never decreases
 (define-data-var total-volume-streamed uint u0)
+;; stores global circuit breaker state that can halt mutating stream operations in emergencies
+;; singleton flag enables cheap, consistent guard checks across all public entrypoints
+;; invariant: when true, state-changing stream actions must refuse execution until resumed
 (define-data-var is-paused bool false)
