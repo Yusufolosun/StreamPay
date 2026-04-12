@@ -10,3 +10,5 @@
 ;; - <SECURITY_REVIEW_PENDING>
 
 (define-constant CONTRACT-OWNER tx-sender)
+(define-constant PROTOCOL-FEE-BPS u25)
+(define-constant MAX-FEE-BPS u100)
