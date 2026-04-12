@@ -8,3 +8,88 @@
 ;; Implements: N/A
 ;; Security Notes:
 ;; - <SECURITY_REVIEW_PENDING>
+
+(define-constant CONTRACT-OWNER tx-sender)
+(define-constant PROTOCOL-FEE-BPS u25)
+(define-constant MAX-FEE-BPS u100)
+(define-constant MAX-STREAM-DURATION u12614400)
+(define-constant MIN-STREAM-AMOUNT u1000)
+
+(define-constant err-not-authorised (err u1000))
+(define-constant err-stream-not-found (err u1001))
+(define-constant err-stream-already-exists (err u1002))
+(define-constant err-invalid-amount (err u1003))
+(define-constant err-invalid-rate (err u1004))
+(define-constant err-invalid-recipient (err u1005))
+(define-constant err-stream-paused (err u1006))
+(define-constant err-stream-active (err u1007))
+(define-constant err-insufficient-balance (err u1008))
+(define-constant err-zero-address (err u1009))
+(define-constant err-fee-too-high (err u1010))
+(define-constant err-stream-expired (err u1011))
+(define-constant err-invalid-duration (err u1012))
+(define-constant err-too-many-streams (err u1013))
+
+;; stores canonical stream state keyed by stream-id so all lifecycle operations read/write one source of truth
+;; uses a single tuple to keep related fields atomically updated and minimise cross-map consistency risk
+;; invariant: sender/recipient are non-zero principals, start-block <= end-block, and claimed-amount <= deposit-amount
+(define-map streams
+	{ stream-id: uint }
+	{
+		sender: principal,
+		recipient: principal,
+		token-contract: (optional principal),
+		deposit-amount: uint,
+		rate-per-block: uint,
+		start-block: uint,
+		end-block: uint,
+		claimed-amount: uint,
+		is-paused: bool,
+		is-cancelled: bool,
+		created-at: uint
+	}
+)
+
+;; stores derived checkpoint state per stream-id to make incremental accrual and claim math efficient
+;; split from streams so high-frequency balance updates avoid mutating the full metadata tuple
+;; invariant: last-checkpoint-block is monotonic per stream and last-checkpoint-balance never exceeds remaining stream balance
+(define-map stream-balances
+	{ stream-id: uint }
+	{
+		last-checkpoint-block: uint,
+		last-checkpoint-balance: uint
+	}
+)
+
+;; stores reverse index of stream ids created by each sender for wallet and analytics queries
+;; capped list keeps storage bounded and makes cardinality checks explicit at write time
+;; invariant: list length <= 50 and each stream-id in the list maps to a stream whose sender equals the key principal
+(define-map sender-streams
+	{ sender: principal }
+	{ stream-ids: (list 50 uint) }
+)
+
+;; stores reverse index of stream ids received by each recipient for inbox-like retrieval
+;; mirrors sender-streams structure to keep read paths symmetric and predictable
+;; invariant: list length <= 50 and each stream-id in the list maps to a stream whose recipient equals the key principal
+(define-map recipient-streams
+	{ recipient: principal }
+	{ stream-ids: (list 50 uint) }
+)
+
+;; stores the next stream identifier nonce used to mint unique stream ids
+;; kept as a singleton data-var to guarantee monotonic ids without scanning maps
+;; invariant: value starts at u0 and only increases by one per newly created stream
+(define-data-var stream-id-nonce uint u0)
+;; stores the active protocol fee in basis points for fee calculations across all streams
+;; mutable variable allows governance updates without redeploying contract code
+;; invariant: protocol-fee-bps <= MAX-FEE-BPS at all times
+(define-data-var protocol-fee-bps uint PROTOCOL-FEE-BPS)
+;; stores cumulative historical amount streamed for protocol-level telemetry and audits
+;; aggregated counter avoids expensive recomputation from per-stream history
+;; invariant: total-volume-streamed is monotonic and never decreases
+(define-data-var total-volume-streamed uint u0)
+;; stores global circuit breaker state that can halt mutating stream operations in emergencies
+;; singleton flag enables cheap, consistent guard checks across all public entrypoints
+;; invariant: when true, state-changing stream actions must refuse execution until resumed
+(define-data-var is-paused bool false)
