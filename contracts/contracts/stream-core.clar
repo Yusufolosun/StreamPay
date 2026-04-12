@@ -85,5 +85,8 @@
 ;; mutable variable allows governance updates without redeploying contract code
 ;; invariant: protocol-fee-bps <= MAX-FEE-BPS at all times
 (define-data-var protocol-fee-bps uint PROTOCOL-FEE-BPS)
+;; stores cumulative historical amount streamed for protocol-level telemetry and audits
+;; aggregated counter avoids expensive recomputation from per-stream history
+;; invariant: total-volume-streamed is monotonic and never decreases
 (define-data-var total-volume-streamed uint u0)
 (define-data-var is-paused bool false)
