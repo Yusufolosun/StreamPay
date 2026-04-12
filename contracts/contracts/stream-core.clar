@@ -24,3 +24,6 @@
 (define-constant err-stream-paused (err u1006))
 (define-constant err-stream-active (err u1007))
 (define-constant err-insufficient-balance (err u1008))
+(define-constant err-zero-address (err u1009))
+(define-constant err-fee-too-high (err u1010))
+(define-constant err-stream-expired (err u1011))
