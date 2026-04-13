@@ -338,6 +338,13 @@
 						{ stream-id: stream-id }
 						{ last-checkpoint-block: block-height, last-checkpoint-balance: checkpoint-balance }
 					)
+					(print {
+						event-type: "stream-paused",
+						stream-id: (some stream-id),
+						caller: tx-sender,
+						block-height: block-height,
+						checkpoint-balance: checkpoint-balance
+					})
 					(ok true)
 				)
 			)
