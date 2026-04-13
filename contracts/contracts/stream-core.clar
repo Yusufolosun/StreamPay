@@ -292,6 +292,10 @@
 				(begin
 					(asserts! (> claimable-amount u0) err-insufficient-balance)
 					(try! (as-contract (transfer-funds claimable-amount tx-sender (get recipient stream) (get token-contract stream))))
+					(if (is-none (get token-contract stream))
+						(var-set total-active-stx-deposits (- (var-get total-active-stx-deposits) claimable-amount))
+						true
+					)
 					(map-set streams
 						{ stream-id: stream-id }
 						(merge stream { claimed-amount: updated-claimed })
