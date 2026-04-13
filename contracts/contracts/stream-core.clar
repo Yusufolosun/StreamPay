@@ -383,18 +383,23 @@
 	(if (> stream-id u0)
 		(match (map-get? streams { stream-id: stream-id })
 			stream
-			(some {
-				is-paused: (get is-paused stream),
-				is-cancelled: (get is-cancelled stream),
-				is-expired: (is-stream-expired stream),
-				status: (if (get is-cancelled stream)
-					STATUS-CANCELLED
-					(if (get is-paused stream)
-						STATUS-PAUSED
-						(if (is-stream-expired stream) STATUS-EXPIRED STATUS-ACTIVE)
+			(match (map-get? stream-balances { stream-id: stream-id })
+				balance
+				(some {
+					is-paused: (get is-paused stream),
+					is-cancelled: (get is-cancelled stream),
+					is-expired: (is-stream-expired stream),
+					claimable: (calculate-streamed-amount stream balance),
+					status: (if (get is-cancelled stream)
+						STATUS-CANCELLED
+						(if (get is-paused stream)
+							STATUS-PAUSED
+							(if (is-stream-expired stream) STATUS-EXPIRED STATUS-ACTIVE)
+						)
 					)
-				)
-			})
+				})
+				none
+			)
 			none
 		)
 		none
