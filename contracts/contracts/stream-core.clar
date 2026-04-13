@@ -231,6 +231,8 @@
 					(map-set recipient-streams { recipient: recipient } { stream-ids: updated-recipient-streams })
 					(var-set stream-id-nonce new-stream-id)
 					(var-set total-volume-streamed (+ (var-get total-volume-streamed) deposit-amount))
+					(asserts! (is-some (map-get? streams { stream-id: new-stream-id })) err-stream-not-found)
+					(asserts! (is-eq (var-get stream-id-nonce) new-stream-id) err-stream-not-found)
 					(ok new-stream-id)
 				)
 			)
