@@ -20,3 +20,9 @@
 	is-cancelled: bool,
 	created-at: uint
 })
+
+(define-map arbiter-registry principal {
+	is-registered: bool,
+	total-disputes: uint,
+	stake-amount: uint
+})
