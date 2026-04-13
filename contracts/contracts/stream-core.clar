@@ -173,7 +173,11 @@
 	)
 		(begin
 			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
-			;; Fees remain in-contract and are later withdrawable only by owner within invariant limits.
+			;; STX fees remain in-contract and are later withdrawable only by owner within invariant limits.
+			(match token-contract
+				token (try! (as-contract (contract-call? token transfer fee-amount tx-sender CONTRACT-OWNER none)))
+				true
+			)
 			(ok { fee-amount: fee-amount, net-amount: net-amount })
 		)
 	)
