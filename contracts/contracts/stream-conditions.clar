@@ -243,3 +243,22 @@
 		)
 	)
 )
+
+(define-public (resolve-dispute (milestone-stream-id uint) (milestone-index uint) (release-to-recipient bool))
+	(let (
+		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
+		(arbiter (unwrap! (get arbiter stream) err-invalid-arbiter))
+		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
+		(amount (milestone-amount (get total-amount stream) milestone))
+	)
+		(begin
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (is-eq tx-sender arbiter) err-not-authorized)
+			(asserts! (is-arbiter-registered arbiter) err-invalid-arbiter)
+			(asserts! dispute-active err-dispute-not-active)
+			(asserts! (not (get is-released milestone)) err-milestone-released)
+			(ok amount)
+		)
+	)
+)
