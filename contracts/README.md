@@ -10,6 +10,11 @@ Implemented public functions:
 - pause-stream
 - resume-stream
 - cancel-stream
+- transfer-stream-sender
+- update-protocol-fee
+- emergency-pause-protocol
+- emergency-resume-protocol
+- withdraw-accumulated-fees
 
 Implemented read-only functions:
 - get-stream
@@ -19,6 +24,8 @@ Implemented read-only functions:
 - get-recipient-streams
 - get-protocol-fee-bps
 - get-total-volume
+- get-total-active-stx-deposits
+- get-withdrawable-fees
 
 Implemented private helpers:
 - calculate-streamed-amount
@@ -43,6 +50,7 @@ clarinet check contracts/stream-core.clar
 ```
 
 Project-wide checks with `clarinet check` require valid mnemonic values in Clarinet settings files.
+If `clarinet check` reports invalid mnemonic word-count in `settings/Simnet.toml`, fix the mnemonic first, then re-run project-wide validation.
 
 ## key error responses
 
@@ -58,6 +66,11 @@ Project-wide checks with `clarinet check` require valid mnemonic values in Clari
 - stored stream deposit is net of protocol fee.
 - total-volume tracks cumulative net deposit assigned to streams.
 - claim and cancellation flows update claimed-amount and checkpoint state after transfer.
+
+## event schema notes
+
+- all significant state changes emit `print` tuples with: `event-type`, `stream-id`, `caller`, `block-height`, plus relevant amounts.
+- required event names: `stream-created`, `stream-claimed`, `stream-paused`, `stream-resumed`, `stream-cancelled`, `fee-updated`, `protocol-paused`, `protocol-resumed`, `fees-withdrawn`.
 
 ## security sequencing
 

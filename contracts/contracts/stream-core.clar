@@ -30,6 +30,10 @@
 (define-constant err-stream-expired (err u1011))
 (define-constant err-invalid-duration (err u1012))
 (define-constant err-too-many-streams (err u1013))
+(define-constant err-protocol-paused (err u1014))
+(define-constant err-stream-cancelled (err u1015))
+(define-constant err-invalid-stream-id (err u1016))
+(define-constant err-invalid-withdrawal (err u1017))
 
 ;; stores canonical stream state keyed by stream-id so all lifecycle operations read/write one source of truth
 ;; uses a single tuple to keep related fields atomically updated and minimise cross-map consistency risk
@@ -78,6 +82,22 @@
 	{ stream-ids: (list 50 uint) }
 )
 
+;; EVENT SCHEMA FOR INDEXERS
+;; Every state transition prints a tuple with these canonical fields:
+;; - event-type: (string-ascii 32)
+;; - stream-id: (optional uint)
+;; - caller: principal
+;; - block-height: uint
+;; Additional event-specific amount fields are appended per event.
+;; Required event names:
+;; stream-created, stream-claimed, stream-paused, stream-resumed,
+;; stream-cancelled, fee-updated, protocol-paused, protocol-resumed, fees-withdrawn.
+
+;; CONTRACT INVARIANTS
+;; 1) `total-active-stx-deposits` tracks outstanding STX obligations for non-cancelled STX streams.
+;; 2) Protocol fees are the only STX held by the contract that are not represented by active stream deposits.
+;; 3) Owner fee withdrawals are restricted to `stx-balance - total-active-stx-deposits`.
+
 ;; stores the next stream identifier nonce used to mint unique stream ids
 ;; kept as a singleton data-var to guarantee monotonic ids without scanning maps
 ;; invariant: value starts at u0 and only increases by one per newly created stream
@@ -94,12 +114,11 @@
 ;; singleton flag enables cheap, consistent guard checks across all public entrypoints
 ;; invariant: when true, state-changing stream actions must refuse execution until resumed
 (define-data-var is-paused bool false)
+(define-data-var total-active-stx-deposits uint u0)
 
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
 (define-constant BPS-DENOMINATOR u10000)
-(define-constant err-protocol-paused (err u1014))
-(define-constant err-stream-cancelled (err u1015))
-(define-constant err-invalid-stream-id (err u1016))
+(define-constant STREAM-NFT-CONTRACT .stream-nft)
 (define-constant STATUS-ACTIVE "active")
 (define-constant STATUS-PAUSED "paused")
 (define-constant STATUS-EXPIRED "expired")
@@ -157,7 +176,11 @@
 	)
 		(begin
 			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
-			(try! (as-contract (transfer-funds fee-amount tx-sender CONTRACT-OWNER token-contract)))
+			;; STX fees remain in-contract and are later withdrawable only by owner within invariant limits.
+			(match token-contract
+				token (try! (as-contract (contract-call? token transfer fee-amount tx-sender CONTRACT-OWNER none)))
+				true
+			)
 			(ok { fee-amount: fee-amount, net-amount: net-amount })
 		)
 	)
@@ -214,6 +237,10 @@
 			)
 				(begin
 					(asserts! (> deposit-amount u0) err-invalid-amount)
+					(if (is-none token-contract)
+						(var-set total-active-stx-deposits (+ (var-get total-active-stx-deposits) deposit-amount))
+						true
+					)
 					(map-set streams
 						{ stream-id: new-stream-id }
 						{
@@ -238,6 +265,14 @@
 					(map-set recipient-streams { recipient: recipient } { stream-ids: updated-recipient-streams })
 					(var-set stream-id-nonce new-stream-id)
 					(var-set total-volume-streamed (+ (var-get total-volume-streamed) deposit-amount))
+					(print {
+						event-type: "stream-created",
+						stream-id: (some new-stream-id),
+						caller: tx-sender,
+						block-height: block-height,
+						deposit-amount: deposit-amount,
+						fee-amount: (get fee-amount fee-result)
+					})
 					(asserts! (is-some (map-get? streams { stream-id: new-stream-id })) err-stream-not-found)
 					(asserts! (is-eq (var-get stream-id-nonce) new-stream-id) err-stream-not-found)
 					(ok new-stream-id)
@@ -249,6 +284,7 @@
 
 (define-public (claim-stream (stream-id uint))
 	(begin
+		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -265,6 +301,10 @@
 				(begin
 					(asserts! (> claimable-amount u0) err-insufficient-balance)
 					(try! (as-contract (transfer-funds claimable-amount tx-sender (get recipient stream) (get token-contract stream))))
+					(if (is-none (get token-contract stream))
+						(var-set total-active-stx-deposits (- (var-get total-active-stx-deposits) claimable-amount))
+						true
+					)
 					(map-set streams
 						{ stream-id: stream-id }
 						(merge stream { claimed-amount: updated-claimed })
@@ -273,6 +313,13 @@
 						{ stream-id: stream-id }
 						{ last-checkpoint-block: block-height, last-checkpoint-balance: u0 }
 					)
+					(print {
+						event-type: "stream-claimed",
+						stream-id: (some stream-id),
+						caller: tx-sender,
+						block-height: block-height,
+						claimed-amount: claimable-amount
+					})
 					(ok claimable-amount)
 				)
 			)
@@ -283,6 +330,7 @@
 
 (define-public (pause-stream (stream-id uint))
 	(begin
+		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -300,6 +348,13 @@
 						{ stream-id: stream-id }
 						{ last-checkpoint-block: block-height, last-checkpoint-balance: checkpoint-balance }
 					)
+					(print {
+						event-type: "stream-paused",
+						stream-id: (some stream-id),
+						caller: tx-sender,
+						block-height: block-height,
+						checkpoint-balance: checkpoint-balance
+					})
 					(ok true)
 				)
 			)
@@ -310,6 +365,7 @@
 
 (define-public (resume-stream (stream-id uint))
 	(begin
+		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -327,6 +383,13 @@
 					last-checkpoint-balance: (get last-checkpoint-balance balance)
 				}
 			)
+			(print {
+				event-type: "stream-resumed",
+				stream-id: (some stream-id),
+				caller: tx-sender,
+				block-height: block-height,
+				checkpoint-balance: (get last-checkpoint-balance balance)
+			})
 			(ok true)
 			)
 		)
@@ -335,6 +398,7 @@
 
 (define-public (cancel-stream (stream-id uint))
 	(begin
+		;; Intentionally not guarded by `is-paused` so senders can always unwind risk.
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -351,6 +415,10 @@
 				(begin
 					(try! (as-contract (transfer-funds recipient-paid tx-sender (get recipient stream) (get token-contract stream))))
 					(try! (as-contract (transfer-funds sender-refunded tx-sender (get sender stream) (get token-contract stream))))
+					(if (is-none (get token-contract stream))
+						(var-set total-active-stx-deposits (- (var-get total-active-stx-deposits) (+ recipient-paid sender-refunded)))
+						true
+					)
 					(map-set streams
 						{ stream-id: stream-id }
 						(merge stream { claimed-amount: updated-claimed, is-cancelled: true })
@@ -359,9 +427,118 @@
 						{ stream-id: stream-id }
 						{ last-checkpoint-block: block-height, last-checkpoint-balance: u0 }
 					)
+					(print {
+						event-type: "stream-cancelled",
+						stream-id: (some stream-id),
+						caller: tx-sender,
+						block-height: block-height,
+						recipient-paid: recipient-paid,
+						sender-refunded: sender-refunded
+					})
 					(ok { recipient-paid: recipient-paid, sender-refunded: sender-refunded })
 				)
 			)
+			)
+		)
+	)
+)
+
+(define-public (transfer-stream-sender (stream-id uint) (new-sender principal))
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(asserts! (is-eq contract-caller STREAM-NFT-CONTRACT) err-not-authorised)
+		(asserts! (not (is-eq new-sender ZERO-PRINCIPAL)) err-zero-address)
+		(let ((stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found)))
+			(begin
+				(map-set streams { stream-id: stream-id } (merge stream { sender: new-sender }))
+				(print {
+					event-type: "sender-transferred",
+					stream-id: (some stream-id),
+					caller: tx-sender,
+					block-height: block-height,
+					new-sender: new-sender
+				})
+				(ok true)
+			)
+		)
+	)
+)
+
+(define-public (update-protocol-fee (new-fee-bps uint))
+	(let ((old-fee (var-get protocol-fee-bps)))
+		(begin
+			(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+			(asserts! (<= new-fee-bps MAX-FEE-BPS) err-fee-too-high)
+			(var-set protocol-fee-bps new-fee-bps)
+			(print {
+				event-type: "fee-updated",
+				stream-id: none,
+				caller: tx-sender,
+				block-height: block-height,
+				old-fee: old-fee,
+				new-fee: new-fee-bps
+			})
+			(ok true)
+		)
+	)
+)
+
+(define-public (emergency-pause-protocol)
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(var-set is-paused true)
+		(print {
+			event-type: "protocol-paused",
+			stream-id: none,
+			caller: tx-sender,
+			block-height: block-height
+		})
+		(ok true)
+	)
+)
+
+(define-public (emergency-resume-protocol)
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(var-set is-paused false)
+		(print {
+			event-type: "protocol-resumed",
+			stream-id: none,
+			caller: tx-sender,
+			block-height: block-height
+		})
+		(ok true)
+	)
+)
+
+(define-public (withdraw-accumulated-fees (amount uint) (recipient principal))
+	(let (
+		(contract-balance (stx-get-balance (as-contract tx-sender)))
+		(active-liabilities (var-get total-active-stx-deposits))
+	)
+		(begin
+			(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+			(asserts! (> amount u0) err-invalid-amount)
+			(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
+			(asserts! (>= contract-balance active-liabilities) err-invalid-withdrawal)
+			;; SECURITY-CRITICAL INVARIANT:
+			;; `active-liabilities` represents all STX owed to non-cancelled stream participants.
+			;; Only protocol fees are outside this liability set, so owner withdrawals must stay
+			;; within `contract-balance - active-liabilities` to avoid stealing user deposits.
+			(let ((withdrawable-fees (- contract-balance active-liabilities)))
+				(begin
+					(asserts! (<= amount withdrawable-fees) err-invalid-withdrawal)
+					(try! (as-contract (stx-transfer? amount tx-sender recipient)))
+					(print {
+						event-type: "fees-withdrawn",
+						stream-id: none,
+						caller: tx-sender,
+						block-height: block-height,
+						amount: amount,
+						recipient: recipient
+					})
+					(ok amount)
+				)
 			)
 		)
 	)
@@ -438,4 +615,20 @@
 
 (define-read-only (get-total-volume)
 	(var-get total-volume-streamed)
+)
+
+(define-read-only (get-total-active-stx-deposits)
+	(var-get total-active-stx-deposits)
+)
+
+(define-read-only (get-withdrawable-fees)
+	(let (
+		(contract-balance (stx-get-balance (as-contract tx-sender)))
+		(active-liabilities (var-get total-active-stx-deposits))
+	)
+		(if (>= contract-balance active-liabilities)
+			(- contract-balance active-liabilities)
+			u0
+		)
+	)
 )
