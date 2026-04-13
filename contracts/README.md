@@ -32,3 +32,12 @@ Implemented private helpers:
 - pause-stream checkpoints accrued claimable balance before toggling paused state.
 - resume-stream restarts accrual from current block while preserving pre-pause checkpoint balance.
 - cancel-stream pays accrued recipient amount first, then refunds remaining deposit to sender.
+
+## local validation
+
+Use file-level syntax validation while environment mnemonics are being finalized:
+
+```bash
+cd contracts
+clarinet check contracts/stream-core.clar
+```
