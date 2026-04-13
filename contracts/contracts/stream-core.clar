@@ -115,6 +115,7 @@
 
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
 (define-constant BPS-DENOMINATOR u10000)
+(define-constant STREAM-NFT-CONTRACT .stream-nft)
 (define-constant STATUS-ACTIVE "active")
 (define-constant STATUS-PAUSED "paused")
 (define-constant STATUS-EXPIRED "expired")
