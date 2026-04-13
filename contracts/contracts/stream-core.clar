@@ -613,3 +613,7 @@
 (define-read-only (get-total-volume)
 	(var-get total-volume-streamed)
 )
+
+(define-read-only (get-total-active-stx-deposits)
+	(var-get total-active-stx-deposits)
+)
