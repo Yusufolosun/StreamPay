@@ -617,3 +617,15 @@
 (define-read-only (get-total-active-stx-deposits)
 	(var-get total-active-stx-deposits)
 )
+
+(define-read-only (get-withdrawable-fees)
+	(let (
+		(contract-balance (stx-get-balance (as-contract tx-sender)))
+		(active-liabilities (var-get total-active-stx-deposits))
+	)
+		(if (>= contract-balance active-liabilities)
+			(- contract-balance active-liabilities)
+			u0
+		)
+	)
+)
