@@ -56,3 +56,9 @@ clarinet check contracts/stream-core.clar
 - stored stream deposit is net of protocol fee.
 - total-volume tracks cumulative net deposit assigned to streams.
 - claim and cancellation flows update claimed-amount and checkpoint state after transfer.
+
+## security sequencing
+
+- mutating public functions perform principal authorization checks before writes.
+- stream-id inputs are validated before stream map reads in mutating entrypoints.
+- transfer helpers return Clarity response types and are propagated with try!.
