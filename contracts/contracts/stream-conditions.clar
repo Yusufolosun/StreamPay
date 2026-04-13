@@ -127,3 +127,52 @@
 		)
 	)
 )
+
+(define-public (create-milestone-stream
+	(recipient principal)
+	(total-amount uint)
+	(milestones (list 10 {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	}))
+	(arbiter (optional principal))
+)
+	(let (
+		(new-id (+ (var-get milestone-stream-id-nonce) u1))
+		(total-bps (sum-milestone-bps milestones))
+	)
+		(begin
+			(asserts! (> total-amount u0) err-invalid-total-amount)
+			(asserts! (> (len milestones) u0) err-invalid-milestones)
+			(asserts! (<= (len milestones) u10) err-invalid-milestones)
+			(asserts! (all-labels-non-empty milestones) err-invalid-milestones)
+			;; Critical invariant: the milestone basis-points sum must be exactly 10000.
+			(asserts! (is-eq total-bps BPS-DENOMINATOR) err-invalid-milestones)
+			(asserts!
+				(match arbiter
+					arb (and
+						(is-arbiter-registered arb)
+						(not (is-eq arb tx-sender))
+						(not (is-eq arb recipient))
+					)
+					true
+				)
+				err-invalid-arbiter
+			)
+			(map-set milestone-streams new-id {
+				sender: tx-sender,
+				recipient: recipient,
+				arbiter: arbiter,
+				total-amount: total-amount,
+				token-contract: none,
+				milestones: milestones,
+				is-cancelled: false,
+				created-at: block-height
+			})
+			(var-set milestone-stream-id-nonce new-id)
+			(ok new-id)
+		)
+	)
+)
