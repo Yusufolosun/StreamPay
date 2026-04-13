@@ -17,6 +17,8 @@ describe("stream-core", () => {
 	// claim and checkpoint accounting
 	// TODO: accrues by block delta and caps claimable at remaining deposit
 	// TODO: rejects claim when caller is not recipient or claimable is zero
+	// TODO: claim after end-block does not exceed remaining deposit
+	// TODO: repeated claim in same block returns err-insufficient-balance
 
 	// pause/resume lifecycle
 	// TODO: checkpoints accrued balance before pausing
