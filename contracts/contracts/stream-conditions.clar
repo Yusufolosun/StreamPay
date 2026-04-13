@@ -132,6 +132,17 @@
 	)
 )
 
+(define-public (register-arbiter (stake-amount uint))
+	(begin
+		(map-set arbiter-registry tx-sender {
+			is-registered: true,
+			total-disputes: u0,
+			stake-amount: stake-amount
+		})
+		(ok true)
+	)
+)
+
 (define-public (create-milestone-stream
 	(recipient principal)
 	(total-amount uint)
