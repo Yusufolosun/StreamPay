@@ -395,6 +395,7 @@
 
 (define-public (cancel-stream (stream-id uint))
 	(begin
+		;; Intentionally not guarded by `is-paused` so senders can always unwind risk.
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
