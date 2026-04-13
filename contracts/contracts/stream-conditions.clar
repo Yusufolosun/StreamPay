@@ -1,10 +1,363 @@
 ;; Contract: stream-conditions
 ;; Version: v0.1.0
-;; Purpose: Condition and milestone scaffold for guarded stream payouts.
-;; Purpose: Captures arbiter-mediated checks and conditional release boundaries.
-;; Author: <AUTHOR_NAME>
-;; Deployment Date: <YYYY-MM-DD>
-;; Implements: N/A
+;; Purpose: Milestone-conditioned stream release and dispute resolution.
 ;; Dependencies: stream-core, stream-nft
-;; Security Notes:
-;; - <SECURITY_REVIEW_PENDING>
+
+(define-constant BPS-DENOMINATOR u10000)
+
+(define-constant err-not-authorized (err u2000))
+(define-constant err-stream-not-found (err u2001))
+(define-constant err-invalid-total-amount (err u2002))
+(define-constant err-invalid-milestones (err u2003))
+(define-constant err-invalid-milestone-index (err u2004))
+(define-constant err-milestone-released (err u2005))
+(define-constant err-invalid-arbiter (err u2006))
+(define-constant err-dispute-not-active (err u2007))
+(define-constant err-dispute-active (err u2008))
+(define-constant err-stream-cancelled (err u2009))
+
+(define-map milestone-streams uint {
+	sender: principal,
+	recipient: principal,
+	arbiter: (optional principal),
+	total-amount: uint,
+	token-contract: (optional principal),
+	milestones: (list 10 {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	}),
+	is-cancelled: bool,
+	created-at: uint
+})
+
+(define-map arbiter-registry principal {
+	is-registered: bool,
+	total-disputes: uint,
+	stake-amount: uint
+})
+
+(define-map disputes {
+	milestone-stream-id: uint,
+	milestone-index: uint
+} {
+	is-active: bool
+})
+
+(define-data-var milestone-stream-id-nonce uint u0)
+
+;; CRITICAL INVARIANT
+;; The sum of all milestone basis-points must equal exactly 10000.
+;; This is enforced with asserts! in create-milestone-stream so failures always abort.
+
+(define-private (sum-milestone-bps (milestones (list 10 {
+	label: (string-ascii 64),
+	basis-points: uint,
+	is-released: bool,
+	released-at: (optional uint)
+})))
+	(fold
+		(lambda (milestone acc)
+			(+ acc (get basis-points milestone))
+		)
+		milestones
+		u0
+	)
+)
+
+(define-private (all-labels-non-empty (milestones (list 10 {
+	label: (string-ascii 64),
+	basis-points: uint,
+	is-released: bool,
+	released-at: (optional uint)
+})))
+	(fold
+		(lambda (milestone ok-so-far)
+			(and ok-so-far (> (len (get label milestone)) u0))
+		)
+		milestones
+		true
+	)
+)
+
+(define-private (is-arbiter-registered (arbiter principal))
+	(match (map-get? arbiter-registry arbiter)
+		entry (get is-registered entry)
+		false
+	)
+)
+
+(define-private (is-dispute-active (milestone-stream-id uint) (milestone-index uint))
+	(match (map-get? disputes {
+		milestone-stream-id: milestone-stream-id,
+		milestone-index: milestone-index
+	})
+		entry (get is-active entry)
+		false
+	)
+)
+
+(define-private (milestone-amount (total-amount uint) (milestone {
+	label: (string-ascii 64),
+	basis-points: uint,
+	is-released: bool,
+	released-at: (optional uint)
+}))
+	(/ (* total-amount (get basis-points milestone)) BPS-DENOMINATOR)
+)
+
+(define-private (has-any-active-dispute (milestone-stream-id uint))
+	(or
+		(is-dispute-active milestone-stream-id u0)
+		(is-dispute-active milestone-stream-id u1)
+		(is-dispute-active milestone-stream-id u2)
+		(is-dispute-active milestone-stream-id u3)
+		(is-dispute-active milestone-stream-id u4)
+		(is-dispute-active milestone-stream-id u5)
+		(is-dispute-active milestone-stream-id u6)
+		(is-dispute-active milestone-stream-id u7)
+		(is-dispute-active milestone-stream-id u8)
+		(is-dispute-active milestone-stream-id u9)
+	)
+)
+
+(define-private (transfer-token (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
+	(if (is-eq amount u0)
+		(ok true)
+		(match token-contract
+			token (contract-call? token transfer amount sender recipient none)
+			(stx-transfer? amount sender recipient)
+		)
+	)
+)
+
+(define-public (register-arbiter (stake-amount uint))
+	(begin
+		(map-set arbiter-registry tx-sender {
+			is-registered: true,
+			total-disputes: u0,
+			stake-amount: stake-amount
+		})
+		(ok true)
+	)
+)
+
+(define-public (update-arbiter-stake (stake-amount uint))
+	(let ((entry (unwrap! (map-get? arbiter-registry tx-sender) err-invalid-arbiter)))
+		(begin
+			(asserts! (get is-registered entry) err-invalid-arbiter)
+			(map-set arbiter-registry tx-sender {
+				is-registered: true,
+				total-disputes: (get total-disputes entry),
+				stake-amount: stake-amount
+			})
+			(ok true)
+		)
+	)
+)
+
+(define-public (create-milestone-stream
+	(recipient principal)
+	(total-amount uint)
+	(milestones (list 10 {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	}))
+	(arbiter (optional principal))
+)
+	(let (
+		(contract-principal (as-contract tx-sender))
+		(new-id (+ (var-get milestone-stream-id-nonce) u1))
+		(total-bps (sum-milestone-bps milestones))
+	)
+		(begin
+			(asserts! (> total-amount u0) err-invalid-total-amount)
+			(asserts! (> (len milestones) u0) err-invalid-milestones)
+			(asserts! (<= (len milestones) u10) err-invalid-milestones)
+			(asserts! (all-labels-non-empty milestones) err-invalid-milestones)
+			;; Critical invariant:
+			;; sum(milestone basis-points) == 10000
+			;; Enforced with asserts! so invalid plans always abort atomically.
+			(asserts! (is-eq total-bps BPS-DENOMINATOR) err-invalid-milestones)
+			(asserts!
+				(match arbiter
+					arb (and
+						(is-arbiter-registered arb)
+						(not (is-eq arb tx-sender))
+						(not (is-eq arb recipient))
+					)
+					true
+				)
+				err-invalid-arbiter
+			)
+			(try! (transfer-token total-amount tx-sender contract-principal none))
+			(map-set milestone-streams new-id {
+				sender: tx-sender,
+				recipient: recipient,
+				arbiter: arbiter,
+				total-amount: total-amount,
+				token-contract: none,
+				milestones: milestones,
+				is-cancelled: false,
+				created-at: block-height
+			})
+			(var-set milestone-stream-id-nonce new-id)
+			(ok new-id)
+		)
+	)
+)
+
+(define-public (release-milestone (milestone-stream-id uint) (milestone-index uint))
+	(let (
+		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
+		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
+		(caller-is-arbiter
+			(match (get arbiter stream)
+				arb (and dispute-active (is-eq tx-sender arb))
+				false
+			)
+		)
+		(release-amount (milestone-amount (get total-amount stream) milestone))
+		(updated-milestone (merge milestone {
+			is-released: true,
+			released-at: (some block-height)
+		}))
+		(updated-milestones
+			(unwrap! (replace-at? (get milestones stream) milestone-index updated-milestone) err-invalid-milestone-index)
+		)
+	)
+		(begin
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (or (is-eq tx-sender (get sender stream)) caller-is-arbiter) err-not-authorized)
+			(asserts! (not (get is-released milestone)) err-milestone-released)
+			(try! (as-contract (transfer-token release-amount tx-sender (get recipient stream) (get token-contract stream))))
+			(map-set milestone-streams milestone-stream-id (merge stream { milestones: updated-milestones }))
+			(map-set disputes {
+				milestone-stream-id: milestone-stream-id,
+				milestone-index: milestone-index
+			} {
+				is-active: false
+			})
+			(ok release-amount)
+		)
+	)
+)
+
+(define-public (dispute-milestone (milestone-stream-id uint) (milestone-index uint))
+	(let (
+		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
+	)
+		(begin
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorized)
+			(asserts! (is-some (get arbiter stream)) err-invalid-arbiter)
+			(asserts! (not (get is-released milestone)) err-milestone-released)
+			(map-set disputes {
+				milestone-stream-id: milestone-stream-id,
+				milestone-index: milestone-index
+			} {
+				is-active: true
+			})
+			(print {
+				event-type: "dispute-raised",
+				stream-id: milestone-stream-id,
+				milestone-index: milestone-index,
+				caller: tx-sender,
+				block-height: block-height
+			})
+			(ok true)
+		)
+	)
+)
+
+(define-public (resolve-dispute (milestone-stream-id uint) (milestone-index uint) (release-to-recipient bool))
+	(let (
+		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
+		(arbiter (unwrap! (get arbiter stream) err-invalid-arbiter))
+		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
+		(amount (milestone-amount (get total-amount stream) milestone))
+		(destination (if release-to-recipient (get recipient stream) (get sender stream)))
+		(updated-milestone (merge milestone {
+			is-released: true,
+			released-at: (some block-height)
+		}))
+		(updated-milestones
+			(unwrap! (replace-at? (get milestones stream) milestone-index updated-milestone) err-invalid-milestone-index)
+		)
+		(arbiter-entry (unwrap! (map-get? arbiter-registry arbiter) err-invalid-arbiter))
+	)
+		(begin
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (is-eq tx-sender arbiter) err-not-authorized)
+			(asserts! (is-arbiter-registered arbiter) err-invalid-arbiter)
+			(asserts! dispute-active err-dispute-not-active)
+			(asserts! (not (get is-released milestone)) err-milestone-released)
+			(try! (as-contract (transfer-token amount tx-sender destination (get token-contract stream))))
+			(map-set milestone-streams milestone-stream-id (merge stream { milestones: updated-milestones }))
+			(map-set disputes {
+				milestone-stream-id: milestone-stream-id,
+				milestone-index: milestone-index
+			} {
+				is-active: false
+			})
+			(map-set arbiter-registry arbiter {
+				is-registered: (get is-registered arbiter-entry),
+				total-disputes: (+ (get total-disputes arbiter-entry) u1),
+				stake-amount: (get stake-amount arbiter-entry)
+			})
+			(ok amount)
+		)
+	)
+)
+
+(define-public (cancel-milestone-stream (milestone-stream-id uint))
+	(let (
+		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+		(total-refunded
+			(fold
+				(lambda (milestone refunded-so-far)
+					(if (get is-released milestone)
+						refunded-so-far
+						(+ refunded-so-far (milestone-amount (get total-amount stream) milestone))
+					)
+				)
+				(get milestones stream)
+				u0
+			)
+		)
+	)
+		(begin
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorized)
+			(asserts! (not (has-any-active-dispute milestone-stream-id)) err-dispute-active)
+			(try! (as-contract (transfer-token total-refunded tx-sender (get sender stream) (get token-contract stream))))
+			(map-set milestone-streams milestone-stream-id (merge stream { is-cancelled: true }))
+			(ok total-refunded)
+		)
+	)
+)
+
+(define-read-only (get-milestone-stream (milestone-stream-id uint))
+	(map-get? milestone-streams milestone-stream-id)
+)
+
+(define-read-only (get-arbiter (arbiter principal))
+	(map-get? arbiter-registry arbiter)
+)
+
+(define-read-only (get-dispute (milestone-stream-id uint) (milestone-index uint))
+	(map-get? disputes {
+		milestone-stream-id: milestone-stream-id,
+		milestone-index: milestone-index
+	})
+)
+
+(define-read-only (get-milestone-stream-id-nonce)
+	(var-get milestone-stream-id-nonce)
+)
