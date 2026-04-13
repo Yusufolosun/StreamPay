@@ -172,7 +172,7 @@
 	)
 		(begin
 			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
-			(try! (as-contract (transfer-funds fee-amount tx-sender CONTRACT-OWNER token-contract)))
+			;; Fees remain in-contract and are later withdrawable only by owner within invariant limits.
 			(ok { fee-amount: fee-amount, net-amount: net-amount })
 		)
 	)
