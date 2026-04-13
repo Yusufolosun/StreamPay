@@ -140,6 +140,7 @@
 	(arbiter (optional principal))
 )
 	(let (
+		(contract-principal (as-contract tx-sender))
 		(new-id (+ (var-get milestone-stream-id-nonce) u1))
 		(total-bps (sum-milestone-bps milestones))
 	)
@@ -161,6 +162,7 @@
 				)
 				err-invalid-arbiter
 			)
+			(try! (transfer-token total-amount tx-sender contract-principal none))
 			(map-set milestone-streams new-id {
 				sender: tx-sender,
 				recipient: recipient,
