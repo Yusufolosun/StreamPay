@@ -89,6 +89,9 @@
 ;; - caller: principal
 ;; - block-height: uint
 ;; Additional event-specific amount fields are appended per event.
+;; Required event names:
+;; stream-created, stream-claimed, stream-paused, stream-resumed,
+;; stream-cancelled, fee-updated, protocol-paused, protocol-resumed, fees-withdrawn.
 
 ;; CONTRACT INVARIANTS
 ;; 1) `total-active-stx-deposits` tracks outstanding STX obligations for non-cancelled STX streams.
