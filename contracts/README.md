@@ -77,3 +77,29 @@ If `clarinet check` reports invalid mnemonic word-count in `settings/Simnet.toml
 - mutating public functions perform principal authorization checks before writes.
 - stream-id inputs are validated before stream map reads in mutating entrypoints.
 - transfer helpers return Clarity response types and are propagated with try!.
+
+## stream-conditions function coverage
+
+Implemented public functions:
+- register-arbiter
+- update-arbiter-stake
+- create-milestone-stream
+- release-milestone
+- dispute-milestone
+- resolve-dispute
+- cancel-milestone-stream
+
+Implemented read-only functions:
+- get-milestone-stream
+- get-arbiter
+- get-dispute
+- get-milestone-stream-id-nonce
+
+## milestone and dispute behavior notes
+
+- create-milestone-stream enforces a strict basis-points invariant where the milestone sum must equal exactly 10000.
+- escrow capture occurs during stream creation and all outbound releases/refunds are sent from contract balance.
+- release-milestone allows sender release or arbiter release when a dispute is active for that milestone.
+- dispute-milestone can only be raised by recipient and requires a configured arbiter.
+- resolve-dispute supports dual outcomes: release to recipient or refund to sender, then marks dispute resolved.
+- cancel-milestone-stream refunds only unreleased milestone amounts and rejects while any dispute remains active.
