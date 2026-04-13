@@ -215,3 +215,31 @@
 		)
 	)
 )
+
+(define-public (dispute-milestone (milestone-stream-id uint) (milestone-index uint))
+	(let (
+		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
+	)
+		(begin
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorized)
+			(asserts! (is-some (get arbiter stream)) err-invalid-arbiter)
+			(asserts! (not (get is-released milestone)) err-milestone-released)
+			(map-set disputes {
+				milestone-stream-id: milestone-stream-id,
+				milestone-index: milestone-index
+			} {
+				is-active: true
+			})
+			(print {
+				event-type: "dispute-raised",
+				stream-id: milestone-stream-id,
+				milestone-index: milestone-index,
+				caller: tx-sender,
+				block-height: block-height
+			})
+			(ok true)
+		)
+	)
+)
