@@ -98,6 +98,7 @@
 (define-constant BPS-DENOMINATOR u10000)
 (define-constant err-protocol-paused (err u1014))
 (define-constant err-stream-cancelled (err u1015))
+(define-constant err-invalid-stream-id (err u1016))
 
 (define-private (transfer-funds (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
 	(if (is-eq amount u0)
@@ -239,6 +240,7 @@
 		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 	)
 		(begin
+			(asserts! (> stream-id u0) err-invalid-stream-id)
 			(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(let
@@ -270,6 +272,7 @@
 		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 	)
 		(begin
+			(asserts! (> stream-id u0) err-invalid-stream-id)
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (not (get is-paused stream)) err-stream-paused)
@@ -294,6 +297,7 @@
 		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 	)
 		(begin
+			(asserts! (> stream-id u0) err-invalid-stream-id)
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (get is-paused stream) err-stream-active)
@@ -316,6 +320,7 @@
 		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 	)
 		(begin
+			(asserts! (> stream-id u0) err-invalid-stream-id)
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(let (
