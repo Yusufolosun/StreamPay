@@ -14,6 +14,7 @@
 (define-constant MAX-FEE-BPS u100)
 (define-constant MAX-STREAM-DURATION u12614400)
 (define-constant MIN-STREAM-AMOUNT u1000)
+(define-constant STREAM-LIST-CAP u50)
 
 (define-constant err-not-authorised (err u1000))
 (define-constant err-stream-not-found (err u1001))
@@ -194,16 +195,16 @@
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
 			(asserts! (<= duration-blocks MAX-STREAM-DURATION) err-invalid-duration)
-			(asserts! (< (len sender-stream-list) u50) err-too-many-streams)
-			(asserts! (< (len recipient-stream-list) u50) err-too-many-streams)
+			(asserts! (< (len sender-stream-list) STREAM-LIST-CAP) err-too-many-streams)
+			(asserts! (< (len recipient-stream-list) STREAM-LIST-CAP) err-too-many-streams)
 			(try! (transfer-funds amount tx-sender contract-principal token-contract))
 			(let (
 				(fee-result (try! (collect-protocol-fee amount token-contract)))
 				(deposit-amount (get net-amount fee-result))
 				(new-stream-id (+ (var-get stream-id-nonce) u1))
 				(end-block (+ block-height duration-blocks))
-				(updated-sender-streams (unwrap! (as-max-len? (append sender-stream-list new-stream-id) u50) err-too-many-streams))
-				(updated-recipient-streams (unwrap! (as-max-len? (append recipient-stream-list new-stream-id) u50) err-too-many-streams))
+				(updated-sender-streams (unwrap! (as-max-len? (append sender-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
+				(updated-recipient-streams (unwrap! (as-max-len? (append recipient-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
 			)
 				(begin
 					(asserts! (> deposit-amount u0) err-invalid-amount)
