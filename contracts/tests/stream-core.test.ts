@@ -1,6 +1,14 @@
 import { describe } from "@hirosystems/clarinet-sdk";
 
 describe("stream-core", () => {
+	// validation matrix
+	// create-stream
+	// - recipient == sender -> err-invalid-recipient
+	// - recipient == zero principal -> err-zero-address
+	// - amount <= MIN-STREAM-AMOUNT -> err-invalid-amount
+	// - rate-per-block == 0 -> err-invalid-rate
+	// - duration == 0 or > MAX-STREAM-DURATION -> err-invalid-duration
+
 	// stream creation
 	// TODO: rejects sender=recipient, zero recipient, invalid amount/rate/duration
 	// TODO: creates STX streams and appends stream id to sender/recipient indexes
