@@ -304,6 +304,13 @@
 						{ stream-id: stream-id }
 						{ last-checkpoint-block: block-height, last-checkpoint-balance: u0 }
 					)
+					(print {
+						event-type: "stream-claimed",
+						stream-id: (some stream-id),
+						caller: tx-sender,
+						block-height: block-height,
+						claimed-amount: claimable-amount
+					})
 					(ok claimable-amount)
 				)
 			)
