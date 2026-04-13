@@ -353,15 +353,21 @@
 )
 
 (define-read-only (get-stream (stream-id uint))
-	(map-get? streams { stream-id: stream-id })
+	(if (> stream-id u0)
+		(map-get? streams { stream-id: stream-id })
+		none
+	)
 )
 
 (define-read-only (get-claimable-balance (stream-id uint))
-	(match (map-get? streams { stream-id: stream-id })
-		stream
-		(match (map-get? stream-balances { stream-id: stream-id })
-			balance
-			(calculate-streamed-amount stream balance)
+	(if (> stream-id u0)
+		(match (map-get? streams { stream-id: stream-id })
+			stream
+			(match (map-get? stream-balances { stream-id: stream-id })
+				balance
+				(calculate-streamed-amount stream balance)
+				u0
+			)
 			u0
 		)
 		u0
@@ -369,20 +375,23 @@
 )
 
 (define-read-only (get-stream-status (stream-id uint))
-	(match (map-get? streams { stream-id: stream-id })
-		stream
-		(some {
-			is-paused: (get is-paused stream),
-			is-cancelled: (get is-cancelled stream),
-			is-expired: (is-stream-expired stream),
-			status: (if (get is-cancelled stream)
-				"cancelled"
-				(if (get is-paused stream)
-					"paused"
-					(if (is-stream-expired stream) "expired" "active")
+	(if (> stream-id u0)
+		(match (map-get? streams { stream-id: stream-id })
+			stream
+			(some {
+				is-paused: (get is-paused stream),
+				is-cancelled: (get is-cancelled stream),
+				is-expired: (is-stream-expired stream),
+				status: (if (get is-cancelled stream)
+					"cancelled"
+					(if (get is-paused stream)
+						"paused"
+						(if (is-stream-expired stream) "expired" "active")
+					)
 				)
-			)
-		})
+			})
+			none
+		)
 		none
 	)
 )
