@@ -251,6 +251,15 @@
 		(arbiter (unwrap! (get arbiter stream) err-invalid-arbiter))
 		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
 		(amount (milestone-amount (get total-amount stream) milestone))
+		(destination (if release-to-recipient (get recipient stream) (get sender stream)))
+		(updated-milestone (merge milestone {
+			is-released: true,
+			released-at: (some block-height)
+		}))
+		(updated-milestones
+			(unwrap! (replace-at? (get milestones stream) milestone-index updated-milestone) err-invalid-milestone-index)
+		)
+		(arbiter-entry (unwrap! (map-get? arbiter-registry arbiter) err-invalid-arbiter))
 	)
 		(begin
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
@@ -258,6 +267,19 @@
 			(asserts! (is-arbiter-registered arbiter) err-invalid-arbiter)
 			(asserts! dispute-active err-dispute-not-active)
 			(asserts! (not (get is-released milestone)) err-milestone-released)
+			(try! (as-contract (transfer-token amount tx-sender destination (get token-contract stream))))
+			(map-set milestone-streams milestone-stream-id (merge stream { milestones: updated-milestones }))
+			(map-set disputes {
+				milestone-stream-id: milestone-stream-id,
+				milestone-index: milestone-index
+			} {
+				is-active: false
+			})
+			(map-set arbiter-registry arbiter {
+				is-registered: (get is-registered arbiter-entry),
+				total-disputes: (+ (get total-disputes arbiter-entry) u1),
+				stake-amount: (get stake-amount arbiter-entry)
+			})
 			(ok amount)
 		)
 	)
