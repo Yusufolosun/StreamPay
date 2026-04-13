@@ -30,6 +30,10 @@
 (define-constant err-stream-expired (err u1011))
 (define-constant err-invalid-duration (err u1012))
 (define-constant err-too-many-streams (err u1013))
+(define-constant err-protocol-paused (err u1014))
+(define-constant err-stream-cancelled (err u1015))
+(define-constant err-invalid-stream-id (err u1016))
+(define-constant err-invalid-withdrawal (err u1017))
 
 ;; stores canonical stream state keyed by stream-id so all lifecycle operations read/write one source of truth
 ;; uses a single tuple to keep related fields atomically updated and minimise cross-map consistency risk
@@ -78,6 +82,19 @@
 	{ stream-ids: (list 50 uint) }
 )
 
+;; EVENT SCHEMA FOR INDEXERS
+;; Every state transition prints a tuple with these canonical fields:
+;; - event-type: (string-ascii 32)
+;; - stream-id: (optional uint)
+;; - caller: principal
+;; - block-height: uint
+;; Additional event-specific amount fields are appended per event.
+
+;; CONTRACT INVARIANTS
+;; 1) `total-active-stx-deposits` tracks outstanding STX obligations for non-cancelled STX streams.
+;; 2) Protocol fees are the only STX held by the contract that are not represented by active stream deposits.
+;; 3) Owner fee withdrawals are restricted to `stx-balance - total-active-stx-deposits`.
+
 ;; stores the next stream identifier nonce used to mint unique stream ids
 ;; kept as a singleton data-var to guarantee monotonic ids without scanning maps
 ;; invariant: value starts at u0 and only increases by one per newly created stream
@@ -94,12 +111,10 @@
 ;; singleton flag enables cheap, consistent guard checks across all public entrypoints
 ;; invariant: when true, state-changing stream actions must refuse execution until resumed
 (define-data-var is-paused bool false)
+(define-data-var total-active-stx-deposits uint u0)
 
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
 (define-constant BPS-DENOMINATOR u10000)
-(define-constant err-protocol-paused (err u1014))
-(define-constant err-stream-cancelled (err u1015))
-(define-constant err-invalid-stream-id (err u1016))
 (define-constant STATUS-ACTIVE "active")
 (define-constant STATUS-PAUSED "paused")
 (define-constant STATUS-EXPIRED "expired")
