@@ -23,6 +23,8 @@ describe("stream-core", () => {
 	// pause/resume lifecycle
 	// TODO: checkpoints accrued balance before pausing
 	// TODO: resumes from current block without back-accruing paused interval
+	// TODO: non-sender cannot pause or resume stream
+	// TODO: pause on expired stream returns err-stream-expired
 
 	// cancellation
 	// TODO: pays recipient accrued amount then refunds sender remainder
