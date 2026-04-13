@@ -276,6 +276,7 @@
 
 (define-public (claim-stream (stream-id uint))
 	(begin
+		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -321,6 +322,7 @@
 
 (define-public (pause-stream (stream-id uint))
 	(begin
+		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -355,6 +357,7 @@
 
 (define-public (resume-stream (stream-id uint))
 	(begin
+		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
