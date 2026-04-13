@@ -186,6 +186,10 @@
 			(asserts! (not (var-get is-paused)) err-protocol-paused)
 			(asserts! (not (is-eq recipient tx-sender)) err-invalid-recipient)
 			(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
+			(asserts!
+				(match token-contract token (not (is-eq token ZERO-PRINCIPAL)) true)
+				err-zero-address
+			)
 			(asserts! (> amount MIN-STREAM-AMOUNT) err-invalid-amount)
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
