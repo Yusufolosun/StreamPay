@@ -178,3 +178,25 @@
 		)
 	)
 )
+
+(define-public (release-milestone (milestone-stream-id uint) (milestone-index uint))
+	(let (
+		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
+		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
+		(caller-is-arbiter
+			(match (get arbiter stream)
+				arb (and dispute-active (is-eq tx-sender arb))
+				false
+			)
+		)
+		(release-amount (milestone-amount (get total-amount stream) milestone))
+	)
+		(begin
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (or (is-eq tx-sender (get sender stream)) caller-is-arbiter) err-not-authorized)
+			(asserts! (not (get is-released milestone)) err-milestone-released)
+			(ok release-amount)
+		)
+	)
+)
