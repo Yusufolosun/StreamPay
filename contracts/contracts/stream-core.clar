@@ -100,6 +100,10 @@
 (define-constant err-protocol-paused (err u1014))
 (define-constant err-stream-cancelled (err u1015))
 (define-constant err-invalid-stream-id (err u1016))
+(define-constant STATUS-ACTIVE "active")
+(define-constant STATUS-PAUSED "paused")
+(define-constant STATUS-EXPIRED "expired")
+(define-constant STATUS-CANCELLED "cancelled")
 
 (define-private (transfer-funds (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
 	(if (is-eq amount u0)
@@ -384,10 +388,10 @@
 				is-cancelled: (get is-cancelled stream),
 				is-expired: (is-stream-expired stream),
 				status: (if (get is-cancelled stream)
-					"cancelled"
+					STATUS-CANCELLED
 					(if (get is-paused stream)
-						"paused"
-						(if (is-stream-expired stream) "expired" "active")
+						STATUS-PAUSED
+						(if (is-stream-expired stream) STATUS-EXPIRED STATUS-ACTIVE)
 					)
 				)
 			})
