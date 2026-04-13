@@ -47,6 +47,10 @@
 
 (define-data-var milestone-stream-id-nonce uint u0)
 
+;; CRITICAL INVARIANT
+;; The sum of all milestone basis-points must equal exactly 10000.
+;; This is enforced with asserts! in create-milestone-stream so failures always abort.
+
 (define-private (sum-milestone-bps (milestones (list 10 {
 	label: (string-ascii 64),
 	basis-points: uint,
@@ -149,7 +153,9 @@
 			(asserts! (> (len milestones) u0) err-invalid-milestones)
 			(asserts! (<= (len milestones) u10) err-invalid-milestones)
 			(asserts! (all-labels-non-empty milestones) err-invalid-milestones)
-			;; Critical invariant: the milestone basis-points sum must be exactly 10000.
+			;; Critical invariant:
+			;; sum(milestone basis-points) == 10000
+			;; Enforced with asserts! so invalid plans always abort atomically.
 			(asserts! (is-eq total-bps BPS-DENOMINATOR) err-invalid-milestones)
 			(asserts!
 				(match arbiter
