@@ -10,6 +10,11 @@ Implemented public functions:
 - pause-stream
 - resume-stream
 - cancel-stream
+- transfer-stream-sender
+- update-protocol-fee
+- emergency-pause-protocol
+- emergency-resume-protocol
+- withdraw-accumulated-fees
 
 Implemented read-only functions:
 - get-stream
