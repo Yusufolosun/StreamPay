@@ -35,4 +35,6 @@ describe("stream-core", () => {
 	// read-only
 	// TODO: validates get-stream/get-stream-status/get-claimable-balance outputs
 	// TODO: validates sender and recipient reverse index queries
+	// TODO: invalid stream-id queries return none or zero-safe defaults
+	// TODO: stream status returns active, paused, expired, cancelled transitions correctly
 });
