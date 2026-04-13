@@ -42,6 +42,8 @@ cd contracts
 clarinet check contracts/stream-core.clar
 ```
 
+Project-wide checks with `clarinet check` require valid mnemonic values in Clarinet settings files.
+
 ## key error responses
 
 - err-invalid-recipient: recipient cannot equal sender.
