@@ -311,3 +311,22 @@
 		)
 	)
 )
+
+(define-read-only (get-milestone-stream (milestone-stream-id uint))
+	(map-get? milestone-streams milestone-stream-id)
+)
+
+(define-read-only (get-arbiter (arbiter principal))
+	(map-get? arbiter-registry arbiter)
+)
+
+(define-read-only (get-dispute (milestone-stream-id uint) (milestone-index uint))
+	(map-get? disputes {
+		milestone-stream-id: milestone-stream-id,
+		milestone-index: milestone-index
+	})
+)
+
+(define-read-only (get-milestone-stream-id-nonce)
+	(var-get milestone-stream-id-nonce)
+)
