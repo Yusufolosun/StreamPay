@@ -33,3 +33,5 @@
 } {
 	is-active: bool
 })
+
+(define-data-var milestone-stream-id-nonce uint u0)
