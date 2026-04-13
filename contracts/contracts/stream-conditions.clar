@@ -26,3 +26,10 @@
 	total-disputes: uint,
 	stake-amount: uint
 })
+
+(define-map disputes {
+	milestone-stream-id: uint,
+	milestone-index: uint
+} {
+	is-active: bool
+})
