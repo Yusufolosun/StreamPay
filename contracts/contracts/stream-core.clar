@@ -246,12 +246,13 @@
 )
 
 (define-public (claim-stream (stream-id uint))
-	(let (
-		(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
-		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
-	)
-		(begin
-			(asserts! (> stream-id u0) err-invalid-stream-id)
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(let (
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+		)
+			(begin
 			(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(let
@@ -273,17 +274,19 @@
 					(ok claimable-amount)
 				)
 			)
+			)
 		)
 	)
 )
 
 (define-public (pause-stream (stream-id uint))
-	(let (
-		(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
-		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
-	)
-		(begin
-			(asserts! (> stream-id u0) err-invalid-stream-id)
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(let (
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+		)
+			(begin
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (not (get is-paused stream)) err-stream-paused)
@@ -298,17 +301,19 @@
 					(ok true)
 				)
 			)
+			)
 		)
 	)
 )
 
 (define-public (resume-stream (stream-id uint))
-	(let (
-		(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
-		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
-	)
-		(begin
-			(asserts! (> stream-id u0) err-invalid-stream-id)
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(let (
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+		)
+			(begin
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (get is-paused stream) err-stream-active)
@@ -321,17 +326,19 @@
 				}
 			)
 			(ok true)
+			)
 		)
 	)
 )
 
 (define-public (cancel-stream (stream-id uint))
-	(let (
-		(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
-		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
-	)
-		(begin
-			(asserts! (> stream-id u0) err-invalid-stream-id)
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(let (
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+		)
+			(begin
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(let (
@@ -352,6 +359,7 @@
 					)
 					(ok { recipient-paid: recipient-paid, sender-refunded: sender-refunded })
 				)
+			)
 			)
 		)
 	)
