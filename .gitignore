@@ -378,4 +378,7 @@ docker-compose.override.yaml
 !CONTRIBUTING*
 !.eslintrc*
 !.prettierrc*
+
+# Keep local product planning notes out of version control.
+PRD.md
 !.editorconfig
