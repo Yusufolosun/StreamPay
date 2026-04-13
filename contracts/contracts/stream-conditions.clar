@@ -143,6 +143,20 @@
 	)
 )
 
+(define-public (update-arbiter-stake (stake-amount uint))
+	(let ((entry (unwrap! (map-get? arbiter-registry tx-sender) err-invalid-arbiter)))
+		(begin
+			(asserts! (get is-registered entry) err-invalid-arbiter)
+			(map-set arbiter-registry tx-sender {
+				is-registered: true,
+				total-disputes: (get total-disputes entry),
+				stake-amount: stake-amount
+			})
+			(ok true)
+		)
+	)
+)
+
 (define-public (create-milestone-stream
 	(recipient principal)
 	(total-amount uint)
