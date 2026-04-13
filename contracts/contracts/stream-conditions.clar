@@ -117,3 +117,13 @@
 		(is-dispute-active milestone-stream-id u9)
 	)
 )
+
+(define-private (transfer-token (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
+	(if (is-eq amount u0)
+		(ok true)
+		(match token-contract
+			token (contract-call? token transfer amount sender recipient none)
+			(stx-transfer? amount sender recipient)
+		)
+	)
+)
