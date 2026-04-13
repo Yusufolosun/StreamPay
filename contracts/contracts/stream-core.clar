@@ -403,6 +403,10 @@
 				(begin
 					(try! (as-contract (transfer-funds recipient-paid tx-sender (get recipient stream) (get token-contract stream))))
 					(try! (as-contract (transfer-funds sender-refunded tx-sender (get sender stream) (get token-contract stream))))
+					(if (is-none (get token-contract stream))
+						(var-set total-active-stx-deposits (- (var-get total-active-stx-deposits) (+ recipient-paid sender-refunded)))
+						true
+					)
 					(map-set streams
 						{ stream-id: stream-id }
 						(merge stream { claimed-amount: updated-claimed, is-cancelled: true })
