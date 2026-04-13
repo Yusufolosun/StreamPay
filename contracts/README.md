@@ -66,6 +66,11 @@ Project-wide checks with `clarinet check` require valid mnemonic values in Clari
 - total-volume tracks cumulative net deposit assigned to streams.
 - claim and cancellation flows update claimed-amount and checkpoint state after transfer.
 
+## event schema notes
+
+- all significant state changes emit `print` tuples with: `event-type`, `stream-id`, `caller`, `block-height`, plus relevant amounts.
+- required event names: `stream-created`, `stream-claimed`, `stream-paused`, `stream-resumed`, `stream-cancelled`, `fee-updated`, `protocol-paused`, `protocol-resumed`, `fees-withdrawn`.
+
 ## security sequencing
 
 - mutating public functions perform principal authorization checks before writes.
