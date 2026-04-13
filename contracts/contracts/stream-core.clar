@@ -372,6 +372,13 @@
 					last-checkpoint-balance: (get last-checkpoint-balance balance)
 				}
 			)
+			(print {
+				event-type: "stream-resumed",
+				stream-id: (some stream-id),
+				caller: tx-sender,
+				block-height: block-height,
+				checkpoint-balance: (get last-checkpoint-balance balance)
+			})
 			(ok true)
 			)
 		)
