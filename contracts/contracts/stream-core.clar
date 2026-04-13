@@ -443,6 +443,13 @@
 		(let ((stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found)))
 			(begin
 				(map-set streams { stream-id: stream-id } (merge stream { sender: new-sender }))
+				(print {
+					event-type: "sender-transferred",
+					stream-id: (some stream-id),
+					caller: tx-sender,
+					block-height: block-height,
+					new-sender: new-sender
+				})
 				(ok true)
 			)
 		)
