@@ -284,3 +284,28 @@
 		)
 	)
 )
+
+(define-public (cancel-milestone-stream (milestone-stream-id uint))
+	(let (
+		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+		(total-refunded
+			(fold
+				(lambda (milestone refunded-so-far)
+					(if (get is-released milestone)
+						refunded-so-far
+						(+ refunded-so-far (milestone-amount (get total-amount stream) milestone))
+					)
+				)
+				(get milestones stream)
+				u0
+			)
+		)
+	)
+		(begin
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorized)
+			(asserts! (not (has-any-active-dispute milestone-stream-id)) err-dispute-active)
+			(ok total-refunded)
+		)
+	)
+)
