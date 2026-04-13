@@ -14,6 +14,7 @@
 (define-constant MAX-FEE-BPS u100)
 (define-constant MAX-STREAM-DURATION u12614400)
 (define-constant MIN-STREAM-AMOUNT u1000)
+(define-constant STREAM-LIST-CAP u50)
 
 (define-constant err-not-authorised (err u1000))
 (define-constant err-stream-not-found (err u1001))
@@ -93,3 +94,348 @@
 ;; singleton flag enables cheap, consistent guard checks across all public entrypoints
 ;; invariant: when true, state-changing stream actions must refuse execution until resumed
 (define-data-var is-paused bool false)
+
+(define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
+(define-constant BPS-DENOMINATOR u10000)
+(define-constant err-protocol-paused (err u1014))
+(define-constant err-stream-cancelled (err u1015))
+(define-constant err-invalid-stream-id (err u1016))
+(define-constant STATUS-ACTIVE "active")
+(define-constant STATUS-PAUSED "paused")
+(define-constant STATUS-EXPIRED "expired")
+(define-constant STATUS-CANCELLED "cancelled")
+
+(define-private (transfer-funds (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
+	(if (is-eq amount u0)
+		(ok true)
+		(match token-contract
+			token (contract-call? token transfer amount sender recipient none)
+			(stx-transfer? amount sender recipient)
+		)
+	)
+)
+
+(define-private (calculate-streamed-amount
+	(stream {
+		sender: principal,
+		recipient: principal,
+		token-contract: (optional principal),
+		deposit-amount: uint,
+		rate-per-block: uint,
+		start-block: uint,
+		end-block: uint,
+		claimed-amount: uint,
+		is-paused: bool,
+		is-cancelled: bool,
+		created-at: uint
+	})
+	(balance {
+		last-checkpoint-block: uint,
+		last-checkpoint-balance: uint
+	})
+)
+	(let (
+		;; checkpoint-balance stores accrued but not yet claimed amount as of last-checkpoint-block
+		(checkpoint-block (get last-checkpoint-block balance))
+		(checkpoint-balance (get last-checkpoint-balance balance))
+		;; accrual never progresses beyond end-block
+		(capped-block (if (> block-height (get end-block stream)) (get end-block stream) block-height))
+		(elapsed-blocks (if (> capped-block checkpoint-block) (- capped-block checkpoint-block) u0))
+		(newly-accrued (if (get is-paused stream) u0 (* elapsed-blocks (get rate-per-block stream))))
+		(total-claimable (+ checkpoint-balance newly-accrued))
+		(remaining-deposit (- (get deposit-amount stream) (get claimed-amount stream)))
+	)
+		(if (> total-claimable remaining-deposit) remaining-deposit total-claimable)
+	)
+)
+
+(define-private (collect-protocol-fee (amount uint) (token-contract (optional principal)))
+	(let (
+		(fee-bps (var-get protocol-fee-bps))
+		(fee-amount (/ (* amount fee-bps) BPS-DENOMINATOR))
+		(net-amount (- amount fee-amount))
+	)
+		(begin
+			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
+			(try! (as-contract (transfer-funds fee-amount tx-sender CONTRACT-OWNER token-contract)))
+			(ok { fee-amount: fee-amount, net-amount: net-amount })
+		)
+	)
+)
+
+(define-private (is-stream-expired
+	(stream {
+		sender: principal,
+		recipient: principal,
+		token-contract: (optional principal),
+		deposit-amount: uint,
+		rate-per-block: uint,
+		start-block: uint,
+		end-block: uint,
+		claimed-amount: uint,
+		is-paused: bool,
+		is-cancelled: bool,
+		created-at: uint
+	})
+)
+	(>= block-height (get end-block stream))
+)
+
+(define-public (create-stream (recipient principal) (amount uint) (rate-per-block uint) (duration-blocks uint) (token-contract (optional principal)))
+	(let (
+		(contract-principal (as-contract tx-sender))
+		(sender-entry (map-get? sender-streams { sender: tx-sender }))
+		(recipient-entry (map-get? recipient-streams { recipient: recipient }))
+		(sender-stream-list (match sender-entry data (get stream-ids data) (list)))
+		(recipient-stream-list (match recipient-entry data (get stream-ids data) (list)))
+	)
+		(begin
+			(asserts! (not (var-get is-paused)) err-protocol-paused)
+			(asserts! (not (is-eq recipient tx-sender)) err-invalid-recipient)
+			(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
+			(asserts!
+				(match token-contract token (not (is-eq token ZERO-PRINCIPAL)) true)
+				err-zero-address
+			)
+			(asserts! (> amount MIN-STREAM-AMOUNT) err-invalid-amount)
+			(asserts! (> rate-per-block u0) err-invalid-rate)
+			(asserts! (> duration-blocks u0) err-invalid-duration)
+			(asserts! (<= duration-blocks MAX-STREAM-DURATION) err-invalid-duration)
+			(asserts! (< (len sender-stream-list) STREAM-LIST-CAP) err-too-many-streams)
+			(asserts! (< (len recipient-stream-list) STREAM-LIST-CAP) err-too-many-streams)
+			(try! (transfer-funds amount tx-sender contract-principal token-contract))
+			(let (
+				(fee-result (try! (collect-protocol-fee amount token-contract)))
+				(deposit-amount (get net-amount fee-result))
+				(new-stream-id (+ (var-get stream-id-nonce) u1))
+				(end-block (+ block-height duration-blocks))
+				(updated-sender-streams (unwrap! (as-max-len? (append sender-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
+				(updated-recipient-streams (unwrap! (as-max-len? (append recipient-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
+			)
+				(begin
+					(asserts! (> deposit-amount u0) err-invalid-amount)
+					(map-set streams
+						{ stream-id: new-stream-id }
+						{
+							sender: tx-sender,
+							recipient: recipient,
+							token-contract: token-contract,
+							deposit-amount: deposit-amount,
+							rate-per-block: rate-per-block,
+							start-block: block-height,
+							end-block: end-block,
+							claimed-amount: u0,
+							is-paused: false,
+							is-cancelled: false,
+							created-at: block-height
+						}
+					)
+					(map-set stream-balances
+						{ stream-id: new-stream-id }
+						{ last-checkpoint-block: block-height, last-checkpoint-balance: u0 }
+					)
+					(map-set sender-streams { sender: tx-sender } { stream-ids: updated-sender-streams })
+					(map-set recipient-streams { recipient: recipient } { stream-ids: updated-recipient-streams })
+					(var-set stream-id-nonce new-stream-id)
+					(var-set total-volume-streamed (+ (var-get total-volume-streamed) deposit-amount))
+					(asserts! (is-some (map-get? streams { stream-id: new-stream-id })) err-stream-not-found)
+					(asserts! (is-eq (var-get stream-id-nonce) new-stream-id) err-stream-not-found)
+					(ok new-stream-id)
+				)
+			)
+		)
+	)
+)
+
+(define-public (claim-stream (stream-id uint))
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(let (
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+		)
+			(begin
+			(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorised)
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(let
+				(
+					(claimable-amount (calculate-streamed-amount stream balance))
+					(updated-claimed (+ (get claimed-amount stream) claimable-amount))
+				)
+				(begin
+					(asserts! (> claimable-amount u0) err-insufficient-balance)
+					(try! (as-contract (transfer-funds claimable-amount tx-sender (get recipient stream) (get token-contract stream))))
+					(map-set streams
+						{ stream-id: stream-id }
+						(merge stream { claimed-amount: updated-claimed })
+					)
+					(map-set stream-balances
+						{ stream-id: stream-id }
+						{ last-checkpoint-block: block-height, last-checkpoint-balance: u0 }
+					)
+					(ok claimable-amount)
+				)
+			)
+			)
+		)
+	)
+)
+
+(define-public (pause-stream (stream-id uint))
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(let (
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+		)
+			(begin
+			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (not (get is-paused stream)) err-stream-paused)
+			(asserts! (not (is-stream-expired stream)) err-stream-expired)
+			(let ((checkpoint-balance (calculate-streamed-amount stream balance)))
+				(begin
+					(map-set streams { stream-id: stream-id } (merge stream { is-paused: true }))
+					(map-set stream-balances
+						{ stream-id: stream-id }
+						{ last-checkpoint-block: block-height, last-checkpoint-balance: checkpoint-balance }
+					)
+					(ok true)
+				)
+			)
+			)
+		)
+	)
+)
+
+(define-public (resume-stream (stream-id uint))
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(let (
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+		)
+			(begin
+			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(asserts! (get is-paused stream) err-stream-active)
+			(map-set streams { stream-id: stream-id } (merge stream { is-paused: false }))
+			(map-set stream-balances
+				{ stream-id: stream-id }
+				{
+					last-checkpoint-block: block-height,
+					last-checkpoint-balance: (get last-checkpoint-balance balance)
+				}
+			)
+			(ok true)
+			)
+		)
+	)
+)
+
+(define-public (cancel-stream (stream-id uint))
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(let (
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+		)
+			(begin
+			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorised)
+			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
+			(let (
+				(recipient-paid (calculate-streamed-amount stream balance))
+				(sender-refunded (- (- (get deposit-amount stream) (get claimed-amount stream)) recipient-paid))
+				(updated-claimed (+ (get claimed-amount stream) recipient-paid))
+			)
+				(begin
+					(try! (as-contract (transfer-funds recipient-paid tx-sender (get recipient stream) (get token-contract stream))))
+					(try! (as-contract (transfer-funds sender-refunded tx-sender (get sender stream) (get token-contract stream))))
+					(map-set streams
+						{ stream-id: stream-id }
+						(merge stream { claimed-amount: updated-claimed, is-cancelled: true })
+					)
+					(map-set stream-balances
+						{ stream-id: stream-id }
+						{ last-checkpoint-block: block-height, last-checkpoint-balance: u0 }
+					)
+					(ok { recipient-paid: recipient-paid, sender-refunded: sender-refunded })
+				)
+			)
+			)
+		)
+	)
+)
+
+(define-read-only (get-stream (stream-id uint))
+	(if (> stream-id u0)
+		(map-get? streams { stream-id: stream-id })
+		none
+	)
+)
+
+(define-read-only (get-claimable-balance (stream-id uint))
+	(if (> stream-id u0)
+		(match (map-get? streams { stream-id: stream-id })
+			stream
+			(match (map-get? stream-balances { stream-id: stream-id })
+				balance
+				(calculate-streamed-amount stream balance)
+				u0
+			)
+			u0
+		)
+		u0
+	)
+)
+
+(define-read-only (get-stream-status (stream-id uint))
+	(if (> stream-id u0)
+		(match (map-get? streams { stream-id: stream-id })
+			stream
+			(match (map-get? stream-balances { stream-id: stream-id })
+				balance
+				(some {
+					is-paused: (get is-paused stream),
+					is-cancelled: (get is-cancelled stream),
+					is-expired: (is-stream-expired stream),
+					claimable: (calculate-streamed-amount stream balance),
+					status: (if (get is-cancelled stream)
+						STATUS-CANCELLED
+						(if (get is-paused stream)
+							STATUS-PAUSED
+							(if (is-stream-expired stream) STATUS-EXPIRED STATUS-ACTIVE)
+						)
+					)
+				})
+				none
+			)
+			none
+		)
+		none
+	)
+)
+
+(define-read-only (get-sender-streams (sender principal))
+	(match (map-get? sender-streams { sender: sender })
+		entry
+		(get stream-ids entry)
+		(list)
+	)
+)
+
+(define-read-only (get-recipient-streams (recipient principal))
+	(match (map-get? recipient-streams { recipient: recipient })
+		entry
+		(get stream-ids entry)
+		(list)
+	)
+)
+
+(define-read-only (get-protocol-fee-bps)
+	(var-get protocol-fee-bps)
+)
+
+(define-read-only (get-total-volume)
+	(var-get total-volume-streamed)
+)
