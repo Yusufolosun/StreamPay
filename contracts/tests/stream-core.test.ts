@@ -13,6 +13,7 @@ describe("stream-core", () => {
 	// TODO: rejects sender=recipient, zero recipient, invalid amount/rate/duration
 	// TODO: creates STX streams and appends stream id to sender/recipient indexes
 	// TODO: creates SIP-010 streams and collects protocol fee correctly
+	// TODO: rejects create-stream when protocol-level pause flag is set
 
 	// claim and checkpoint accounting
 	// TODO: accrues by block delta and caps claimable at remaining deposit
