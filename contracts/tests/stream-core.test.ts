@@ -29,6 +29,8 @@ describe("stream-core", () => {
 	// cancellation
 	// TODO: pays recipient accrued amount then refunds sender remainder
 	// TODO: rejects repeated cancellation
+	// TODO: non-sender cancellation attempts return err-not-authorised
+	// TODO: cancellation on paused stream still pays checkpointed recipient balance
 
 	// read-only
 	// TODO: validates get-stream/get-stream-status/get-claimable-balance outputs
