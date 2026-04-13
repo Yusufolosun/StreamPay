@@ -449,6 +449,86 @@
 	)
 )
 
+(define-public (update-protocol-fee (new-fee-bps uint))
+	(let ((old-fee (var-get protocol-fee-bps)))
+		(begin
+			(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+			(asserts! (<= new-fee-bps MAX-FEE-BPS) err-fee-too-high)
+			(var-set protocol-fee-bps new-fee-bps)
+			(print {
+				event-type: "fee-updated",
+				stream-id: none,
+				caller: tx-sender,
+				block-height: block-height,
+				old-fee: old-fee,
+				new-fee: new-fee-bps
+			})
+			(ok true)
+		)
+	)
+)
+
+(define-public (emergency-pause-protocol)
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(var-set is-paused true)
+		(print {
+			event-type: "protocol-paused",
+			stream-id: none,
+			caller: tx-sender,
+			block-height: block-height
+		})
+		(ok true)
+	)
+)
+
+(define-public (emergency-resume-protocol)
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(var-set is-paused false)
+		(print {
+			event-type: "protocol-resumed",
+			stream-id: none,
+			caller: tx-sender,
+			block-height: block-height
+		})
+		(ok true)
+	)
+)
+
+(define-public (withdraw-accumulated-fees (amount uint) (recipient principal))
+	(let (
+		(contract-balance (stx-get-balance (as-contract tx-sender)))
+		(active-liabilities (var-get total-active-stx-deposits))
+	)
+		(begin
+			(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+			(asserts! (> amount u0) err-invalid-amount)
+			(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
+			(asserts! (>= contract-balance active-liabilities) err-invalid-withdrawal)
+			;; SECURITY-CRITICAL INVARIANT:
+			;; `active-liabilities` represents all STX owed to non-cancelled stream participants.
+			;; Only protocol fees are outside this liability set, so owner withdrawals must stay
+			;; within `contract-balance - active-liabilities` to avoid stealing user deposits.
+			(let ((withdrawable-fees (- contract-balance active-liabilities)))
+				(begin
+					(asserts! (<= amount withdrawable-fees) err-invalid-withdrawal)
+					(try! (as-contract (stx-transfer? amount tx-sender recipient)))
+					(print {
+						event-type: "fees-withdrawn",
+						stream-id: none,
+						caller: tx-sender,
+						block-height: block-height,
+						amount: amount,
+						recipient: recipient
+					})
+					(ok amount)
+				)
+			)
+		)
+	)
+)
+
 (define-read-only (get-stream (stream-id uint))
 	(if (> stream-id u0)
 		(map-get? streams { stream-id: stream-id })
