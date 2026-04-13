@@ -435,6 +435,20 @@
 	)
 )
 
+(define-public (transfer-stream-sender (stream-id uint) (new-sender principal))
+	(begin
+		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(asserts! (is-eq contract-caller STREAM-NFT-CONTRACT) err-not-authorised)
+		(asserts! (not (is-eq new-sender ZERO-PRINCIPAL)) err-zero-address)
+		(let ((stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found)))
+			(begin
+				(map-set streams { stream-id: stream-id } (merge stream { sender: new-sender }))
+				(ok true)
+			)
+		)
+	)
+)
+
 (define-read-only (get-stream (stream-id uint))
 	(if (> stream-id u0)
 		(map-get? streams { stream-id: stream-id })
