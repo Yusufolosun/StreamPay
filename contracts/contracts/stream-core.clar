@@ -135,8 +135,10 @@
 	})
 )
 	(let (
+		;; checkpoint-balance stores accrued but not yet claimed amount as of last-checkpoint-block
 		(checkpoint-block (get last-checkpoint-block balance))
 		(checkpoint-balance (get last-checkpoint-balance balance))
+		;; accrual never progresses beyond end-block
 		(capped-block (if (> block-height (get end-block stream)) (get end-block stream) block-height))
 		(elapsed-blocks (if (> capped-block checkpoint-block) (- capped-block checkpoint-block) u0))
 		(newly-accrued (if (get is-paused stream) u0 (* elapsed-blocks (get rate-per-block stream))))
