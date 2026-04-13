@@ -24,6 +24,8 @@ Implemented read-only functions:
 - get-recipient-streams
 - get-protocol-fee-bps
 - get-total-volume
+- get-total-active-stx-deposits
+- get-withdrawable-fees
 
 Implemented private helpers:
 - calculate-streamed-amount
