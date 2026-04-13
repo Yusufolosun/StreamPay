@@ -191,11 +191,26 @@
 			)
 		)
 		(release-amount (milestone-amount (get total-amount stream) milestone))
+		(updated-milestone (merge milestone {
+			is-released: true,
+			released-at: (some block-height)
+		}))
+		(updated-milestones
+			(unwrap! (replace-at? (get milestones stream) milestone-index updated-milestone) err-invalid-milestone-index)
+		)
 	)
 		(begin
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (or (is-eq tx-sender (get sender stream)) caller-is-arbiter) err-not-authorized)
 			(asserts! (not (get is-released milestone)) err-milestone-released)
+			(try! (as-contract (transfer-token release-amount tx-sender (get recipient stream) (get token-contract stream))))
+			(map-set milestone-streams milestone-stream-id (merge stream { milestones: updated-milestones }))
+			(map-set disputes {
+				milestone-stream-id: milestone-stream-id,
+				milestone-index: milestone-index
+			} {
+				is-active: false
+			})
 			(ok release-amount)
 		)
 	)
