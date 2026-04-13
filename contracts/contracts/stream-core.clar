@@ -415,6 +415,14 @@
 						{ stream-id: stream-id }
 						{ last-checkpoint-block: block-height, last-checkpoint-balance: u0 }
 					)
+					(print {
+						event-type: "stream-cancelled",
+						stream-id: (some stream-id),
+						caller: tx-sender,
+						block-height: block-height,
+						recipient-paid: recipient-paid,
+						sender-refunded: sender-refunded
+					})
 					(ok { recipient-paid: recipient-paid, sender-refunded: sender-refunded })
 				)
 			)
