@@ -15,4 +15,13 @@ describe("stream-conditions", () => {
   // release-milestone
   // TODO: verify sender can release unreleased milestone
   // TODO: verify released-at gets current block-height and cannot double-release
+
+  // dispute and resolution
+  // TODO: recipient can raise dispute only when arbiter is configured
+  // TODO: only stream arbiter can resolve active dispute
+  // TODO: resolve false path refunds sender and closes dispute
+
+  // cancellation
+  // TODO: sender can cancel only when no active disputes exist
+  // TODO: cancellation refunds only unreleased milestone amounts
 });
