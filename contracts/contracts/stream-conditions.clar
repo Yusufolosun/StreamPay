@@ -305,6 +305,8 @@
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorized)
 			(asserts! (not (has-any-active-dispute milestone-stream-id)) err-dispute-active)
+			(try! (as-contract (transfer-token total-refunded tx-sender (get sender stream) (get token-contract stream))))
+			(map-set milestone-streams milestone-stream-id (merge stream { is-cancelled: true }))
 			(ok total-refunded)
 		)
 	)
