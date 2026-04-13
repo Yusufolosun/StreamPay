@@ -229,6 +229,10 @@
 			)
 				(begin
 					(asserts! (> deposit-amount u0) err-invalid-amount)
+					(if (is-none token-contract)
+						(var-set total-active-stx-deposits (+ (var-get total-active-stx-deposits) deposit-amount))
+						true
+					)
 					(map-set streams
 						{ stream-id: new-stream-id }
 						{
