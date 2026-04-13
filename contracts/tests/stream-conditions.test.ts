@@ -8,6 +8,9 @@ describe("stream-conditions", () => {
   // create-milestone-stream
   // TODO: validate canonical success path with two to four milestones
   // TODO: verify nonce increment and stream tuple persistence
+  // TODO: rejects when basis-points sum is less than 10000
+  // TODO: rejects when basis-points sum is greater than 10000
+  // TODO: rejects empty labels and zero-length milestone lists
 
   // release-milestone
   // TODO: verify sender can release unreleased milestone
