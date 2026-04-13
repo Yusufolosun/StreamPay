@@ -49,3 +49,10 @@ clarinet check contracts/stream-core.clar
 - err-invalid-amount: stream amount must be above minimum and net deposit must remain positive.
 - err-too-many-streams: sender or recipient stream index reached 50-item cap.
 - err-not-authorised: caller is not permitted for the requested stream action.
+
+## fee and accounting notes
+
+- protocol fee is computed in basis points and collected at stream creation.
+- stored stream deposit is net of protocol fee.
+- total-volume tracks cumulative net deposit assigned to streams.
+- claim and cancellation flows update claimed-amount and checkpoint state after transfer.
