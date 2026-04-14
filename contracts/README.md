@@ -77,6 +77,7 @@ Use file-level syntax validation while environment mnemonics are being finalized
 cd contracts
 clarinet check contracts/stream-core.clar
 clarinet check contracts/stream-conditions.clar
+clarinet check contracts/stream-nft.clar
 ```
 
 Project-wide checks with `clarinet check` require valid mnemonic values in Clarinet settings files.
