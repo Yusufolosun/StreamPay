@@ -24,6 +24,7 @@
 (define-constant STREAM-CORE-CONTRACT .stream-core)
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
 (define-constant TOKEN-URI-BASE "https://metadata.streampay.xyz/receipts/")
+;; RECIPIENT is nine ASCII characters, so receipt-type must be string-ascii 9.
 (define-constant SENDER-RECEIPT "SENDER")
 (define-constant RECIPIENT-RECEIPT "RECIPIENT")
 
