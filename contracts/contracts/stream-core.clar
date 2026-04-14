@@ -88,6 +88,27 @@
 ;; stores owner-approved SIP-010 token principals so stream creation can whitelist before transfer execution
 (define-map token-whitelist principal bool)
 
+;; FIRST post-deployment action: whitelist the deployed sBTC contract principal via the deploy script substitution.
+;; Never hardcode a mainnet token address in source; always pass the contract principal in from deployment automation.
+
+(define-public (whitelist-token (token-contract principal))
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(asserts! (not (is-eq token-contract ZERO-PRINCIPAL)) err-zero-address)
+		(map-set token-whitelist token-contract true)
+		(ok true)
+	)
+)
+
+(define-public (remove-token-from-whitelist (token-contract principal))
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(asserts! (not (is-eq token-contract ZERO-PRINCIPAL)) err-zero-address)
+		(map-delete token-whitelist token-contract)
+		(ok true)
+	)
+)
+
 ;; EVENT SCHEMA FOR INDEXERS
 ;; Every state transition prints a tuple with these canonical fields:
 ;; - event-type: (string-ascii 32)
