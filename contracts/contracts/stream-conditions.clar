@@ -106,7 +106,9 @@
 )
 
 (define-private (is-token-whitelisted (token-contract principal))
-	(contract-call? .stream-core get-whitelisted-tokens token-contract)
+	;; The whitelist check can only succeed if stream-core is deployed and callable at the configured contract principal.
+	;; If the dependency is missing or misconfigured, fail closed instead of assuming the token is allowed.
+	(unwrap! (contract-call? .stream-core get-whitelisted-tokens token-contract) err-whitelist-check-failed)
 )
 
 (define-private (milestone-amount (total-amount uint) (milestone {
