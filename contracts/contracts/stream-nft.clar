@@ -209,7 +209,10 @@
 								(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
 								(map-set token-owner { token-id: token-id } { owner: recipient })
 								(if (is-eq (get receipt-type token-metadata-record) SENDER-RECEIPT)
-									(contract-call? STREAM-CORE-CONTRACT transfer-stream-sender (get stream-id token-metadata-record) recipient)
+									(begin
+										(contract-call? STREAM-CORE-CONTRACT transfer-stream-sender (get stream-id token-metadata-record) recipient)
+										true
+									)
 									true
 								)
 								(print
