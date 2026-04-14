@@ -161,7 +161,10 @@
 )
 
 (define-public (update-arbiter-stake (stake-amount uint))
-	(let ((entry (unwrap! (map-get? arbiter-registry tx-sender) err-invalid-arbiter)))
+	(let (
+		;; The arbiter must already exist in the registry before its stake can be updated.
+		(entry (unwrap! (map-get? arbiter-registry tx-sender) err-invalid-arbiter))
+	)
 		(begin
 			(asserts! (get is-registered entry) err-invalid-arbiter)
 			(map-set arbiter-registry tx-sender {
