@@ -247,6 +247,13 @@
 				(match token-contract token (not (is-eq token ZERO-PRINCIPAL)) true)
 				err-zero-address
 			)
+			(asserts!
+				(match token-contract
+					token (get-whitelisted-tokens token)
+					true
+				)
+				err-token-not-whitelisted
+			)
 			(asserts! (> amount MIN-STREAM-AMOUNT) err-invalid-amount)
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
