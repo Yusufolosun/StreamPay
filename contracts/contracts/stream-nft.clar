@@ -208,6 +208,20 @@
 								(asserts! (is-eq sender (get owner token-owner-record)) err-token-not-owner)
 								(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
 								(map-set token-owner { token-id: token-id } { owner: recipient })
+								(if (is-eq (get receipt-type token-metadata-record) SENDER-RECEIPT)
+									(contract-call? STREAM-CORE-CONTRACT transfer-stream-sender (get stream-id token-metadata-record) recipient)
+									true
+								)
+								(print
+									{
+										event: "nft_transfer_event",
+										token-id: token-id,
+										sender: sender,
+										recipient: recipient,
+										stream-id: (get stream-id token-metadata-record),
+										receipt-type: (get receipt-type token-metadata-record)
+									}
+								)
 								(ok true)
 							)
 						)
