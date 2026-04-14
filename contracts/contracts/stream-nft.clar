@@ -240,7 +240,9 @@
 					;; When a sender receipt moves, stream-core is updated after the local transfer, and that update is best-effort only.
 					(define-public (transfer (token-id uint) (sender principal) (recipient principal))
 						(let (
+							;; The owner record must exist before a transfer can verify the current holder.
 							(token-owner-record (unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found))
+							;; The metadata record must exist so the transfer can update the stream-core sender sync for the correct stream.
 							(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
 						)
 							(begin
