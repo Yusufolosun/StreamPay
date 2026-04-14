@@ -54,6 +54,7 @@ This document defines the environment variable architecture for the StreamPay mo
 | `DEPLOYER_MNEMONIC` | Yes | 24-word BIP-39 seed phrase | `word1 word2 ... word24` |
 | `STACKS_NETWORK` | Yes | Deployment target network | `devnet` \| `testnet` \| `mainnet` |
 | `CLARITY_VERSION` | Yes | Clarity language version | `2` |
+| `SBTC_CONTRACT_ADDRESS` | Post-deploy | Deployed sBTC contract principal for whitelist action | `ST...sbtc-token` |
 
 ### packages/sdk
 
@@ -190,6 +191,7 @@ StreamPay follows a three-stage environment promotion workflow. Each stage has s
 - [ ] Mainnet deployer uses hardware wallet (not env var)
 - [ ] Rate limiting and monitoring configured
 - [ ] Incident response plan documented
+- [ ] Whitelist the deployed sBTC contract principal before creating any SIP-010 streams
 
 ---
 
