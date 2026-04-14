@@ -13,6 +13,8 @@
 
 [Live App](#) · [Documentation](#) · [SDK](#) · [Smart Contracts](#) · [Report Bug](#)
 
+Deployment note: see [docs/runbooks/whitelist-sbtc.md](docs/runbooks/whitelist-sbtc.md) for the first post-deployment sBTC whitelist action.
+
 ---
 
 </div>
