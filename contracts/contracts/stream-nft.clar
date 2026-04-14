@@ -41,7 +41,10 @@
 (define-constant err-token-not-owner (err u1004))
 (define-constant err-zero-address (err u1005))
 (define-constant err-invalid-token-id (err u1006))
+(define-constant err-already-initialised (err u1007))
 
+(define-data-var is-initialised bool false)
+(define-data-var stream-core-contract principal ZERO-PRINCIPAL)
 (define-data-var token-id-nonce uint u0)
 
 (define-map token-owner
