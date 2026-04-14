@@ -241,7 +241,9 @@
 
 (define-public (release-milestone (milestone-stream-id uint) (milestone-index uint))
 	(let (
+			;; The milestone stream must exist or there is no canonical state to release from.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+			;; The milestone index must resolve inside the stored milestone list for this stream.
 		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
 		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
 		(caller-is-arbiter
