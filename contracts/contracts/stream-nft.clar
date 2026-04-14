@@ -175,9 +175,12 @@
 
 		(define-public (mint-stream-receipt (stream-id uint) (stream-owner principal) (receipt-type (string-ascii 9)))
 			(begin
-				(asserts! (is-eq contract-caller STREAM-CORE-CONTRACT) err-not-authorised)
+				(asserts! (var-get is-initialised) err-not-authorised)
+				(asserts! (is-eq contract-caller (var-get stream-core-contract)) err-not-authorised)
 				(asserts! (> stream-id u0) err-invalid-token-id)
 				(asserts! (not (is-eq stream-owner ZERO-PRINCIPAL)) err-zero-address)
+				(asserts! (> (len receipt-type) u0) err-invalid-receipt-type)
+				(asserts! (<= (len receipt-type) u9) err-invalid-receipt-type)
 				(asserts! (is-valid-receipt-type receipt-type) err-invalid-receipt-type)
 				(let (
 					(receipt-record (get-stream-receipts stream-id))
