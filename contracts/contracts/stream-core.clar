@@ -578,6 +578,10 @@
 	)
 )
 
+(define-read-only (get-whitelisted-tokens (token-contract principal))
+	(default-to false (map-get? token-whitelist token-contract))
+)
+
 (define-read-only (get-claimable-balance (stream-id uint))
 	(if (> stream-id u0)
 		(match (map-get? streams { stream-id: stream-id })
