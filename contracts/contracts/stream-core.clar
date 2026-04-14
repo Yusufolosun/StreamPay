@@ -162,7 +162,9 @@
 		(ok true)
 		(match token-contract
 			;; SIP-010 stream path
-			token (contract-call? token transfer amount sender recipient none)
+			token
+				;; External token transfer can fail if the token rejects the sender, is paused, or lacks balance.
+				(try! (contract-call? token transfer amount sender recipient none))
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
@@ -270,6 +272,7 @@
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
 			(asserts! (<= duration-blocks MAX-STREAM-DURATION) err-invalid-duration)
+			;; The cap is enforced on both reverse indexes so one overloaded wallet cannot grow either side beyond 50 active references.
 			(asserts! (< (len sender-stream-list) STREAM-LIST-CAP) err-too-many-streams)
 			(asserts! (< (len recipient-stream-list) STREAM-LIST-CAP) err-too-many-streams)
 			(try! (transfer-funds amount tx-sender contract-principal token-contract))
