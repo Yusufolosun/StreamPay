@@ -116,3 +116,7 @@
 		(ok none)
 	)
 )
+
+(define-read-only (get-stream-for-token (token-id uint))
+	(ok (map-get? token-metadata { token-id: token-id }))
+)
