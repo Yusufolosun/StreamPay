@@ -155,7 +155,9 @@
 	(if (is-eq amount u0)
 		(ok true)
 		(match token-contract
+			;; SIP-010 stream path
 			token (contract-call? token transfer amount sender recipient none)
+			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
 	)
