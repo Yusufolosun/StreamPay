@@ -31,6 +31,7 @@ Implemented private helpers:
 - transfer updates NFT ownership first, then attempts to sync sender receipts back into stream-core as a best-effort convenience.
 - sender receipt transfer is authoritative for NFT ownership; a failed stream-core hook does not revert the NFT transfer.
 - receipt-type uses string-ascii 9 because the literal RECIPIENT requires nine ASCII characters.
+- approved-operators is queryable for future integrations, but the current transfer path still requires tx-sender to be the recorded owner.
 
 ## stream-core function coverage
 
