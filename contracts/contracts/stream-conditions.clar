@@ -140,7 +140,9 @@
 		(ok true)
 		(match token-contract
 			;; SIP-010 stream path
-			token (contract-call? token transfer amount sender recipient none)
+			token
+				;; The token contract can reject the transfer if the sender is paused, underfunded, or otherwise unauthorised.
+				(try! (contract-call? token transfer amount sender recipient none))
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
