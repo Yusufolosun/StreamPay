@@ -338,7 +338,9 @@
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
+			;; The stream record must exist before we can compute claimable amounts or transfer funds.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			;; The balance checkpoint must exist or the claim math would use stale state.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
