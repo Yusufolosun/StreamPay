@@ -82,6 +82,8 @@ clarinet check contracts/stream-conditions.clar
 clarinet check contracts/stream-nft.clar
 ```
 
+The stream-nft contract was last validated with `clarinet check contracts/stream-nft.clar` and passed syntax checking.
+
 Project-wide checks with `clarinet check` require valid mnemonic values in Clarinet settings files.
 If `clarinet check` reports invalid mnemonic word-count in `settings/Simnet.toml`, fix the mnemonic first, then re-run project-wide validation.
 
