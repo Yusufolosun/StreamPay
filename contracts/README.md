@@ -30,6 +30,7 @@ Implemented private helpers:
 - burn-stream-receipt can be called by either stream-core or the current NFT owner.
 - transfer updates NFT ownership first, then attempts to sync sender receipts back into stream-core as a best-effort convenience.
 - sender receipt transfer is authoritative for NFT ownership; a failed stream-core hook does not revert the NFT transfer.
+- receipt-type uses string-ascii 9 because the literal RECIPIENT requires nine ASCII characters.
 
 ## stream-core function coverage
 
