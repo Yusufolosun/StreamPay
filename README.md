@@ -124,6 +124,7 @@ Deploy a time-locked vesting contract for team token allocations or contributor 
 - **Real-time sBTC streaming** — funds accumulate per block (~5s after Nakamoto)
 - **Milestone-based invoicing** — release payment in stages, not lump sums
 - **SIP-009 stream NFTs** — streams are tradeable positions; sell your future income
+- **SIP-009 stream receipts** — transferable receipt NFTs; sender receipt transfers try to sync stream-core ownership best-effort
 - **Instant clawback** — unstreamed funds return immediately on cancellation
 - **Configurable protocol fee** — default 0.25%, max 1.00%, governance-updatable
 - **Multi-token support** — sBTC, STX, SIP-010 tokens

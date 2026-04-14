@@ -33,6 +33,11 @@ describe("stream-core", () => {
 	// TODO: non-sender cancellation attempts return err-not-authorised
 	// TODO: cancellation on paused stream still pays checkpointed recipient balance
 
+	// stream-nft integration
+	// TODO: sender receipt transfer updates stream sender via stream-nft hook
+	// TODO: stream-core burn path can retire receipts without owner signature
+	// TODO: NFT transfer failure does not revert stream-core authorization state
+
 	// read-only
 	// TODO: validates get-stream/get-stream-status/get-claimable-balance outputs
 	// TODO: validates sender and recipient reverse index queries
