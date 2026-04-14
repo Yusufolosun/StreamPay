@@ -19,7 +19,7 @@
 	)
 )
 
-(impl-trait .sip009-trait)
+(impl-trait .stream-nft.sip009-trait)
 
 (define-constant STREAM-CORE-CONTRACT .stream-core)
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
