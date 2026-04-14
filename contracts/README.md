@@ -137,6 +137,8 @@ Implemented read-only functions:
 
 ## milestone and dispute behavior notes
 
+- create-milestone-stream now accepts an optional token contract principal and routes STX or SIP-010 transfers accordingly.
+- SIP-010 milestone streams must pass the stream-core whitelist check before creation; stream-core remains the single source of truth for token policy.
 - create-milestone-stream enforces a strict basis-points invariant where the milestone sum must equal exactly 10000.
 - escrow capture occurs during stream creation and all outbound releases/refunds are sent from contract balance.
 - release-milestone allows sender release or arbiter release when a dispute is active for that milestone.
