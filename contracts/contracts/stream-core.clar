@@ -5,6 +5,11 @@
 ;; Author: <AUTHOR_NAME>
 ;; Deployment Date: <YYYY-MM-DD>
 ;; Dependencies: stream-conditions, stream-nft
+;; Cross-contract call graph:
+;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
+;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
+;; - stream-nft -> stream-core: transfer-stream-sender (best-effort)
+;; Read-only dependencies are acyclic because stream-core does not call stream-nft or stream-conditions from any read-only path.
 ;; Implements: N/A
 ;; Security Notes:
 ;; - <SECURITY_REVIEW_PENDING>
@@ -69,6 +74,7 @@
 
 ;; stores reverse index of stream ids created by each sender for wallet and analytics queries
 ;; capped list keeps storage bounded and makes cardinality checks explicit at write time
+;; tradeoff: a single sender or recipient can hold at most 50 active stream references in this contract; once the cap is reached, users should close or cancel old streams before creating new ones.
 ;; invariant: list length <= 50 and each stream-id in the list maps to a stream whose sender equals the key principal
 (define-map sender-streams
 	{ sender: principal }
