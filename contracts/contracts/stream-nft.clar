@@ -215,6 +215,8 @@
 						)
 					)
 
+					;; NFT ownership is the source of truth.
+					;; When a sender receipt moves, stream-core is updated after the local transfer, and that update is best-effort only.
 					(define-public (transfer (token-id uint) (sender principal) (recipient principal))
 						(let (
 							(token-owner-record (unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found))
