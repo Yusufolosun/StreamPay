@@ -7,3 +7,4 @@ TODO: Add new ADRs by copying docs/adr/_template.md and updating the index.
 ## Index
 
 - [0001-monorepo-structure.md](0001-monorepo-structure.md)
+- [0002-sip010-token-routing.md](0002-sip010-token-routing.md)
