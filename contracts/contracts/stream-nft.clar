@@ -75,6 +75,16 @@
 	(or (is-eq receipt-type SENDER-RECEIPT) (is-eq receipt-type RECIPIENT-RECEIPT))
 )
 
+(define-public (initialize-stream-core (stream-core principal))
+	(begin
+		(asserts! (not (var-get is-initialised)) err-already-initialised)
+		(asserts! (not (is-eq stream-core ZERO-PRINCIPAL)) err-zero-address)
+		(var-set stream-core-contract stream-core)
+		(var-set is-initialised true)
+		(ok true)
+	)
+)
+
 (define-private (empty-stream-receipts)
 	{ sender-token-id: none, recipient-token-id: none }
 )
