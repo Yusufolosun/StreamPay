@@ -314,6 +314,7 @@
 			(asserts! (is-arbiter-registered arbiter) err-invalid-arbiter)
 			(asserts! dispute-active err-dispute-not-active)
 			(asserts! (not (get is-released milestone)) err-milestone-released)
+			;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 			(try! (as-contract (transfer-token amount tx-sender destination (get token-contract stream))))
 			(map-set milestone-streams milestone-stream-id (merge stream { milestones: updated-milestones }))
 			(map-set disputes {
