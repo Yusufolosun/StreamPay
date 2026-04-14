@@ -81,7 +81,7 @@
 })))
 	(fold
 		(lambda (milestone ok-so-far)
-			(and ok-so-far (> (len (get label milestone)) u0))
+			(and ok-so-far (> (len (get label milestone)) u0) (<= (len (get label milestone)) u64))
 		)
 		milestones
 		true
