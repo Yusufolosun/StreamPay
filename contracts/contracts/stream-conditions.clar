@@ -2,6 +2,11 @@
 ;; Version: v0.1.0
 ;; Purpose: Milestone-conditioned stream release and dispute resolution.
 ;; Dependencies: stream-core, stream-nft
+;; Cross-contract call graph:
+;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
+;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
+;; - stream-nft -> stream-core: transfer-stream-sender (best-effort)
+;; Read-only dependencies are acyclic because stream-core does not call stream-nft or stream-conditions from any read-only path.
 
 (define-constant BPS-DENOMINATOR u10000)
 
@@ -16,6 +21,7 @@
 (define-constant err-dispute-active (err u2008))
 (define-constant err-stream-cancelled (err u2009))
 (define-constant err-token-not-whitelisted (err u2010))
+(define-constant err-whitelist-check-failed (err u2011))
 
 (define-map milestone-streams uint {
 	sender: principal,
