@@ -2,6 +2,35 @@
 
 Clarinet smart-contract workspace scaffold for StreamPay.
 
+## stream-nft function coverage
+
+Implemented public functions:
+- mint-stream-receipt
+- burn-stream-receipt
+- transfer
+
+Implemented read-only functions:
+- get-last-token-id
+- get-token-uri
+- get-owner
+- get-stream-for-token
+- get-tokens-for-stream
+- is-approved-operator
+
+Implemented private helpers:
+- is-valid-receipt-type
+- get-stream-receipts
+- stream-receipt-slot
+- set-stream-receipt-slot
+- prune-empty-stream-receipts
+
+## receipt lifecycle notes
+
+- mint-stream-receipt is gated to stream-core through contract-caller.
+- burn-stream-receipt can be called by either stream-core or the current NFT owner.
+- transfer updates NFT ownership first, then attempts to sync sender receipts back into stream-core as a best-effort convenience.
+- sender receipt transfer is authoritative for NFT ownership; a failed stream-core hook does not revert the NFT transfer.
+
 ## stream-core function coverage
 
 Implemented public functions:
