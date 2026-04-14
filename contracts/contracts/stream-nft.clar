@@ -6,9 +6,15 @@
 ;; Deployment Date: <YYYY-MM-DD>
 ;; Implements: SIP-009
 ;; Dependencies: stream-core, stream-conditions
+;; Cross-contract call graph:
+;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
+;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
+;; - stream-nft -> stream-core: transfer-stream-sender (best-effort)
+;; Read-only dependencies are acyclic because stream-core does not call stream-nft or stream-conditions from any read-only path.
 ;; Security Notes:
 ;; - NFT ownership transfer is authoritative.
-;; - stream-core sender sync is attempted after sender receipt transfers and ignored on failure.
+;; - contract-caller is assigned by the Clarity runtime and cannot be spoofed by tx-sender.
+;; - stream-core sender sync is attempted after sender receipt transfers and is logged if it fails.
 
 (define-trait sip009-trait
 	(
