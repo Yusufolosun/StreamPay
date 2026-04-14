@@ -245,6 +245,7 @@
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (or (is-eq tx-sender (get sender stream)) caller-is-arbiter) err-not-authorized)
 			(asserts! (not (get is-released milestone)) err-milestone-released)
+			;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 			(try! (as-contract (transfer-token release-amount tx-sender (get recipient stream) (get token-contract stream))))
 			(map-set milestone-streams milestone-stream-id (merge stream { milestones: updated-milestones }))
 			(map-set disputes {
@@ -347,6 +348,7 @@
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorized)
 			(asserts! (not (has-any-active-dispute milestone-stream-id)) err-dispute-active)
+			;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 			(try! (as-contract (transfer-token total-refunded tx-sender (get sender stream) (get token-contract stream))))
 			(map-set milestone-streams milestone-stream-id (merge stream { is-cancelled: true }))
 			(ok total-refunded)
