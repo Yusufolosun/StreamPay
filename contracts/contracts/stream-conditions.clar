@@ -2,6 +2,11 @@
 ;; Version: v0.1.0
 ;; Purpose: Milestone-conditioned stream release and dispute resolution.
 ;; Dependencies: stream-core, stream-nft
+;; Cross-contract call graph:
+;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
+;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
+;; - stream-nft -> stream-core: transfer-stream-sender (best-effort)
+;; Read-only dependencies are acyclic because stream-core does not call stream-nft or stream-conditions from any read-only path.
 
 (define-constant BPS-DENOMINATOR u10000)
 
@@ -16,6 +21,7 @@
 (define-constant err-dispute-active (err u2008))
 (define-constant err-stream-cancelled (err u2009))
 (define-constant err-token-not-whitelisted (err u2010))
+(define-constant err-whitelist-check-failed (err u2011))
 
 (define-map milestone-streams uint {
 	sender: principal,
@@ -75,7 +81,7 @@
 })))
 	(fold
 		(lambda (milestone ok-so-far)
-			(and ok-so-far (> (len (get label milestone)) u0))
+			(and ok-so-far (> (len (get label milestone)) u0) (<= (len (get label milestone)) u64))
 		)
 		milestones
 		true
@@ -100,7 +106,9 @@
 )
 
 (define-private (is-token-whitelisted (token-contract principal))
-	(contract-call? .stream-core get-whitelisted-tokens token-contract)
+	;; The whitelist check can only succeed if stream-core is deployed and callable at the configured contract principal.
+	;; If the dependency is missing or misconfigured, fail closed instead of assuming the token is allowed.
+	(unwrap! (contract-call? .stream-core get-whitelisted-tokens token-contract) err-whitelist-check-failed)
 )
 
 (define-private (milestone-amount (total-amount uint) (milestone {
@@ -132,7 +140,9 @@
 		(ok true)
 		(match token-contract
 			;; SIP-010 stream path
-			token (contract-call? token transfer amount sender recipient none)
+			token
+				;; The token contract can reject the transfer if the sender is paused, underfunded, or otherwise unauthorised.
+				(try! (contract-call? token transfer amount sender recipient none))
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
@@ -151,7 +161,10 @@
 )
 
 (define-public (update-arbiter-stake (stake-amount uint))
-	(let ((entry (unwrap! (map-get? arbiter-registry tx-sender) err-invalid-arbiter)))
+	(let (
+		;; The arbiter must already exist in the registry before its stake can be updated.
+		(entry (unwrap! (map-get? arbiter-registry tx-sender) err-invalid-arbiter))
+	)
 		(begin
 			(asserts! (get is-registered entry) err-invalid-arbiter)
 			(map-set arbiter-registry tx-sender {
@@ -185,6 +198,7 @@
 			(asserts! (> total-amount u0) err-invalid-total-amount)
 			(asserts! (> (len milestones) u0) err-invalid-milestones)
 			(asserts! (<= (len milestones) u10) err-invalid-milestones)
+			;; Every milestone label must be present and bounded so empty or oversized labels fail before any transfer occurs.
 			(asserts! (all-labels-non-empty milestones) err-invalid-milestones)
 			;; Critical invariant:
 			;; sum(milestone basis-points) == 10000
@@ -227,7 +241,9 @@
 
 (define-public (release-milestone (milestone-stream-id uint) (milestone-index uint))
 	(let (
+			;; The milestone stream must exist or there is no canonical state to release from.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+			;; The milestone index must resolve inside the stored milestone list for this stream.
 		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
 		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
 		(caller-is-arbiter
@@ -242,6 +258,7 @@
 			released-at: (some block-height)
 		}))
 		(updated-milestones
+				;; The milestone list must accept a replacement at the requested index or the stream state is inconsistent.
 			(unwrap! (replace-at? (get milestones stream) milestone-index updated-milestone) err-invalid-milestone-index)
 		)
 	)
@@ -265,7 +282,9 @@
 
 (define-public (dispute-milestone (milestone-stream-id uint) (milestone-index uint))
 	(let (
+			;; The milestone stream must exist or there is no canonical state to dispute.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+			;; The milestone index must resolve inside the stored milestone list for this stream.
 		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
 	)
 		(begin
@@ -293,8 +312,11 @@
 
 (define-public (resolve-dispute (milestone-stream-id uint) (milestone-index uint) (release-to-recipient bool))
 	(let (
+			;; The milestone stream must exist or there is no canonical state to resolve.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+			;; The milestone index must resolve inside the stored milestone list for this stream.
 		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
+			;; The arbiter must be configured on the stream before the dispute can be resolved.
 		(arbiter (unwrap! (get arbiter stream) err-invalid-arbiter))
 		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
 		(amount (milestone-amount (get total-amount stream) milestone))
@@ -304,9 +326,11 @@
 			released-at: (some block-height)
 		}))
 		(updated-milestones
+				;; The milestone list must accept a replacement at the requested index or the stream state is inconsistent.
 			(unwrap! (replace-at? (get milestones stream) milestone-index updated-milestone) err-invalid-milestone-index)
 		)
-		(arbiter-entry (unwrap! (map-get? arbiter-registry arbiter) err-invalid-arbiter))
+			;; The arbiter registry entry must exist so the dispute counter can be updated safely.
+			(arbiter-entry (unwrap! (map-get? arbiter-registry arbiter) err-invalid-arbiter))
 	)
 		(begin
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
@@ -335,6 +359,7 @@
 
 (define-public (cancel-milestone-stream (milestone-stream-id uint))
 	(let (
+			;; The milestone stream must exist or there is no canonical state to cancel.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
 		(total-refunded
 			(fold

@@ -5,6 +5,11 @@
 ;; Author: <AUTHOR_NAME>
 ;; Deployment Date: <YYYY-MM-DD>
 ;; Dependencies: stream-conditions, stream-nft
+;; Cross-contract call graph:
+;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
+;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
+;; - stream-nft -> stream-core: transfer-stream-sender (best-effort)
+;; Read-only dependencies are acyclic because stream-core does not call stream-nft or stream-conditions from any read-only path.
 ;; Implements: N/A
 ;; Security Notes:
 ;; - <SECURITY_REVIEW_PENDING>
@@ -69,6 +74,7 @@
 
 ;; stores reverse index of stream ids created by each sender for wallet and analytics queries
 ;; capped list keeps storage bounded and makes cardinality checks explicit at write time
+;; tradeoff: a single sender or recipient can hold at most 50 active stream references in this contract; once the cap is reached, users should close or cancel old streams before creating new ones.
 ;; invariant: list length <= 50 and each stream-id in the list maps to a stream whose sender equals the key principal
 (define-map sender-streams
 	{ sender: principal }
@@ -156,7 +162,9 @@
 		(ok true)
 		(match token-contract
 			;; SIP-010 stream path
-			token (contract-call? token transfer amount sender recipient none)
+			token
+				;; External token transfer can fail if the token rejects the sender, is paused, or lacks balance.
+				(try! (contract-call? token transfer amount sender recipient none))
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
@@ -264,6 +272,7 @@
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
 			(asserts! (<= duration-blocks MAX-STREAM-DURATION) err-invalid-duration)
+			;; The cap is enforced on both reverse indexes so one overloaded wallet cannot grow either side beyond 50 active references.
 			(asserts! (< (len sender-stream-list) STREAM-LIST-CAP) err-too-many-streams)
 			(asserts! (< (len recipient-stream-list) STREAM-LIST-CAP) err-too-many-streams)
 			(try! (transfer-funds amount tx-sender contract-principal token-contract))
@@ -272,7 +281,9 @@
 				(deposit-amount (get net-amount fee-result))
 				(new-stream-id (+ (var-get stream-id-nonce) u1))
 				(end-block (+ block-height duration-blocks))
+				;; If append would exceed 50 items, abort before mutating either index so the sender and recipient lists stay in sync.
 				(updated-sender-streams (unwrap! (as-max-len? (append sender-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
+				;; If append would exceed 50 items, abort before mutating either index so the sender and recipient lists stay in sync.
 				(updated-recipient-streams (unwrap! (as-max-len? (append recipient-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
 			)
 				(begin
@@ -327,7 +338,9 @@
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
+			;; The stream record must exist before we can compute claimable amounts or transfer funds.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			;; The balance checkpoint must exist or the claim math would use stale state.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
@@ -374,7 +387,9 @@
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
+			;; The stream record must exist before pausing so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			;; The balance checkpoint must exist or the pause checkpoint cannot be derived safely.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
@@ -409,7 +424,9 @@
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
+			;; The stream record must exist before resuming so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			;; The balance checkpoint must exist or the resume checkpoint would be stale.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
@@ -442,7 +459,9 @@
 		;; Intentionally not guarded by `is-paused` so senders can always unwind risk.
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
+				;; The stream record must exist before cancellation so refunds are computed from canonical state.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+				;; The balance checkpoint must exist or the refund split would be incorrect.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
@@ -490,7 +509,10 @@
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(asserts! (is-eq contract-caller STREAM-NFT-CONTRACT) err-not-authorised)
 		(asserts! (not (is-eq new-sender ZERO-PRINCIPAL)) err-zero-address)
-		(let ((stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found)))
+		(let (
+			;; The stream must exist because the NFT contract only forwards sender changes for persisted streams.
+			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+		)
 			(begin
 				(map-set streams { stream-id: stream-id } (merge stream { sender: new-sender }))
 				(print {
