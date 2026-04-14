@@ -34,6 +34,7 @@
 (define-constant err-stream-cancelled (err u1015))
 (define-constant err-invalid-stream-id (err u1016))
 (define-constant err-invalid-withdrawal (err u1017))
+(define-constant err-token-not-whitelisted (err u1018))
 
 ;; stores canonical stream state keyed by stream-id so all lifecycle operations read/write one source of truth
 ;; uses a single tuple to keep related fields atomically updated and minimise cross-map consistency risk
@@ -81,6 +82,11 @@
 	{ recipient: principal }
 	{ stream-ids: (list 50 uint) }
 )
+
+;; Clarity cannot store a trait reference in a map and later dynamically dispatch to an arbitrary implementation.
+;; The canonical pattern is to store the token contract principal, validate it up front, and pass that typed principal through each transfer path.
+;; stores owner-approved SIP-010 token principals so stream creation can whitelist before transfer execution
+(define-map token-whitelist principal bool)
 
 ;; EVENT SCHEMA FOR INDEXERS
 ;; Every state transition prints a tuple with these canonical fields:
