@@ -41,6 +41,8 @@ Implemented public functions:
 - pause-stream
 - resume-stream
 - cancel-stream
+- whitelist-token
+- remove-token-from-whitelist
 - transfer-stream-sender
 - update-protocol-fee
 - emergency-pause-protocol
@@ -49,6 +51,7 @@ Implemented public functions:
 
 Implemented read-only functions:
 - get-stream
+- get-whitelisted-tokens
 - get-claimable-balance
 - get-stream-status
 - get-sender-streams
@@ -65,11 +68,12 @@ Implemented private helpers:
 
 ## lifecycle behavior notes
 
-- create-stream validates principal inputs, amount/rate/duration bounds, protocol pause state, and sender/recipient list limits.
+- create-stream validates principal inputs, amount/rate/duration bounds, protocol pause state, whitelist membership for SIP-010 contracts, and sender/recipient list limits.
 - claim-stream computes elapsed accrual from the latest checkpoint and caps claims by remaining deposit.
 - pause-stream checkpoints accrued claimable balance before toggling paused state.
 - resume-stream restarts accrual from current block while preserving pre-pause checkpoint balance.
 - cancel-stream pays accrued recipient amount first, then refunds remaining deposit to sender.
+- first post-deployment action: whitelist the deployed sBTC contract principal via the deployment script before creating any SIP-010 streams.
 
 ## local validation
 
@@ -110,6 +114,7 @@ If `clarinet check` reports invalid mnemonic word-count in `settings/Simnet.toml
 ## security sequencing
 
 - mutating public functions perform principal authorization checks before writes.
+- SIP-010 stream principals are validated against the core whitelist before any token transfer executes.
 - stream-id inputs are validated before stream map reads in mutating entrypoints.
 - transfer helpers return Clarity response types and are propagated with try!.
 
@@ -132,6 +137,8 @@ Implemented read-only functions:
 
 ## milestone and dispute behavior notes
 
+- create-milestone-stream now accepts an optional token contract principal and routes STX or SIP-010 transfers accordingly.
+- SIP-010 milestone streams must pass the stream-core whitelist check before creation; stream-core remains the single source of truth for token policy.
 - create-milestone-stream enforces a strict basis-points invariant where the milestone sum must equal exactly 10000.
 - escrow capture occurs during stream creation and all outbound releases/refunds are sent from contract balance.
 - release-milestone allows sender release or arbiter release when a dispute is active for that milestone.

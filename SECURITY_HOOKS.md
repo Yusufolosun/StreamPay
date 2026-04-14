@@ -11,6 +11,8 @@ before each commit to prevent accidental exposure of sensitive data.
 All checks run in sequence and halt on the first failure. This ensures that no commit
 can proceed if any security violation is detected.
 
+For StreamPay contract work, the same hooks support a broader policy: token-backed streams must use the on-chain whitelist, and deployment scripts must inject the sBTC contract principal instead of hardcoding mainnet addresses in source.
+
 | Check | Description | Exit Code |
 |-------|-------------|-----------|
 | Secret Scanning | Detects private keys, mnemonics, API tokens | 1 |

@@ -34,6 +34,7 @@
 (define-constant err-stream-cancelled (err u1015))
 (define-constant err-invalid-stream-id (err u1016))
 (define-constant err-invalid-withdrawal (err u1017))
+(define-constant err-token-not-whitelisted (err u1018))
 
 ;; stores canonical stream state keyed by stream-id so all lifecycle operations read/write one source of truth
 ;; uses a single tuple to keep related fields atomically updated and minimise cross-map consistency risk
@@ -82,6 +83,32 @@
 	{ stream-ids: (list 50 uint) }
 )
 
+;; Clarity cannot store a trait reference in a map and later dynamically dispatch to an arbitrary implementation.
+;; The canonical pattern is to store the token contract principal, validate it up front, and pass that typed principal through each transfer path.
+;; stores owner-approved SIP-010 token principals so stream creation can whitelist before transfer execution
+(define-map token-whitelist principal bool)
+
+;; FIRST post-deployment action: whitelist the deployed sBTC contract principal via the deploy script substitution.
+;; Never hardcode a mainnet token address in source; always pass the contract principal in from deployment automation.
+
+(define-public (whitelist-token (token-contract principal))
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(asserts! (not (is-eq token-contract ZERO-PRINCIPAL)) err-zero-address)
+		(map-set token-whitelist token-contract true)
+		(ok true)
+	)
+)
+
+(define-public (remove-token-from-whitelist (token-contract principal))
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(asserts! (not (is-eq token-contract ZERO-PRINCIPAL)) err-zero-address)
+		(map-delete token-whitelist token-contract)
+		(ok true)
+	)
+)
+
 ;; EVENT SCHEMA FOR INDEXERS
 ;; Every state transition prints a tuple with these canonical fields:
 ;; - event-type: (string-ascii 32)
@@ -128,10 +155,16 @@
 	(if (is-eq amount u0)
 		(ok true)
 		(match token-contract
+			;; SIP-010 stream path
 			token (contract-call? token transfer amount sender recipient none)
+			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
 	)
+)
+
+(define-private (is-token-whitelisted (token-contract principal))
+	(get-whitelisted-tokens token-contract)
 )
 
 (define-private (calculate-streamed-amount
@@ -220,6 +253,13 @@
 				(match token-contract token (not (is-eq token ZERO-PRINCIPAL)) true)
 				err-zero-address
 			)
+			(asserts!
+				(match token-contract
+					token (is-token-whitelisted token)
+					true
+				)
+				err-token-not-whitelisted
+			)
 			(asserts! (> amount MIN-STREAM-AMOUNT) err-invalid-amount)
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
@@ -300,6 +340,7 @@
 				)
 				(begin
 					(asserts! (> claimable-amount u0) err-insufficient-balance)
+						;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 					(try! (as-contract (transfer-funds claimable-amount tx-sender (get recipient stream) (get token-contract stream))))
 					(if (is-none (get token-contract stream))
 						(var-set total-active-stx-deposits (- (var-get total-active-stx-deposits) claimable-amount))
@@ -413,6 +454,7 @@
 				(updated-claimed (+ (get claimed-amount stream) recipient-paid))
 			)
 				(begin
+					;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 					(try! (as-contract (transfer-funds recipient-paid tx-sender (get recipient stream) (get token-contract stream))))
 					(try! (as-contract (transfer-funds sender-refunded tx-sender (get sender stream) (get token-contract stream))))
 					(if (is-none (get token-contract stream))
@@ -549,6 +591,10 @@
 		(map-get? streams { stream-id: stream-id })
 		none
 	)
+)
+
+(define-read-only (get-whitelisted-tokens (token-contract principal))
+	(default-to false (map-get? token-whitelist token-contract))
 )
 
 (define-read-only (get-claimable-balance (stream-id uint))

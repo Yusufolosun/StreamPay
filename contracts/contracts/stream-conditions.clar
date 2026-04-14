@@ -15,6 +15,7 @@
 (define-constant err-dispute-not-active (err u2007))
 (define-constant err-dispute-active (err u2008))
 (define-constant err-stream-cancelled (err u2009))
+(define-constant err-token-not-whitelisted (err u2010))
 
 (define-map milestone-streams uint {
 	sender: principal,
@@ -98,6 +99,10 @@
 	)
 )
 
+(define-private (is-token-whitelisted (token-contract principal))
+	(contract-call? .stream-core get-whitelisted-tokens token-contract)
+)
+
 (define-private (milestone-amount (total-amount uint) (milestone {
 	label: (string-ascii 64),
 	basis-points: uint,
@@ -126,7 +131,9 @@
 	(if (is-eq amount u0)
 		(ok true)
 		(match token-contract
+			;; SIP-010 stream path
 			token (contract-call? token transfer amount sender recipient none)
+			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
 	)
@@ -160,6 +167,7 @@
 (define-public (create-milestone-stream
 	(recipient principal)
 	(total-amount uint)
+	(token-contract (optional principal))
 	(milestones (list 10 {
 		label: (string-ascii 64),
 		basis-points: uint,
@@ -183,6 +191,13 @@
 			;; Enforced with asserts! so invalid plans always abort atomically.
 			(asserts! (is-eq total-bps BPS-DENOMINATOR) err-invalid-milestones)
 			(asserts!
+				(match token-contract
+					token (is-token-whitelisted token)
+					true
+				)
+				err-token-not-whitelisted
+			)
+			(asserts!
 				(match arbiter
 					arb (and
 						(is-arbiter-registered arb)
@@ -193,13 +208,13 @@
 				)
 				err-invalid-arbiter
 			)
-			(try! (transfer-token total-amount tx-sender contract-principal none))
+			(try! (transfer-token total-amount tx-sender contract-principal token-contract))
 			(map-set milestone-streams new-id {
 				sender: tx-sender,
 				recipient: recipient,
 				arbiter: arbiter,
 				total-amount: total-amount,
-				token-contract: none,
+				token-contract: token-contract,
 				milestones: milestones,
 				is-cancelled: false,
 				created-at: block-height
@@ -234,6 +249,7 @@
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (or (is-eq tx-sender (get sender stream)) caller-is-arbiter) err-not-authorized)
 			(asserts! (not (get is-released milestone)) err-milestone-released)
+			;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 			(try! (as-contract (transfer-token release-amount tx-sender (get recipient stream) (get token-contract stream))))
 			(map-set milestone-streams milestone-stream-id (merge stream { milestones: updated-milestones }))
 			(map-set disputes {
@@ -298,6 +314,7 @@
 			(asserts! (is-arbiter-registered arbiter) err-invalid-arbiter)
 			(asserts! dispute-active err-dispute-not-active)
 			(asserts! (not (get is-released milestone)) err-milestone-released)
+			;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 			(try! (as-contract (transfer-token amount tx-sender destination (get token-contract stream))))
 			(map-set milestone-streams milestone-stream-id (merge stream { milestones: updated-milestones }))
 			(map-set disputes {
@@ -336,6 +353,7 @@
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(asserts! (is-eq tx-sender (get sender stream)) err-not-authorized)
 			(asserts! (not (has-any-active-dispute milestone-stream-id)) err-dispute-active)
+			;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 			(try! (as-contract (transfer-token total-refunded tx-sender (get sender stream) (get token-contract stream))))
 			(map-set milestone-streams milestone-stream-id (merge stream { is-cancelled: true }))
 			(ok total-refunded)
