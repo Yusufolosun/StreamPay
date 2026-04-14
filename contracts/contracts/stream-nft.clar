@@ -109,3 +109,10 @@
 		(ok none)
 	)
 )
+
+(define-read-only (get-owner (token-id uint))
+	(match (map-get? token-owner { token-id: token-id })
+		owner-record (ok (some (get owner owner-record)))
+		(ok none)
+	)
+)
