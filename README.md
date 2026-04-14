@@ -19,7 +19,7 @@
 
 ## Overview
 
-StreamPay is a programmable payment streaming protocol built on the Stacks blockchain, secured by Bitcoin. It enables employers, DAOs, and clients to stream sBTC to recipients in real time — per block, continuously, with full on-chain enforcement.
+StreamPay is a programmable payment streaming protocol built on the Stacks blockchain, secured by Bitcoin. It enables employers, DAOs, and clients to stream sBTC or approved SIP-010 tokens to recipients in real time — per block, continuously, with full on-chain enforcement.
 
 No monthly payroll runs. No invoice chasing. No wire transfers. Funds flow the moment work begins, stop the moment it ends, and every satoshi is accounted for on-chain with Bitcoin-level finality.
 
@@ -102,8 +102,8 @@ Deploy a time-locked vesting contract for team token allocations or contributor 
 
 | Contract | Function | Status |
 |---|---|---|
-| `stream-core.clar` | Core stream creation, rate engine, pause/cancel, clawback | ✅ Mainnet |
-| `stream-conditions.clar` | Milestone gates, arbiter logic, conditional release | ✅ Mainnet |
+| `stream-core.clar` | Core stream creation, token whitelist policy, rate engine, pause/cancel, clawback | ✅ Mainnet |
+| `stream-conditions.clar` | Milestone gates, arbiter logic, conditional release, shared token whitelist validation | ✅ Mainnet |
 | `stream-nft.clar` | SIP-009 stream receipts, tradeable stream positions | ✅ Mainnet |
 
 ### Tech Stack
@@ -128,6 +128,7 @@ Deploy a time-locked vesting contract for team token allocations or contributor 
 - **Instant clawback** — unstreamed funds return immediately on cancellation
 - **Configurable protocol fee** — default 0.25%, max 1.00%, governance-updatable
 - **Multi-token support** — sBTC, STX, SIP-010 tokens
+- **Token whitelist controls** — owner-approved token principals gate SIP-010 streams before transfer execution
 - **Dispute arbiter** — optional neutral third-party for milestone resolution
 - **Zero custodianship** — no keys, no admin access, fully self-sovereign
 
