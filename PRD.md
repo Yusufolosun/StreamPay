@@ -36,7 +36,7 @@ A BTC holder who wants to pay a team or service provider in Bitcoin must either 
 StreamPay introduces three programmable payment primitives deployed as Clarity smart contracts on Stacks mainnet:
 
 ### Primitive 1 — Continuous Streams
-A sender deposits sBTC into a vault contract and specifies a recipient address and a rate (sBTC per block). Funds accumulate in real time — approximately every 5 seconds after the Nakamoto upgrade. The recipient can withdraw their accumulated balance at any time. The sender can pause or cancel the stream at any time, with instant clawback of all unstreamed funds. No intermediary. No custodian. Pure on-chain enforcement.
+A sender deposits sBTC or another approved SIP-010 token into a vault contract and specifies a recipient address and a rate per block. Funds accumulate in real time — approximately every 5 seconds after the Nakamoto upgrade. The recipient can withdraw their accumulated balance at any time. The sender can pause or cancel the stream at any time, with instant clawback of all unstreamed funds. No intermediary. No custodian. Pure on-chain enforcement.
 
 **Built for:** Salary, retainer agreements, subscription payments, recurring service fees.
 
@@ -58,6 +58,8 @@ A time-locked vesting contract enforces cliff and linear vesting schedules for t
 
 **Clarity's decidability.** Clarity contracts are not compiled — they are interpreted, with fully auditable execution paths. Every possible outcome of a StreamPay contract can be verified before deployment. No reentrancy attacks. No compiler vulnerabilities. This is the correct language for a financial protocol handling real capital.
 
+**Typed token routing.** Clarity does not support storing a trait reference in a map and later dynamically dispatching to an arbitrary implementation. StreamPay therefore stores the token contract principal directly, validates it against a whitelist, and passes that typed principal through each transfer path.
+
 **sBTC as the payment asset.** sBTC is the only non-custodial, 1:1 Bitcoin-backed asset with decentralized minting and redemption. Paying a contractor in sBTC means they hold an asset redeemable 1:1 for BTC at any time, with no exchange, no custodian, and no counterparty risk.
 
 **Nakamoto upgrade.** Post-Nakamoto, Stacks produces blocks approximately every 5 seconds. Per-block payment streaming is now practical. Pre-Nakamoto (10-minute blocks tied 1:1 to Bitcoin), streaming UX was too coarse for real-time payroll. The upgrade unlocked the use case.
@@ -75,8 +77,8 @@ Three interdependent contracts deployed to Stacks mainnet handle all payment log
 
 | Contract | Responsibility |
 |---|---|
-| `stream-core.clar` | Stream creation, rate calculation, pause/cancel, clawback, fee collection |
-| `stream-conditions.clar` | Milestone definitions, arbiter configuration, conditional release logic |
+| `stream-core.clar` | Stream creation, token whitelist policy, rate calculation, pause/cancel, clawback, fee collection |
+| `stream-conditions.clar` | Milestone definitions, arbiter configuration, conditional release logic, shared whitelist validation |
 | `stream-nft.clar` | SIP-009 stream receipt NFTs — tradeable positions representing future income |
 
 **SDK Layer — `@streampay/sdk`**
