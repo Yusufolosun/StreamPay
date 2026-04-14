@@ -99,6 +99,10 @@
 	)
 )
 
+(define-private (is-token-whitelisted (token-contract principal))
+	(contract-call? .stream-core get-whitelisted-tokens token-contract)
+)
+
 (define-private (milestone-amount (total-amount uint) (milestone {
 	label: (string-ascii 64),
 	basis-points: uint,
@@ -188,7 +192,7 @@
 			(asserts! (is-eq total-bps BPS-DENOMINATOR) err-invalid-milestones)
 			(asserts!
 				(match token-contract
-					token (contract-call? .stream-core get-whitelisted-tokens token)
+					token (is-token-whitelisted token)
 					true
 				)
 				err-token-not-whitelisted
