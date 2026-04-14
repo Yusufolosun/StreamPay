@@ -326,9 +326,11 @@
 			released-at: (some block-height)
 		}))
 		(updated-milestones
+				;; The milestone list must accept a replacement at the requested index or the stream state is inconsistent.
 			(unwrap! (replace-at? (get milestones stream) milestone-index updated-milestone) err-invalid-milestone-index)
 		)
-		(arbiter-entry (unwrap! (map-get? arbiter-registry arbiter) err-invalid-arbiter))
+			;; The arbiter registry entry must exist so the dispute counter can be updated safely.
+			(arbiter-entry (unwrap! (map-get? arbiter-registry arbiter) err-invalid-arbiter))
 	)
 		(begin
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
@@ -357,6 +359,7 @@
 
 (define-public (cancel-milestone-stream (milestone-stream-id uint))
 	(let (
+			;; The milestone stream must exist or there is no canonical state to cancel.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
 		(total-refunded
 			(fold
