@@ -252,7 +252,20 @@
 								(map-set token-owner { token-id: token-id } { owner: recipient })
 								(if (is-eq (get receipt-type token-metadata-record) SENDER-RECEIPT)
 									(begin
-										(contract-call? STREAM-CORE-CONTRACT transfer-stream-sender (get stream-id token-metadata-record) recipient)
+										;; If stream-core rejects the sync, keep the NFT transfer authoritative and emit a warning for operators.
+										(match (contract-call? (var-get stream-core-contract) transfer-stream-sender (get stream-id token-metadata-record) recipient)
+											ok-result ok-result
+											sync-error
+												(begin
+													(print {
+														event: "sender-sync-warning",
+														stream-id: (get stream-id token-metadata-record),
+														reason: sync-error,
+														receipt-type: (get receipt-type token-metadata-record)
+													})
+													true
+												)
+										)
 										true
 									)
 									true
