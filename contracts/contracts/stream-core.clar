@@ -459,7 +459,9 @@
 		;; Intentionally not guarded by `is-paused` so senders can always unwind risk.
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
+				;; The stream record must exist before cancellation so refunds are computed from canonical state.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+				;; The balance checkpoint must exist or the refund split would be incorrect.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
