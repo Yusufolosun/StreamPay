@@ -120,3 +120,25 @@
 (define-read-only (get-stream-for-token (token-id uint))
 	(ok (map-get? token-metadata { token-id: token-id }))
 )
+
+(define-read-only (get-tokens-for-stream (stream-id uint))
+	(match (map-get? stream-receipts { stream-id: stream-id })
+		receipt-record
+			(match (get sender-token-id receipt-record)
+				sender-token-id
+					(match (get recipient-token-id receipt-record)
+						recipient-token-id
+							(if (is-eq sender-token-id recipient-token-id)
+								(list sender-token-id)
+								(list sender-token-id recipient-token-id)
+							)
+						(list sender-token-id)
+					)
+				(match (get recipient-token-id receipt-record)
+					recipient-token-id (list recipient-token-id)
+					(list)
+				)
+			)
+		(list)
+	)
+)
