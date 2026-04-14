@@ -197,6 +197,21 @@
 							)
 						)
 					)
+
+					(define-public (transfer (token-id uint) (sender principal) (recipient principal))
+						(let (
+							(token-owner-record (unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found))
+							(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
+						)
+							(begin
+								(asserts! (is-eq tx-sender sender) err-not-authorised)
+								(asserts! (is-eq sender (get owner token-owner-record)) err-token-not-owner)
+								(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
+								(map-set token-owner { token-id: token-id } { owner: recipient })
+								(ok true)
+							)
+						)
+					)
 				)
 			)
 		)
