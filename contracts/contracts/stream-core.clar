@@ -163,6 +163,10 @@
 	)
 )
 
+(define-private (is-token-whitelisted (token-contract principal))
+	(get-whitelisted-tokens token-contract)
+)
+
 (define-private (calculate-streamed-amount
 	(stream {
 		sender: principal,
@@ -251,7 +255,7 @@
 			)
 			(asserts!
 				(match token-contract
-					token (get-whitelisted-tokens token)
+					token (is-token-whitelisted token)
 					true
 				)
 				err-token-not-whitelisted
