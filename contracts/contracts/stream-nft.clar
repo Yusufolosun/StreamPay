@@ -99,6 +99,15 @@
 	)
 )
 
+(define-private (prune-empty-stream-receipts (stream-id uint))
+	(let ((receipt-record (get-stream-receipts stream-id)))
+		(if (and (is-none (get sender-token-id receipt-record)) (is-none (get recipient-token-id receipt-record)))
+			(map-delete stream-receipts { stream-id: stream-id })
+			true
+		)
+	)
+)
+
 (define-read-only (get-last-token-id)
 	(ok (var-get token-id-nonce))
 )
@@ -193,6 +202,7 @@
 									(get receipt-type token-metadata-record)
 									none
 								)
+								(prune-empty-stream-receipts (get stream-id token-metadata-record))
 								(ok true)
 							)
 						)
