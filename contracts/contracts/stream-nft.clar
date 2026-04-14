@@ -139,6 +139,42 @@
 					(list)
 				)
 			)
+
+		(define-public (mint-stream-receipt (stream-id uint) (stream-owner principal) (receipt-type (string-ascii 9)))
+			(begin
+				(asserts! (is-eq contract-caller STREAM-CORE-CONTRACT) err-not-authorised)
+				(asserts! (> stream-id u0) err-invalid-token-id)
+				(asserts! (not (is-eq stream-owner ZERO-PRINCIPAL)) err-zero-address)
+				(asserts! (is-valid-receipt-type receipt-type) err-invalid-receipt-type)
+				(let (
+					(receipt-record (get-stream-receipts stream-id))
+					(existing-token-id (stream-receipt-slot receipt-type receipt-record))
+				)
+					(begin
+						(asserts! (is-none existing-token-id) err-token-already-minted)
+						(let ((new-token-id (+ (var-get token-id-nonce) u1)))
+							(begin
+								(map-set token-owner
+									{ token-id: new-token-id }
+									{ owner: stream-owner }
+								)
+								(map-set token-metadata
+									{ token-id: new-token-id }
+									{
+										stream-id: stream-id,
+										receipt-type: receipt-type,
+										minted-at: block-height
+									}
+								)
+								(set-stream-receipt-slot stream-id receipt-type (some new-token-id))
+								(var-set token-id-nonce new-token-id)
+								(ok new-token-id)
+							)
+						)
+					)
+				)
+			)
+		)
 		(list)
 	)
 )
