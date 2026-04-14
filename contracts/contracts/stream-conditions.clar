@@ -15,6 +15,7 @@
 (define-constant err-dispute-not-active (err u2007))
 (define-constant err-dispute-active (err u2008))
 (define-constant err-stream-cancelled (err u2009))
+(define-constant err-token-not-whitelisted (err u2010))
 
 (define-map milestone-streams uint {
 	sender: principal,
@@ -160,6 +161,7 @@
 (define-public (create-milestone-stream
 	(recipient principal)
 	(total-amount uint)
+	(token-contract (optional principal))
 	(milestones (list 10 {
 		label: (string-ascii 64),
 		basis-points: uint,
@@ -183,6 +185,13 @@
 			;; Enforced with asserts! so invalid plans always abort atomically.
 			(asserts! (is-eq total-bps BPS-DENOMINATOR) err-invalid-milestones)
 			(asserts!
+				(match token-contract
+					token (contract-call? .stream-core get-whitelisted-tokens token)
+					true
+				)
+				err-token-not-whitelisted
+			)
+			(asserts!
 				(match arbiter
 					arb (and
 						(is-arbiter-registered arb)
@@ -193,13 +202,13 @@
 				)
 				err-invalid-arbiter
 			)
-			(try! (transfer-token total-amount tx-sender contract-principal none))
+			(try! (transfer-token total-amount tx-sender contract-principal token-contract))
 			(map-set milestone-streams new-id {
 				sender: tx-sender,
 				recipient: recipient,
 				arbiter: arbiter,
 				total-amount: total-amount,
-				token-contract: none,
+				token-contract: token-contract,
 				milestones: milestones,
 				is-cancelled: false,
 				created-at: block-height
