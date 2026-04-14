@@ -387,7 +387,9 @@
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
+			;; The stream record must exist before pausing so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			;; The balance checkpoint must exist or the pause checkpoint cannot be derived safely.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
@@ -422,7 +424,9 @@
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
 		(asserts! (> stream-id u0) err-invalid-stream-id)
 		(let (
+			;; The stream record must exist before resuming so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			;; The balance checkpoint must exist or the resume checkpoint would be stale.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
