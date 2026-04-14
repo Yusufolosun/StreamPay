@@ -336,6 +336,7 @@
 				)
 				(begin
 					(asserts! (> claimable-amount u0) err-insufficient-balance)
+						;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 					(try! (as-contract (transfer-funds claimable-amount tx-sender (get recipient stream) (get token-contract stream))))
 					(if (is-none (get token-contract stream))
 						(var-set total-active-stx-deposits (- (var-get total-active-stx-deposits) claimable-amount))
@@ -449,6 +450,7 @@
 				(updated-claimed (+ (get claimed-amount stream) recipient-paid))
 			)
 				(begin
+					;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 					(try! (as-contract (transfer-funds recipient-paid tx-sender (get recipient stream) (get token-contract stream))))
 					(try! (as-contract (transfer-funds sender-refunded tx-sender (get sender stream) (get token-contract stream))))
 					(if (is-none (get token-contract stream))
