@@ -102,3 +102,10 @@
 (define-read-only (get-last-token-id)
 	(ok (var-get token-id-nonce))
 )
+
+(define-read-only (get-token-uri (token-id uint))
+	(match (map-get? token-metadata { token-id: token-id })
+		metadata (ok (some (concat TOKEN-URI-BASE (to-string token-id))))
+		(ok none)
+	)
+)
