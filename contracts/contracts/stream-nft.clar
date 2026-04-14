@@ -172,6 +172,31 @@
 							)
 						)
 					)
+
+					(define-public (burn-stream-receipt (token-id uint))
+						(let (
+							(token-owner-record (unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found))
+							(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
+						)
+							(begin
+								(asserts!
+									(or
+										(is-eq tx-sender (get owner token-owner-record))
+										(is-eq contract-caller STREAM-CORE-CONTRACT)
+									)
+									err-not-authorised
+								)
+								(map-delete token-owner { token-id: token-id })
+								(map-delete token-metadata { token-id: token-id })
+								(set-stream-receipt-slot
+									(get stream-id token-metadata-record)
+									(get receipt-type token-metadata-record)
+									none
+								)
+								(ok true)
+							)
+						)
+					)
 				)
 			)
 		)
