@@ -149,6 +149,13 @@
 				)
 			)
 
+		(define-read-only (is-approved-operator (owner principal) (operator principal))
+			(match (map-get? approved-operators { owner: owner, operator: operator })
+				approval-record (get approved approval-record)
+				false
+			)
+		)
+
 		(define-public (mint-stream-receipt (stream-id uint) (stream-owner principal) (receipt-type (string-ascii 9)))
 			(begin
 				(asserts! (is-eq contract-caller STREAM-CORE-CONTRACT) err-not-authorised)
