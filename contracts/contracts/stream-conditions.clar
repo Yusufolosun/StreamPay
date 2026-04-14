@@ -258,6 +258,7 @@
 			released-at: (some block-height)
 		}))
 		(updated-milestones
+				;; The milestone list must accept a replacement at the requested index or the stream state is inconsistent.
 			(unwrap! (replace-at? (get milestones stream) milestone-index updated-milestone) err-invalid-milestone-index)
 		)
 	)
@@ -281,7 +282,9 @@
 
 (define-public (dispute-milestone (milestone-stream-id uint) (milestone-index uint))
 	(let (
+			;; The milestone stream must exist or there is no canonical state to dispute.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+			;; The milestone index must resolve inside the stored milestone list for this stream.
 		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
 	)
 		(begin
@@ -309,8 +312,11 @@
 
 (define-public (resolve-dispute (milestone-stream-id uint) (milestone-index uint) (release-to-recipient bool))
 	(let (
+			;; The milestone stream must exist or there is no canonical state to resolve.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
+			;; The milestone index must resolve inside the stored milestone list for this stream.
 		(milestone (unwrap! (element-at? (get milestones stream) milestone-index) err-invalid-milestone-index))
+			;; The arbiter must be configured on the stream before the dispute can be resolved.
 		(arbiter (unwrap! (get arbiter stream) err-invalid-arbiter))
 		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
 		(amount (milestone-amount (get total-amount stream) milestone))
