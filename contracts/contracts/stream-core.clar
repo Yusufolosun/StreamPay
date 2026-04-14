@@ -278,7 +278,9 @@
 				(deposit-amount (get net-amount fee-result))
 				(new-stream-id (+ (var-get stream-id-nonce) u1))
 				(end-block (+ block-height duration-blocks))
+				;; If append would exceed 50 items, abort before mutating either index so the sender and recipient lists stay in sync.
 				(updated-sender-streams (unwrap! (as-max-len? (append sender-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
+				;; If append would exceed 50 items, abort before mutating either index so the sender and recipient lists stay in sync.
 				(updated-recipient-streams (unwrap! (as-max-len? (append recipient-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
 			)
 				(begin
