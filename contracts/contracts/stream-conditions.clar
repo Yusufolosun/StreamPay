@@ -198,6 +198,7 @@
 			(asserts! (> total-amount u0) err-invalid-total-amount)
 			(asserts! (> (len milestones) u0) err-invalid-milestones)
 			(asserts! (<= (len milestones) u10) err-invalid-milestones)
+			;; Every milestone label must be present and bounded so empty or oversized labels fail before any transfer occurs.
 			(asserts! (all-labels-non-empty milestones) err-invalid-milestones)
 			;; Critical invariant:
 			;; sum(milestone basis-points) == 10000
