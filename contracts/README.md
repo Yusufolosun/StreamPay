@@ -122,7 +122,8 @@ If `clarinet check` reports invalid mnemonic word-count in `settings/Simnet.toml
 - mutating public functions perform principal authorization checks before writes.
 - SIP-010 stream principals are validated against the core whitelist before any token transfer executes.
 - stream-id inputs are validated before stream map reads in mutating entrypoints.
-- transfer helpers return Clarity response types and are propagated with try!.
+- every contract-call? site now has explicit local failure handling (unwrap! + contract-specific error code or warning event).
+- stream-nft sender sync remains best-effort, but failure emits a structured warning with local-error metadata.
 
 ## stream-conditions function coverage
 
