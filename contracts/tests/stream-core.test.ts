@@ -522,6 +522,26 @@ describe("stream-core", () => {
 		const cancelReceipt = cancelStream(0n, accounts.recipient);
 		expect(cancelReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_NOT_AUTHORISED)));
 	});
+
+	it("protocol fee is 2500 on 1,000,000 and owner can withdraw exact amount", () => {
+		const amount = 1_000_000n;
+		const expectedFee = 2_500n;
+		expect(feeFor(amount)).toBe(expectedFee);
+
+		const createReceipt = createStream(amount, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const withdrawableBefore = parseUInt(callReadOnly("get-withdrawable-fees", []));
+		expect(withdrawableBefore).toBe(expectedFee);
+
+		const ownerBalanceBefore = getStxBalance(accounts.deployer);
+		const withdrawReceipt = withdrawFees(expectedFee, accounts.deployer);
+		expect(withdrawReceipt.result).toStrictEqual(Cl.ok(Cl.uint(expectedFee)));
+		expect(getStxBalance(accounts.deployer)).toBe(ownerBalanceBefore + expectedFee);
+
+		const withdrawableAfter = parseUInt(callReadOnly("get-withdrawable-fees", []));
+		expect(withdrawableAfter).toBe(0n);
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
