@@ -270,6 +270,14 @@ describe("stream-core", () => {
 		const receipt = createStream(1_000_000n, 0n, 10n);
 		expect(receipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_RATE)));
 	});
+
+	it("create-stream fails when protocol is paused", () => {
+		const pauseReceipt = emergencyPauseProtocol();
+		expect(pauseReceipt.result).toStrictEqual(Cl.ok(Cl.bool(true)));
+
+		const createReceipt = createStream(1_000_000n, 1_000n, 10n);
+		expect(createReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_PROTOCOL_PAUSED)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
