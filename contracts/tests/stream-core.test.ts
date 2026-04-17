@@ -484,6 +484,25 @@ describe("stream-core", () => {
 		const senderBalanceAfterCancel = getStxBalance(accounts.sender);
 		expect(senderBalanceAfterCancel).toBe(senderBalanceBeforeCreate - expectedFee);
 	});
+
+	it("cancel-stream half-duration arithmetic is correct", () => {
+		const amount = 2_000_000n;
+		const ratePerBlock = 10_000n;
+		const expectedFee = feeFor(amount);
+		const depositAmount = amount - expectedFee;
+
+		const createReceipt = createStream(amount, ratePerBlock, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		mineBlocks(50);
+		const cancelReceipt = cancelStream(0n);
+		const cancelResult = parseTuple(parseOk(cancelReceipt.result));
+
+		const expectedRecipientPaid = 500_000n;
+		const expectedSenderRefunded = depositAmount - expectedRecipientPaid;
+		expect(parseUInt(cancelResult["recipient-paid"])).toBe(expectedRecipientPaid);
+		expect(parseUInt(cancelResult["sender-refunded"])).toBe(expectedSenderRefunded);
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
