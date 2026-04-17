@@ -26,12 +26,15 @@ Read-only flow is acyclic:
 
 ## Expected Contract Principals
 
-The deployment must wire these principals on the same chain:
-- `stream-core`: the deployed `stream-core` contract principal.
-- `stream-nft`: the deployed `stream-nft` contract principal.
-- `stream-conditions`: the deployed `stream-conditions` contract principal.
+Expected dependency addresses by call site:
 
-The repository uses contract-name references during development, but the deployed principals must match the final chain-specific contract identifiers from the deployment scripts.
+| Caller | Dependency | Expected address in source | Expected deployed form |
+| --- | --- | --- | --- |
+| stream-core | stream-nft | .stream-nft | SP...stream-nft |
+| stream-conditions | stream-core | .stream-core | SP...stream-core |
+| stream-nft | stream-core | state var stream-core-contract set by initialize-stream-core | SP...stream-core |
+
+All expected principals must resolve on the same chain instance. Development uses contract-name references, while deployments must substitute final chain-specific principals from deployment artifacts.
 
 ## Authorised Caller Pattern
 
