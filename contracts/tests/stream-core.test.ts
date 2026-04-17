@@ -132,6 +132,13 @@ describe("stream-core", () => {
 		return cv.value;
 	};
 
+	const parseOk = (cv: ClarityValue): ClarityValue => {
+		if (cv.type !== ClarityType.ResponseOk) {
+			throw new Error("expected response ok clarity value");
+		}
+		return cv.value;
+	};
+
 	const parseUInt = (cv: ClarityValue): bigint => {
 		if (cv.type !== ClarityType.UInt) {
 			throw new Error("expected uint clarity value");
@@ -434,6 +441,30 @@ describe("stream-core", () => {
 
 		const pauseReceipt = pauseStream(0n, accounts.recipient);
 		expect(pauseReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_NOT_AUTHORISED)));
+	});
+
+	it("cancel-stream pays accrued amount to recipient and refunds sender", () => {
+		const createReceipt = createStream(2_000_000n, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const streamBeforeCancel = getStreamTuple(0n);
+		expect(streamBeforeCancel).not.toBeNull();
+		const depositAmount = parseUInt(streamBeforeCancel!["deposit-amount"]);
+
+		mineBlocks(10);
+
+		const senderBalanceBefore = getStxBalance(accounts.sender);
+		const recipientBalanceBefore = getStxBalance(accounts.recipient);
+		const cancelReceipt = cancelStream(0n);
+		const cancelResult = parseTuple(parseOk(cancelReceipt.result));
+
+		const recipientPaid = parseUInt(cancelResult["recipient-paid"]);
+		const senderRefunded = parseUInt(cancelResult["sender-refunded"]);
+		expect(recipientPaid).toBe(10_000n);
+		expect(recipientPaid + senderRefunded).toBe(depositAmount);
+
+		expect(getStxBalance(accounts.recipient)).toBe(recipientBalanceBefore + recipientPaid);
+		expect(getStxBalance(accounts.sender)).toBe(senderBalanceBefore + senderRefunded);
 	});
 });
 
