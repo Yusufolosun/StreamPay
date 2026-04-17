@@ -88,6 +88,7 @@
 )
 
 (define-private (is-authorised-core-caller)
+	;; contract-caller is set by the VM for the current call frame, so this check cannot be bypassed by user-supplied tx-sender.
 	(and (var-get is-initialised) (is-eq contract-caller (var-get stream-core-contract)))
 )
 
