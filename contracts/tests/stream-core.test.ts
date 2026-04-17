@@ -232,6 +232,29 @@ describe("stream-core", () => {
 		const cancelReceipt = cancelStream(0n);
 		expect(cancelReceipt.result.type).toBe(ClarityType.ResponseOk);
 	});
+
+	it("create-stream happy path returns u0, emits event, and deducts fee", () => {
+		const amount = 1_000_000n;
+		const ratePerBlock = 1_000n;
+		const durationBlocks = 20n;
+		const senderBalanceBefore = getStxBalance(accounts.sender);
+
+		const receipt = createStream(amount, ratePerBlock, durationBlocks);
+		expect(receipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const emitted = requirePrintEvent(receipt, "stream-created");
+		expect(parseUInt(parseSome(emitted["stream-id"]))).toBe(0n);
+
+		const expectedFee = feeFor(amount);
+		const expectedDeposit = amount - expectedFee;
+		expect(parseUInt(emitted["fee-amount"])).toBe(expectedFee);
+		expect(parseUInt(emitted["deposit-amount"])).toBe(expectedDeposit);
+
+		const stream = getStreamTuple(0n);
+		expect(stream).not.toBeNull();
+		expect(parseUInt(stream!["deposit-amount"])).toBe(expectedDeposit);
+		expect(getStxBalance(accounts.sender)).toBe(senderBalanceBefore - amount);
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
