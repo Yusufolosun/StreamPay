@@ -75,6 +75,7 @@ Implemented private helpers:
 ## lifecycle behavior notes
 
 - create-stream validates principal inputs, amount/rate/duration bounds, protocol pause state, whitelist membership for SIP-010 contracts, and sender/recipient list limits.
+- create-stream enforces the 50-stream cap for both sender and recipient reverse indexes; users should claim/cancel completed streams to free slots before retrying.
 - claim-stream computes elapsed accrual from the latest checkpoint and caps claims by remaining deposit.
 - pause-stream checkpoints accrued claimable balance before toggling paused state.
 - resume-stream restarts accrual from current block while preserving pre-pause checkpoint balance.
