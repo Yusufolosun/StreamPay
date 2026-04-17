@@ -38,11 +38,15 @@ All expected principals must resolve on the same chain instance. Development use
 
 ## Authorised Caller Pattern
 
-`stream-nft` accepts `mint-stream-receipt` and `burn-stream-receipt` only when `contract-caller` matches the one-time initialised `stream-core` principal stored in contract state.
+stream-nft enforces a one-time initialisation flow:
+1. is-initialised starts false.
+2. initialize-stream-core stores the stream-core principal.
+3. initialize-stream-core sets is-initialised to true.
+4. mint-stream-receipt and burn-stream-receipt require contract-caller to equal the stored stream-core principal.
 
-That check is safe because `contract-caller` is assigned by the Clarity runtime to the immediate caller contract. It is not a user-supplied parameter, so neither `tx-sender` nor any external principal can spoof it.
+That check is safe because contract-caller is assigned by the Clarity runtime to the immediate caller contract for the current frame. It is not a user argument and cannot be set by tx-sender, post condition, memo, or calldata tricks, so it cannot be spoofed by an external account.
 
-The one-time initialisation guard matters because it prevents the NFT contract from being bound to the wrong core principal after deployment.
+The one-time initialisation guard prevents rebinding the NFT contract to a different core principal after deployment.
 
 ## Compromise Impact
 
