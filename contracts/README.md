@@ -94,6 +94,7 @@ clarinet check contracts/stream-nft.clar
 ```
 
 The stream-nft contract was last validated with `clarinet check contracts/stream-nft.clar` and passed syntax checking.
+Validation run completed on 2026-04-17 for stream-core, stream-conditions, and stream-nft file-level checks.
 
 For authorised-caller verification after deployment:
 - call stream-nft.get-initialisation-status and confirm is-initialised is true.
