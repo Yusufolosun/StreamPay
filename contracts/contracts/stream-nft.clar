@@ -224,14 +224,14 @@
 
 (define-public (burn-stream-receipt (token-id uint))
 	(let (
-		;; The owner record must exist before a burn can remove the NFT and receipt mapping.
-		(token-owner-record (unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found))
 		;; The metadata record must exist so the burn can clear the correct stream-receipt slot.
 		(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
 	)
 		(begin
 			;; contract-caller is runtime-assigned by Clarity and cannot be spoofed by transaction input.
 			(asserts! (is-authorised-core-caller) err-not-authorised)
+			;; The owner record must still exist when the burn executes or the token is already absent.
+			(unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found)
 			(map-delete token-owner { token-id: token-id })
 			(map-delete token-metadata { token-id: token-id })
 			(set-stream-receipt-slot
