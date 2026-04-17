@@ -78,6 +78,10 @@
 	(or (is-eq receipt-type SENDER-RECEIPT) (is-eq receipt-type RECIPIENT-RECEIPT))
 )
 
+(define-private (is-authorised-core-caller)
+	(and (var-get is-initialised) (is-eq contract-caller (var-get stream-core-contract)))
+)
+
 (define-public (initialize-stream-core (stream-core principal))
 	(begin
 		(asserts! (not (var-get is-initialised)) err-already-initialised)
@@ -181,9 +185,8 @@
 
 (define-public (mint-stream-receipt (stream-id uint) (stream-owner principal) (receipt-type (string-ascii 9)))
 	(begin
-		(asserts! (var-get is-initialised) err-not-authorised)
 		;; contract-caller is runtime-assigned by Clarity to the immediate caller contract and cannot be forged by external tx-sender input.
-		(asserts! (is-eq contract-caller (var-get stream-core-contract)) err-not-authorised)
+		(asserts! (is-authorised-core-caller) err-not-authorised)
 		(asserts! (> stream-id u0) err-invalid-token-id)
 		(asserts! (not (is-eq stream-owner ZERO-PRINCIPAL)) err-zero-address)
 		(asserts! (> (len receipt-type) u0) err-invalid-receipt-type)
@@ -227,10 +230,8 @@
 		(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
 	)
 		(begin
-			(asserts! (var-get is-initialised) err-not-authorised)
 			;; contract-caller is runtime-assigned by Clarity and cannot be spoofed by transaction input.
-			(asserts! (is-eq contract-caller (var-get stream-core-contract)) err-not-authorised)
-			(asserts! (is-eq (get owner token-owner-record) (get owner token-owner-record)) err-token-not-found)
+			(asserts! (is-authorised-core-caller) err-not-authorised)
 			(map-delete token-owner { token-id: token-id })
 			(map-delete token-metadata { token-id: token-id })
 			(set-stream-receipt-slot
