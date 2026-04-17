@@ -46,6 +46,7 @@
 (define-constant err-zero-address (err u1005))
 (define-constant err-invalid-token-id (err u1006))
 (define-constant err-already-initialised (err u1007))
+(define-constant err-core-sync-failed (err u1008))
 
 (define-data-var is-initialised bool false)
 (define-data-var stream-core-contract principal ZERO-PRINCIPAL)
@@ -84,6 +85,23 @@
 
 (define-private (is-authorised-core-caller)
 	(and (var-get is-initialised) (is-eq contract-caller (var-get stream-core-contract)))
+)
+
+(define-private (sync-stream-core-sender-best-effort (stream-id uint) (recipient principal) (receipt-type (string-ascii 9)))
+	(match (contract-call? (var-get stream-core-contract) transfer-stream-sender stream-id recipient)
+		sync-ok sync-ok
+		sync-error
+			(begin
+				(print {
+					event: "sender-sync-warning",
+					local-error: err-core-sync-failed,
+					reason: sync-error,
+					stream-id: stream-id,
+					receipt-type: receipt-type
+				})
+				true
+			)
+	)
 )
 
 (define-public (initialize-stream-core (stream-core principal))
@@ -266,19 +284,7 @@
 			(if (is-eq (get receipt-type token-metadata-record) SENDER-RECEIPT)
 				(begin
 					;; If stream-core rejects the sync, keep the NFT transfer authoritative and emit a warning for operators.
-					(match (contract-call? (var-get stream-core-contract) transfer-stream-sender (get stream-id token-metadata-record) recipient)
-						sync-ok sync-ok
-						sync-error
-							(begin
-								(print {
-									event: "sender-sync-warning",
-									stream-id: (get stream-id token-metadata-record),
-									reason: sync-error,
-									receipt-type: (get receipt-type token-metadata-record)
-								})
-								true
-							)
-					)
+					(sync-stream-core-sender-best-effort (get stream-id token-metadata-record) recipient (get receipt-type token-metadata-record))
 					true
 				)
 				true
