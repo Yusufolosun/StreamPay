@@ -255,6 +255,11 @@ describe("stream-core", () => {
 		expect(parseUInt(stream!["deposit-amount"])).toBe(expectedDeposit);
 		expect(getStxBalance(accounts.sender)).toBe(senderBalanceBefore - amount);
 	});
+
+	it("create-stream fails when recipient equals tx-sender", () => {
+		const receipt = createStream(1_000_000n, 1_000n, 10n, accounts.sender, accounts.sender);
+		expect(receipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_RECIPIENT)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
