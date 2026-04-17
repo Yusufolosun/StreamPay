@@ -265,6 +265,11 @@ describe("stream-core", () => {
 		const receipt = createStream(1_000n, 1n, 10n);
 		expect(receipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_AMOUNT)));
 	});
+
+	it("create-stream fails when rate-per-block is zero", () => {
+		const receipt = createStream(1_000_000n, 0n, 10n);
+		expect(receipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_RATE)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
