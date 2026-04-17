@@ -332,6 +332,14 @@ describe("stream-core", () => {
 		const claimReceipt = claimStream(0n, accounts.sender);
 		expect(claimReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_NOT_AUTHORISED)));
 	});
+
+	it("claim-stream fails when claimable amount is zero immediately after create", () => {
+		const createReceipt = createStream(1_000_000n, 1_000n, 20n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const claimReceipt = claimStream(0n);
+		expect(claimReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INSUFFICIENT_BALANCE)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
