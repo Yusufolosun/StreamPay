@@ -1,0 +1,19 @@
+{
+  "name": "@streampay/contracts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@hirosystems/clarinet-sdk": "^3.8.1",
+    "@stacks/transactions": "^6.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^6.0.2",
+    "vitest": "^3.2.4"
+  }
+}

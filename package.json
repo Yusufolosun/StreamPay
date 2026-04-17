@@ -5,6 +5,7 @@
   "description": "StreamPay — Stacks Blockchain Recurring Payments Platform",
   "workspaces": [
     "apps/*",
+    "contracts",
     "packages/*"
   ],
   "scripts": {
