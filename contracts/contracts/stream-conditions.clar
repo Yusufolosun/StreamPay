@@ -22,6 +22,7 @@
 (define-constant err-stream-cancelled (err u2009))
 (define-constant err-token-not-whitelisted (err u2010))
 (define-constant err-whitelist-check-failed (err u2011))
+(define-constant err-token-transfer-failed (err u2012))
 
 (define-map milestone-streams uint {
 	sender: principal,
@@ -141,8 +142,11 @@
 		(match token-contract
 			;; SIP-010 stream path
 			token
-				;; The token contract can reject the transfer if the sender is paused, underfunded, or otherwise unauthorised.
-				(try! (contract-call? token transfer amount sender recipient none))
+				(begin
+					;; The token contract can reject the transfer if paused, underfunded, unauthorised, or unresolved at the configured principal.
+					(unwrap! (contract-call? token transfer amount sender recipient none) err-token-transfer-failed)
+					(ok true)
+				)
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
