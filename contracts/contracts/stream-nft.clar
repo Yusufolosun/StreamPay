@@ -93,6 +93,7 @@
 )
 
 (define-private (sync-stream-core-sender-best-effort (stream-id uint) (recipient principal) (receipt-type (string-ascii 9)))
+	;; Best-effort by design: failures are surfaced via warning events instead of being silently ignored.
 	(match (contract-call? (var-get stream-core-contract) transfer-stream-sender stream-id recipient)
 		sync-ok sync-ok
 		sync-error
