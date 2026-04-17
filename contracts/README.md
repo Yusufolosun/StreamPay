@@ -95,6 +95,11 @@ clarinet check contracts/stream-nft.clar
 
 The stream-nft contract was last validated with `clarinet check contracts/stream-nft.clar` and passed syntax checking.
 
+For authorised-caller verification after deployment:
+- call stream-nft.get-initialisation-status and confirm is-initialised is true.
+- confirm stream-core-contract equals the deployed stream-core principal.
+- verify mint/burn callers fail when contract-caller is not stream-core.
+
 Project-wide checks with `clarinet check` require valid mnemonic values in Clarinet settings files.
 If `clarinet check` reports invalid mnemonic word-count in `settings/Simnet.toml`, fix the mnemonic first, then re-run project-wide validation.
 
