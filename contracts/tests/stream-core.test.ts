@@ -380,6 +380,21 @@ describe("stream-core", () => {
 		const thirdClaim = claimStream(0n);
 		expect(thirdClaim.result).toStrictEqual(Cl.error(Cl.uint(ERR_INSUFFICIENT_BALANCE)));
 	});
+
+	it("pause-stream stops accrual while paused", () => {
+		const createReceipt = createStream(2_000_000n, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		mineBlocks(5);
+		const claimableBeforePause = getClaimable(0n);
+
+		const pauseReceipt = pauseStream(0n);
+		expect(pauseReceipt.result).toStrictEqual(Cl.ok(Cl.bool(true)));
+
+		mineBlocks(10);
+		const claimableAfterPausedBlocks = getClaimable(0n);
+		expect(claimableAfterPausedBlocks).toBe(claimableBeforePause);
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
