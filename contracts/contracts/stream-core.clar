@@ -171,6 +171,7 @@
 			token
 				(begin
 					;; External token transfer can fail if the token rejects the sender, is paused, underfunded, or not deployed at the expected principal.
+					;; This unwrap is intentional fail-closed behavior so token transfer failures are never silently ignored.
 					(unwrap! (contract-call? token transfer amount sender recipient none) err-token-transfer-failed)
 					(ok true)
 				)
@@ -231,6 +232,7 @@
 				token
 					(begin
 						;; Fee transfer must fail closed if the SIP-010 dependency is unavailable or rejects the transfer.
+						;; This unwrap ensures protocol accounting never continues after a failed external fee transfer.
 						(unwrap! (as-contract (contract-call? token transfer fee-amount tx-sender CONTRACT-OWNER none)) err-fee-transfer-failed)
 						true
 					)
