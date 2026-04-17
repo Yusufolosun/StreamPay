@@ -503,6 +503,17 @@ describe("stream-core", () => {
 		expect(parseUInt(cancelResult["recipient-paid"])).toBe(expectedRecipientPaid);
 		expect(parseUInt(cancelResult["sender-refunded"])).toBe(expectedSenderRefunded);
 	});
+
+	it("cancel-stream fails on second cancellation", () => {
+		const createReceipt = createStream(2_000_000n, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const firstCancel = cancelStream(0n);
+		expect(firstCancel.result.type).toBe(ClarityType.ResponseOk);
+
+		const secondCancel = cancelStream(0n);
+		expect(secondCancel.result).toStrictEqual(Cl.error(Cl.uint(ERR_STREAM_CANCELLED)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
