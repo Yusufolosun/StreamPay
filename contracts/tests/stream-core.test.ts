@@ -1,46 +1,243 @@
-import { describe } from "@hirosystems/clarinet-sdk";
+import { initSimnet, type ParsedTransactionResult, type Simnet } from "@hirosystems/clarinet-sdk";
+import { Cl, ClarityType, type ClarityValue } from "@stacks/transactions";
+import { beforeEach, describe, expect, it } from "vitest";
+
+const CONTRACT = "stream-core";
+const DEFAULT_DEPLOYER_MNEMONIC =
+	"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+const ERR_NOT_AUTHORISED = 1000n;
+const ERR_INVALID_AMOUNT = 1003n;
+const ERR_INVALID_RATE = 1004n;
+const ERR_INVALID_RECIPIENT = 1005n;
+const ERR_INSUFFICIENT_BALANCE = 1008n;
+const ERR_PROTOCOL_PAUSED = 1014n;
+const ERR_STREAM_CANCELLED = 1015n;
+
+const PROTOCOL_FEE_BPS = 25n;
+const BPS_DENOMINATOR = 10_000n;
+
+type Accounts = {
+	deployer: string;
+	sender: string;
+	recipient: string;
+};
 
 describe("stream-core", () => {
-	// validation matrix
-	// create-stream
-	// - recipient == sender -> err-invalid-recipient
-	// - recipient == zero principal -> err-zero-address
-	// - amount <= MIN-STREAM-AMOUNT -> err-invalid-amount
-	// - rate-per-block == 0 -> err-invalid-rate
-	// - duration == 0 or > MAX-STREAM-DURATION -> err-invalid-duration
+	let simnet: Simnet;
+	let accounts: Accounts;
+	let trackedStreamIds: Set<bigint>;
 
-	// stream creation
-	// TODO: rejects sender=recipient, zero recipient, invalid amount/rate/duration
-	// TODO: creates STX streams and appends stream id to sender/recipient indexes
-	// TODO: creates SIP-010 streams and collects protocol fee correctly
-	// TODO: rejects create-stream when protocol-level pause flag is set
+	beforeEach(async () => {
+		process.env.DEPLOYER_MNEMONIC ??= DEFAULT_DEPLOYER_MNEMONIC;
+		simnet = await initSimnet("./Clarinet.toml", true);
+		const loadedAccounts = simnet.getAccounts();
+		accounts = {
+			deployer: requireAccount(loadedAccounts, "deployer"),
+			sender: requireAccount(loadedAccounts, "wallet_1"),
+			recipient: requireAccount(loadedAccounts, "wallet_2"),
+		};
+		trackedStreamIds = new Set<bigint>();
+		assertFundConservationInvariant();
+	});
 
-	// claim and checkpoint accounting
-	// TODO: accrues by block delta and caps claimable at remaining deposit
-	// TODO: rejects claim when caller is not recipient or claimable is zero
-	// TODO: claim after end-block does not exceed remaining deposit
-	// TODO: repeated claim in same block returns err-insufficient-balance
+	const callPublic = (method: string, args: ClarityValue[], caller: string): ParsedTransactionResult => {
+		const receipt = simnet.callPublicFn(CONTRACT, method, args, caller);
+		if (
+			method === "create-stream" &&
+			receipt.result.type === ClarityType.ResponseOk &&
+			receipt.result.value.type === ClarityType.UInt
+		) {
+			trackedStreamIds.add(receipt.result.value.value);
+		}
+		assertFundConservationInvariant();
+		return receipt;
+	};
 
-	// pause/resume lifecycle
-	// TODO: checkpoints accrued balance before pausing
-	// TODO: resumes from current block without back-accruing paused interval
-	// TODO: non-sender cannot pause or resume stream
-	// TODO: pause on expired stream returns err-stream-expired
+	const callReadOnly = (method: string, args: ClarityValue[], caller = accounts.sender): ClarityValue => {
+		return simnet.callReadOnlyFn(CONTRACT, method, args, caller).result;
+	};
 
-	// cancellation
-	// TODO: pays recipient accrued amount then refunds sender remainder
-	// TODO: rejects repeated cancellation
-	// TODO: non-sender cancellation attempts return err-not-authorised
-	// TODO: cancellation on paused stream still pays checkpointed recipient balance
+	const mineBlocks = (count: number): void => {
+		simnet.mineEmptyBlocks(count);
+		assertFundConservationInvariant();
+	};
 
-	// stream-nft integration
-	// TODO: sender receipt transfer updates stream sender via stream-nft hook
-	// TODO: stream-core burn path can retire receipts without owner signature
-	// TODO: NFT transfer failure does not revert stream-core authorization state
+	const createStream = (
+		amount: bigint,
+		ratePerBlock: bigint,
+		durationBlocks: bigint,
+		recipient = accounts.recipient,
+		caller = accounts.sender,
+	): ParsedTransactionResult => {
+		return callPublic(
+			"create-stream",
+			[
+				Cl.standardPrincipal(recipient),
+				Cl.uint(amount),
+				Cl.uint(ratePerBlock),
+				Cl.uint(durationBlocks),
+				Cl.none(),
+			],
+			caller,
+		);
+	};
 
-	// read-only
-	// TODO: validates get-stream/get-stream-status/get-claimable-balance outputs
-	// TODO: validates sender and recipient reverse index queries
-	// TODO: invalid stream-id queries return none or zero-safe defaults
-	// TODO: stream status returns active, paused, expired, cancelled transitions correctly
+	const claimStream = (streamId: bigint, caller = accounts.recipient): ParsedTransactionResult => {
+		return callPublic("claim-stream", [Cl.uint(streamId)], caller);
+	};
+
+	const pauseStream = (streamId: bigint, caller = accounts.sender): ParsedTransactionResult => {
+		return callPublic("pause-stream", [Cl.uint(streamId)], caller);
+	};
+
+	const resumeStream = (streamId: bigint, caller = accounts.sender): ParsedTransactionResult => {
+		return callPublic("resume-stream", [Cl.uint(streamId)], caller);
+	};
+
+	const cancelStream = (streamId: bigint, caller = accounts.sender): ParsedTransactionResult => {
+		return callPublic("cancel-stream", [Cl.uint(streamId)], caller);
+	};
+
+	const emergencyPauseProtocol = (caller = accounts.deployer): ParsedTransactionResult => {
+		return callPublic("emergency-pause-protocol", [], caller);
+	};
+
+	const withdrawFees = (
+		amount: bigint,
+		recipient: string,
+		caller = accounts.deployer,
+	): ParsedTransactionResult => {
+		return callPublic("withdraw-accumulated-fees", [Cl.uint(amount), Cl.standardPrincipal(recipient)], caller);
+	};
+
+	const getContractPrincipal = (): string => `${accounts.deployer}.${CONTRACT}`;
+
+	const getStxBalance = (principal: string): bigint => {
+		const stxBalances = simnet.getAssetsMap().get("STX");
+		return stxBalances?.get(principal) ?? 0n;
+	};
+
+	const parseTuple = (cv: ClarityValue): Record<string, ClarityValue> => {
+		if (cv.type !== ClarityType.Tuple) {
+			throw new Error("expected tuple clarity value");
+		}
+		return cv.data;
+	};
+
+	const parseSome = (cv: ClarityValue): ClarityValue => {
+		if (cv.type !== ClarityType.OptionalSome) {
+			throw new Error("expected optional some clarity value");
+		}
+		return cv.value;
+	};
+
+	const parseUInt = (cv: ClarityValue): bigint => {
+		if (cv.type !== ClarityType.UInt) {
+			throw new Error("expected uint clarity value");
+		}
+		return cv.value;
+	};
+
+	const parseAscii = (cv: ClarityValue): string => {
+		if (cv.type !== ClarityType.StringASCII) {
+			throw new Error("expected string-ascii clarity value");
+		}
+		return cv.data;
+	};
+
+	const parseBool = (cv: ClarityValue): boolean => {
+		if (cv.type === ClarityType.BoolTrue) return true;
+		if (cv.type === ClarityType.BoolFalse) return false;
+		throw new Error("expected bool clarity value");
+	};
+
+	const getStreamTuple = (streamId: bigint): Record<string, ClarityValue> | null => {
+		const result = callReadOnly("get-stream", [Cl.uint(streamId)]);
+		if (result.type === ClarityType.OptionalNone) {
+			return null;
+		}
+		return parseTuple(parseSome(result));
+	};
+
+	const getClaimable = (streamId: bigint): bigint => {
+		const result = callReadOnly("get-claimable-balance", [Cl.uint(streamId)]);
+		return parseUInt(result);
+	};
+
+	const getUnclaimedActiveStxDeposits = (): bigint => {
+		let total = 0n;
+		for (const streamId of trackedStreamIds) {
+			const stream = getStreamTuple(streamId);
+			if (stream === null) continue;
+			if (stream["token-contract"].type !== ClarityType.OptionalNone) continue;
+			if (parseBool(stream["is-cancelled"])) continue;
+			const depositAmount = parseUInt(stream["deposit-amount"]);
+			const claimedAmount = parseUInt(stream["claimed-amount"]);
+			total += depositAmount - claimedAmount;
+		}
+		return total;
+	};
+
+	const assertFundConservationInvariant = (): void => {
+		const unclaimedDeposits = getUnclaimedActiveStxDeposits();
+		const contractBalance = getStxBalance(getContractPrincipal());
+		const activeDepositsCv = callReadOnly("get-total-active-stx-deposits", []);
+		const withdrawableFeesCv = callReadOnly("get-withdrawable-fees", []);
+		const activeDeposits = parseUInt(activeDepositsCv);
+		const withdrawableFees = parseUInt(withdrawableFeesCv);
+
+		expect(activeDeposits).toBe(unclaimedDeposits);
+		expect(contractBalance).toBe(unclaimedDeposits + withdrawableFees);
+	};
+
+	const requirePrintEvent = (
+		receipt: ParsedTransactionResult,
+		eventType: string,
+	): Record<string, ClarityValue> => {
+		for (const event of receipt.events) {
+			if (event.event !== "print_event" || event.data.value === undefined) continue;
+			if (event.data.value.type !== ClarityType.Tuple) continue;
+			const tuple = parseTuple(event.data.value);
+			const emittedType = tuple["event-type"];
+			if (emittedType !== undefined && emittedType.type === ClarityType.StringASCII) {
+				if (parseAscii(emittedType) === eventType) {
+					return tuple;
+				}
+			}
+		}
+		throw new Error(`missing print event ${eventType}`);
+	};
+
+	const feeFor = (amount: bigint): bigint => (amount * PROTOCOL_FEE_BPS) / BPS_DENOMINATOR;
+
+	it("fund conservation invariant holds after each state transition", () => {
+		const createReceipt = createStream(1_000_000n, 1_000n, 20n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		mineBlocks(5);
+
+		const claimableBeforeClaim = getClaimable(0n);
+		expect(claimableBeforeClaim > 0n).toBe(true);
+
+		const claimReceipt = claimStream(0n);
+		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(claimableBeforeClaim)));
+
+		const pauseReceipt = pauseStream(0n);
+		expect(pauseReceipt.result).toStrictEqual(Cl.ok(Cl.bool(true)));
+
+		const resumeReceipt = resumeStream(0n);
+		expect(resumeReceipt.result).toStrictEqual(Cl.ok(Cl.bool(true)));
+
+		const cancelReceipt = cancelStream(0n);
+		expect(cancelReceipt.result.type).toBe(ClarityType.ResponseOk);
+	});
 });
+
+function requireAccount(accounts: Map<string, string>, key: string): string {
+	const account = accounts.get(key);
+	if (!account) {
+		throw new Error(`missing expected account: ${key}`);
+	}
+	return account;
+}
