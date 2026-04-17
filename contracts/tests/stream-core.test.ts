@@ -340,6 +340,23 @@ describe("stream-core", () => {
 		const claimReceipt = claimStream(0n);
 		expect(claimReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INSUFFICIENT_BALANCE)));
 	});
+
+	it("claim-stream multiple partial claims accumulate", () => {
+		const createReceipt = createStream(2_000_000n, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		mineBlocks(3);
+		const firstClaim = claimStream(0n);
+		expect(firstClaim.result).toStrictEqual(Cl.ok(Cl.uint(3_000n)));
+
+		mineBlocks(4);
+		const secondClaim = claimStream(0n);
+		expect(secondClaim.result).toStrictEqual(Cl.ok(Cl.uint(4_000n)));
+
+		const stream = getStreamTuple(0n);
+		expect(stream).not.toBeNull();
+		expect(parseUInt(stream!["claimed-amount"])).toBe(7_000n);
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
