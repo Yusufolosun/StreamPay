@@ -55,16 +55,19 @@ The one-time initialisation guard prevents rebinding the NFT contract to a diffe
 - They could corrupt sender synchronisation on sender-receipt transfers.
 - They could alter stream state, whitelist policy, and fee/accounting invariants in the core contract itself.
 - This is the highest-impact dependency because it owns the canonical stream state.
+- Immediate action: pause protocol operations and rotate to a patched deployment.
 
 ### If `stream-nft` is compromised
 - Attackers could corrupt NFT ownership or metadata.
 - They still cannot mint or burn without the stored `stream-core` principal calling in, so the authorised-caller check limits direct abuse of the mint/burn surface.
 - Best-effort sender sync may diverge from core state, but the NFT ownership record remains the source of truth for the receipt token.
+- Immediate action: disable UX paths that rely on NFT metadata until reconciliation.
 
 ### If `stream-conditions` is compromised
 - Attackers could manipulate milestone release and dispute logic for milestone-based streams.
 - They could not directly bypass the `stream-nft` caller restriction.
 - Damage is scoped to milestone streams and their token flows, not to the NFT authorisation boundary.
+- Immediate action: disable milestone-stream creation and resolve affected disputes manually.
 
 ## Operational Notes
 
