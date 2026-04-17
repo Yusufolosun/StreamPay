@@ -514,6 +514,14 @@ describe("stream-core", () => {
 		const secondCancel = cancelStream(0n);
 		expect(secondCancel.result).toStrictEqual(Cl.error(Cl.uint(ERR_STREAM_CANCELLED)));
 	});
+
+	it("cancel-stream fails when called by recipient", () => {
+		const createReceipt = createStream(2_000_000n, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const cancelReceipt = cancelStream(0n, accounts.recipient);
+		expect(cancelReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_NOT_AUTHORISED)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
