@@ -83,6 +83,10 @@
 	(or (is-eq receipt-type SENDER-RECEIPT) (is-eq receipt-type RECIPIENT-RECEIPT))
 )
 
+(define-private (has-valid-receipt-type-length (receipt-type (string-ascii 9)))
+	(and (> (len receipt-type) u0) (<= (len receipt-type) u9))
+)
+
 (define-private (is-authorised-core-caller)
 	(and (var-get is-initialised) (is-eq contract-caller (var-get stream-core-contract)))
 )
@@ -211,8 +215,7 @@
 		(asserts! (is-authorised-core-caller) err-not-authorised)
 		(asserts! (> stream-id u0) err-invalid-token-id)
 		(asserts! (not (is-eq stream-owner ZERO-PRINCIPAL)) err-zero-address)
-		(asserts! (> (len receipt-type) u0) err-invalid-receipt-type)
-		(asserts! (<= (len receipt-type) u9) err-invalid-receipt-type)
+		(asserts! (has-valid-receipt-type-length receipt-type) err-invalid-receipt-type)
 		(asserts! (is-valid-receipt-type receipt-type) err-invalid-receipt-type)
 		(let (
 			(receipt-record (get-stream-receipts stream-id))
