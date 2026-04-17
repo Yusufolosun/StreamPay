@@ -6,11 +6,15 @@
 ;; Deployment Date: <YYYY-MM-DD>
 ;; Implements: SIP-009
 ;; Dependencies: stream-core, stream-conditions
-;; Cross-contract call graph:
+;; Cross-contract call graph (mutating paths):
 ;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
 ;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
 ;; - stream-nft -> stream-core: transfer-stream-sender (best-effort)
-;; Read-only dependencies are acyclic because stream-core does not call stream-nft or stream-conditions from any read-only path.
+;; Read-only dependency check:
+;; - stream-conditions reads stream-core.
+;; - stream-core read-only functions do not call stream-nft or stream-conditions.
+;; - stream-nft performs a best-effort write call into stream-core.
+;; Therefore read-only dependencies are acyclic.
 ;; Security Notes:
 ;; - NFT ownership transfer is authoritative.
 ;; - contract-caller is assigned by the Clarity runtime and cannot be spoofed by tx-sender.
@@ -42,6 +46,7 @@
 (define-constant err-zero-address (err u1005))
 (define-constant err-invalid-token-id (err u1006))
 (define-constant err-already-initialised (err u1007))
+(define-constant err-core-sync-failed (err u1008))
 
 (define-data-var is-initialised bool false)
 (define-data-var stream-core-contract principal ZERO-PRINCIPAL)
@@ -78,8 +83,36 @@
 	(or (is-eq receipt-type SENDER-RECEIPT) (is-eq receipt-type RECIPIENT-RECEIPT))
 )
 
+(define-private (has-valid-receipt-type-length (receipt-type (string-ascii 9)))
+	(and (> (len receipt-type) u0) (<= (len receipt-type) u9))
+)
+
+(define-private (is-authorised-core-caller)
+	;; contract-caller is set by the VM for the current call frame, so this check cannot be bypassed by user-supplied tx-sender.
+	(and (var-get is-initialised) (is-eq contract-caller (var-get stream-core-contract)))
+)
+
+(define-private (sync-stream-core-sender-best-effort (stream-id uint) (recipient principal) (receipt-type (string-ascii 9)))
+	;; Best-effort by design: failures are surfaced via warning events instead of being silently ignored.
+	(match (contract-call? (var-get stream-core-contract) transfer-stream-sender stream-id recipient)
+		sync-ok sync-ok
+		sync-error
+			(begin
+				(print {
+					event: "sender-sync-warning",
+					local-error: err-core-sync-failed,
+					reason: sync-error,
+					stream-id: stream-id,
+					receipt-type: receipt-type
+				})
+				true
+			)
+	)
+)
+
 (define-public (initialize-stream-core (stream-core principal))
 	(begin
+		;; One-time latch prevents rebinding mint/burn authority after deployment.
 		(asserts! (not (var-get is-initialised)) err-already-initialised)
 		(asserts! (not (is-eq stream-core ZERO-PRINCIPAL)) err-zero-address)
 		(var-set stream-core-contract stream-core)
@@ -150,6 +183,10 @@
 	(ok (map-get? token-metadata { token-id: token-id }))
 )
 
+(define-read-only (get-initialisation-status)
+	{ is-initialised: (var-get is-initialised), stream-core-contract: (var-get stream-core-contract) }
+)
+
 (define-read-only (get-tokens-for-stream (stream-id uint))
 	(match (map-get? stream-receipts { stream-id: stream-id })
 		receipt-record
@@ -168,125 +205,109 @@
 					(list)
 				)
 			)
-
-		(define-read-only (is-approved-operator (owner principal) (operator principal))
-			(match (map-get? approved-operators { owner: owner, operator: operator })
-				approval-record (get approved approval-record)
-				false
-			)
-		)
-
-		(define-public (mint-stream-receipt (stream-id uint) (stream-owner principal) (receipt-type (string-ascii 9)))
-			(begin
-				(asserts! (var-get is-initialised) err-not-authorised)
-				(asserts! (is-eq contract-caller (var-get stream-core-contract)) err-not-authorised)
-				(asserts! (> stream-id u0) err-invalid-token-id)
-				(asserts! (not (is-eq stream-owner ZERO-PRINCIPAL)) err-zero-address)
-				(asserts! (> (len receipt-type) u0) err-invalid-receipt-type)
-				(asserts! (<= (len receipt-type) u9) err-invalid-receipt-type)
-				(asserts! (is-valid-receipt-type receipt-type) err-invalid-receipt-type)
-				(let (
-					(receipt-record (get-stream-receipts stream-id))
-					(existing-token-id (stream-receipt-slot receipt-type receipt-record))
-				)
-					(begin
-						(asserts! (is-none existing-token-id) err-token-already-minted)
-						(let ((new-token-id (+ (var-get token-id-nonce) u1)))
-							(begin
-								(map-set token-owner
-									{ token-id: new-token-id }
-									{ owner: stream-owner }
-								)
-								(map-set token-metadata
-									{ token-id: new-token-id }
-									{
-										stream-id: stream-id,
-										receipt-type: receipt-type,
-										minted-at: block-height
-									}
-								)
-								(set-stream-receipt-slot stream-id receipt-type (some new-token-id))
-								(var-set token-id-nonce new-token-id)
-								(ok new-token-id)
-							)
-						)
-					)
-
-					(define-public (burn-stream-receipt (token-id uint))
-						(let (
-							;; The owner record must exist before a burn can remove the NFT and receipt mapping.
-							(token-owner-record (unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found))
-							;; The metadata record must exist so the burn can clear the correct stream-receipt slot.
-							(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
-						)
-							(begin
-								(asserts! (var-get is-initialised) err-not-authorised)
-								;; contract-caller comes from the Clarity runtime, so only the stored stream-core principal can satisfy this check.
-								(asserts! (is-eq contract-caller (var-get stream-core-contract)) err-not-authorised)
-								(map-delete token-owner { token-id: token-id })
-								(map-delete token-metadata { token-id: token-id })
-								(set-stream-receipt-slot
-									(get stream-id token-metadata-record)
-									(get receipt-type token-metadata-record)
-									none
-								)
-								(prune-empty-stream-receipts (get stream-id token-metadata-record))
-								(ok true)
-							)
-						)
-					)
-
-					;; NFT ownership is the source of truth.
-					;; When a sender receipt moves, stream-core is updated after the local transfer, and that update is best-effort only.
-					(define-public (transfer (token-id uint) (sender principal) (recipient principal))
-						(let (
-							;; The owner record must exist before a transfer can verify the current holder.
-							(token-owner-record (unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found))
-							;; The metadata record must exist so the transfer can update the stream-core sender sync for the correct stream.
-							(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
-						)
-							(begin
-								(asserts! (is-eq tx-sender sender) err-not-authorised)
-								(asserts! (is-eq sender (get owner token-owner-record)) err-token-not-owner)
-								(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
-								(map-set token-owner { token-id: token-id } { owner: recipient })
-								(if (is-eq (get receipt-type token-metadata-record) SENDER-RECEIPT)
-									(begin
-										;; If stream-core rejects the sync, keep the NFT transfer authoritative and emit a warning for operators.
-										(match (contract-call? (var-get stream-core-contract) transfer-stream-sender (get stream-id token-metadata-record) recipient)
-											ok-result ok-result
-											sync-error
-												(begin
-													(print {
-														event: "sender-sync-warning",
-														stream-id: (get stream-id token-metadata-record),
-														reason: sync-error,
-														receipt-type: (get receipt-type token-metadata-record)
-													})
-													true
-												)
-										)
-										true
-									)
-									true
-								)
-								(print
-									{
-										event: "nft_transfer_event",
-										token-id: token-id,
-										sender: sender,
-										recipient: recipient,
-										stream-id: (get stream-id token-metadata-record),
-										receipt-type: (get receipt-type token-metadata-record)
-									}
-								)
-								(ok true)
-							)
-						)
-					)
-				)
-			)
-		)
 		(list)
+	)
+)
+
+(define-read-only (is-approved-operator (owner principal) (operator principal))
+	(match (map-get? approved-operators { owner: owner, operator: operator })
+		approval-record (get approved approval-record)
+		false
+	)
+)
+
+(define-public (mint-stream-receipt (stream-id uint) (stream-owner principal) (receipt-type (string-ascii 9)))
+	(begin
+		;; contract-caller is runtime-assigned by Clarity to the immediate caller contract and cannot be forged by external tx-sender input.
+		(asserts! (is-authorised-core-caller) err-not-authorised)
+		(asserts! (> stream-id u0) err-invalid-token-id)
+		(asserts! (not (is-eq stream-owner ZERO-PRINCIPAL)) err-zero-address)
+		(asserts! (has-valid-receipt-type-length receipt-type) err-invalid-receipt-type)
+		(asserts! (is-valid-receipt-type receipt-type) err-invalid-receipt-type)
+		(let (
+			(receipt-record (get-stream-receipts stream-id))
+			(existing-token-id (stream-receipt-slot receipt-type receipt-record))
+		)
+			(begin
+				(asserts! (is-none existing-token-id) err-token-already-minted)
+				(let ((new-token-id (+ (var-get token-id-nonce) u1)))
+					(begin
+						(map-set token-owner
+							{ token-id: new-token-id }
+							{ owner: stream-owner }
+						)
+						(map-set token-metadata
+							{ token-id: new-token-id }
+							{
+								stream-id: stream-id,
+								receipt-type: receipt-type,
+								minted-at: block-height
+							}
+						)
+						(set-stream-receipt-slot stream-id receipt-type (some new-token-id))
+						(var-set token-id-nonce new-token-id)
+						(ok new-token-id)
+					)
+				)
+			)
+		)
+	)
+)
+
+(define-public (burn-stream-receipt (token-id uint))
+	(let (
+		;; The metadata record must exist so the burn can clear the correct stream-receipt slot.
+		(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
+	)
+		(begin
+			;; contract-caller is runtime-assigned by Clarity and cannot be spoofed by transaction input.
+			(asserts! (is-authorised-core-caller) err-not-authorised)
+			;; The owner record must still exist when the burn executes or the token is already absent.
+			(unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found)
+			(map-delete token-owner { token-id: token-id })
+			(map-delete token-metadata { token-id: token-id })
+			(set-stream-receipt-slot
+				(get stream-id token-metadata-record)
+				(get receipt-type token-metadata-record)
+				none
+			)
+			(prune-empty-stream-receipts (get stream-id token-metadata-record))
+			(ok true)
+		)
+	)
+)
+
+;; NFT ownership is the source of truth.
+;; When a sender receipt moves, stream-core is updated after the local transfer, and that update is best-effort only.
+(define-public (transfer (token-id uint) (sender principal) (recipient principal))
+	(let (
+		;; The owner record must exist before a transfer can verify the current holder.
+		(token-owner-record (unwrap! (map-get? token-owner { token-id: token-id }) err-token-not-found))
+		;; The metadata record must exist so the transfer can update the stream-core sender sync for the correct stream.
+		(token-metadata-record (unwrap! (map-get? token-metadata { token-id: token-id }) err-token-not-found))
+	)
+		(begin
+			(asserts! (is-eq tx-sender sender) err-not-authorised)
+			(asserts! (is-eq sender (get owner token-owner-record)) err-token-not-owner)
+			(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
+			(map-set token-owner { token-id: token-id } { owner: recipient })
+			(if (is-eq (get receipt-type token-metadata-record) SENDER-RECEIPT)
+				(begin
+					;; If stream-core rejects the sync, keep the NFT transfer authoritative and emit a warning for operators.
+					(sync-stream-core-sender-best-effort (get stream-id token-metadata-record) recipient (get receipt-type token-metadata-record))
+					true
+				)
+				true
+			)
+			(print {
+				event: "nft-transfer",
+				token-id: token-id,
+				sender: sender,
+				recipient: recipient,
+				stream-id: (get stream-id token-metadata-record),
+				receipt-type: (get receipt-type token-metadata-record)
+			})
+			(ok true)
+		)
 	)
 )

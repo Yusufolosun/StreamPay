@@ -5,6 +5,7 @@ Clarinet smart-contract workspace scaffold for StreamPay.
 ## stream-nft function coverage
 
 Implemented public functions:
+- initialize-stream-core
 - mint-stream-receipt
 - burn-stream-receipt
 - transfer
@@ -14,11 +15,15 @@ Implemented read-only functions:
 - get-token-uri
 - get-owner
 - get-stream-for-token
+- get-initialisation-status
 - get-tokens-for-stream
 - is-approved-operator
 
 Implemented private helpers:
 - is-valid-receipt-type
+- has-valid-receipt-type-length
+- is-authorised-core-caller
+- sync-stream-core-sender-best-effort
 - get-stream-receipts
 - stream-receipt-slot
 - set-stream-receipt-slot
@@ -27,7 +32,8 @@ Implemented private helpers:
 ## receipt lifecycle notes
 
 - mint-stream-receipt is gated to stream-core through contract-caller.
-- burn-stream-receipt can be called by either stream-core or the current NFT owner.
+- burn-stream-receipt is gated to stream-core through contract-caller.
+- initialize-stream-core is one-time and permanently binds the authorised stream-core principal.
 - transfer updates NFT ownership first, then attempts to sync sender receipts back into stream-core as a best-effort convenience.
 - sender receipt transfer is authoritative for NFT ownership; a failed stream-core hook does not revert the NFT transfer.
 - receipt-type uses string-ascii 9 because the literal RECIPIENT requires nine ASCII characters.
@@ -69,6 +75,7 @@ Implemented private helpers:
 ## lifecycle behavior notes
 
 - create-stream validates principal inputs, amount/rate/duration bounds, protocol pause state, whitelist membership for SIP-010 contracts, and sender/recipient list limits.
+- create-stream enforces the 50-stream cap for both sender and recipient reverse indexes; users should claim/cancel completed streams to free slots before retrying.
 - claim-stream computes elapsed accrual from the latest checkpoint and caps claims by remaining deposit.
 - pause-stream checkpoints accrued claimable balance before toggling paused state.
 - resume-stream restarts accrual from current block while preserving pre-pause checkpoint balance.
@@ -87,6 +94,12 @@ clarinet check contracts/stream-nft.clar
 ```
 
 The stream-nft contract was last validated with `clarinet check contracts/stream-nft.clar` and passed syntax checking.
+Validation run completed on 2026-04-17 for stream-core, stream-conditions, and stream-nft file-level checks.
+
+For authorised-caller verification after deployment:
+- call stream-nft.get-initialisation-status and confirm is-initialised is true.
+- confirm stream-core-contract equals the deployed stream-core principal.
+- verify mint/burn callers fail when contract-caller is not stream-core.
 
 Project-wide checks with `clarinet check` require valid mnemonic values in Clarinet settings files.
 If `clarinet check` reports invalid mnemonic word-count in `settings/Simnet.toml`, fix the mnemonic first, then re-run project-wide validation.
@@ -116,7 +129,8 @@ If `clarinet check` reports invalid mnemonic word-count in `settings/Simnet.toml
 - mutating public functions perform principal authorization checks before writes.
 - SIP-010 stream principals are validated against the core whitelist before any token transfer executes.
 - stream-id inputs are validated before stream map reads in mutating entrypoints.
-- transfer helpers return Clarity response types and are propagated with try!.
+- every contract-call? site now has explicit local failure handling (unwrap! + contract-specific error code or warning event).
+- stream-nft sender sync remains best-effort, but failure emits a structured warning with local-error metadata.
 
 ## stream-conditions function coverage
 

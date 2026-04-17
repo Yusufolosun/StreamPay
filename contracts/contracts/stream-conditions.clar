@@ -2,11 +2,15 @@
 ;; Version: v0.1.0
 ;; Purpose: Milestone-conditioned stream release and dispute resolution.
 ;; Dependencies: stream-core, stream-nft
-;; Cross-contract call graph:
+;; Cross-contract call graph (mutating paths):
 ;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
 ;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
 ;; - stream-nft -> stream-core: transfer-stream-sender (best-effort)
-;; Read-only dependencies are acyclic because stream-core does not call stream-nft or stream-conditions from any read-only path.
+;; Read-only dependency check:
+;; - stream-conditions reads stream-core.
+;; - stream-core read-only functions do not call stream-nft or stream-conditions.
+;; - stream-nft performs a best-effort write call into stream-core.
+;; Therefore read-only dependencies are acyclic.
 
 (define-constant BPS-DENOMINATOR u10000)
 
@@ -22,6 +26,7 @@
 (define-constant err-stream-cancelled (err u2009))
 (define-constant err-token-not-whitelisted (err u2010))
 (define-constant err-whitelist-check-failed (err u2011))
+(define-constant err-token-transfer-failed (err u2012))
 
 (define-map milestone-streams uint {
 	sender: principal,
@@ -73,6 +78,10 @@
 	)
 )
 
+(define-private (has-valid-milestone-label (label (string-ascii 64)))
+	(and (> (len label) u0) (<= (len label) u64))
+)
+
 (define-private (all-labels-non-empty (milestones (list 10 {
 	label: (string-ascii 64),
 	basis-points: uint,
@@ -81,7 +90,7 @@
 })))
 	(fold
 		(lambda (milestone ok-so-far)
-			(and ok-so-far (> (len (get label milestone)) u0) (<= (len (get label milestone)) u64))
+			(and ok-so-far (has-valid-milestone-label (get label milestone)))
 		)
 		milestones
 		true
@@ -141,8 +150,12 @@
 		(match token-contract
 			;; SIP-010 stream path
 			token
-				;; The token contract can reject the transfer if the sender is paused, underfunded, or otherwise unauthorised.
-				(try! (contract-call? token transfer amount sender recipient none))
+				(begin
+					;; The token contract can reject the transfer if paused, underfunded, unauthorised, or unresolved at the configured principal.
+					;; This unwrap keeps milestone release/dispute settlement fail-closed for all external token transfer failures.
+					(unwrap! (contract-call? token transfer amount sender recipient none) err-token-transfer-failed)
+					(ok true)
+				)
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
