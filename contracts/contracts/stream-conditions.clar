@@ -152,6 +152,7 @@
 			token
 				(begin
 					;; The token contract can reject the transfer if paused, underfunded, unauthorised, or unresolved at the configured principal.
+					;; This unwrap keeps milestone release/dispute settlement fail-closed for all external token transfer failures.
 					(unwrap! (contract-call? token transfer amount sender recipient none) err-token-transfer-failed)
 					(ok true)
 				)
