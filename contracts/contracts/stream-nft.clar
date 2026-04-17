@@ -110,6 +110,7 @@
 
 (define-public (initialize-stream-core (stream-core principal))
 	(begin
+		;; One-time latch prevents rebinding mint/burn authority after deployment.
 		(asserts! (not (var-get is-initialised)) err-already-initialised)
 		(asserts! (not (is-eq stream-core ZERO-PRINCIPAL)) err-zero-address)
 		(var-set stream-core-contract stream-core)
@@ -178,6 +179,10 @@
 
 (define-read-only (get-stream-for-token (token-id uint))
 	(ok (map-get? token-metadata { token-id: token-id }))
+)
+
+(define-read-only (get-initialisation-status)
+	{ is-initialised: (var-get is-initialised), stream-core-contract: (var-get stream-core-contract) }
 )
 
 (define-read-only (get-tokens-for-stream (stream-id uint))
