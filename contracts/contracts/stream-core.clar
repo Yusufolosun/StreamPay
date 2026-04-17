@@ -287,6 +287,7 @@
 			(asserts! (> duration-blocks u0) err-invalid-duration)
 			(asserts! (<= duration-blocks MAX-STREAM-DURATION) err-invalid-duration)
 			;; The cap is enforced on both reverse indexes so one overloaded wallet cannot grow either side beyond 50 active references.
+			;; Recommended user action at cap: claim/cancel finished streams to free slots, then retry create-stream.
 			(asserts! (< (len sender-stream-list) STREAM-LIST-CAP) err-too-many-streams)
 			(asserts! (< (len recipient-stream-list) STREAM-LIST-CAP) err-too-many-streams)
 			(try! (transfer-funds amount tx-sender contract-principal token-contract))
