@@ -40,6 +40,8 @@
 (define-constant err-invalid-stream-id (err u1016))
 (define-constant err-invalid-withdrawal (err u1017))
 (define-constant err-token-not-whitelisted (err u1018))
+(define-constant err-token-transfer-failed (err u1019))
+(define-constant err-fee-transfer-failed (err u1020))
 
 ;; stores canonical stream state keyed by stream-id so all lifecycle operations read/write one source of truth
 ;; uses a single tuple to keep related fields atomically updated and minimise cross-map consistency risk
@@ -163,8 +165,11 @@
 		(match token-contract
 			;; SIP-010 stream path
 			token
-				;; External token transfer can fail if the token rejects the sender, is paused, or lacks balance.
-				(try! (contract-call? token transfer amount sender recipient none))
+				(begin
+					;; External token transfer can fail if the token rejects the sender, is paused, underfunded, or not deployed at the expected principal.
+					(unwrap! (contract-call? token transfer amount sender recipient none) err-token-transfer-failed)
+					(ok true)
+				)
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
@@ -219,7 +224,12 @@
 			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
 			;; STX fees remain in-contract and are later withdrawable only by owner within invariant limits.
 			(match token-contract
-				token (try! (as-contract (contract-call? token transfer fee-amount tx-sender CONTRACT-OWNER none)))
+				token
+					(begin
+						;; Fee transfer must fail closed if the SIP-010 dependency is unavailable or rejects the transfer.
+						(unwrap! (as-contract (contract-call? token transfer fee-amount tx-sender CONTRACT-OWNER none)) err-fee-transfer-failed)
+						true
+					)
 				true
 			)
 			(ok { fee-amount: fee-amount, net-amount: net-amount })
@@ -279,7 +289,7 @@
 			(let (
 				(fee-result (try! (collect-protocol-fee amount token-contract)))
 				(deposit-amount (get net-amount fee-result))
-				(new-stream-id (+ (var-get stream-id-nonce) u1))
+				(new-stream-id (var-get stream-id-nonce))
 				(end-block (+ block-height duration-blocks))
 				;; If append would exceed 50 items, abort before mutating either index so the sender and recipient lists stay in sync.
 				(updated-sender-streams (unwrap! (as-max-len? (append sender-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
@@ -314,7 +324,7 @@
 					)
 					(map-set sender-streams { sender: tx-sender } { stream-ids: updated-sender-streams })
 					(map-set recipient-streams { recipient: recipient } { stream-ids: updated-recipient-streams })
-					(var-set stream-id-nonce new-stream-id)
+					(var-set stream-id-nonce (+ new-stream-id u1))
 					(var-set total-volume-streamed (+ (var-get total-volume-streamed) deposit-amount))
 					(print {
 						event-type: "stream-created",
@@ -335,8 +345,7 @@
 
 (define-public (claim-stream (stream-id uint))
 	(begin
-		(asserts! (not (var-get is-paused)) err-protocol-paused)
-		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 			;; The stream record must exist before we can compute claimable amounts or transfer funds.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -385,7 +394,7 @@
 (define-public (pause-stream (stream-id uint))
 	(begin
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
-		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 			;; The stream record must exist before pausing so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -422,7 +431,7 @@
 (define-public (resume-stream (stream-id uint))
 	(begin
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
-		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 			;; The stream record must exist before resuming so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -457,7 +466,7 @@
 (define-public (cancel-stream (stream-id uint))
 	(begin
 		;; Intentionally not guarded by `is-paused` so senders can always unwind risk.
-		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 				;; The stream record must exist before cancellation so refunds are computed from canonical state.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -506,7 +515,7 @@
 
 (define-public (transfer-stream-sender (stream-id uint) (new-sender principal))
 	(begin
-		(asserts! (> stream-id u0) err-invalid-stream-id)
+		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(asserts! (is-eq contract-caller STREAM-NFT-CONTRACT) err-not-authorised)
 		(asserts! (not (is-eq new-sender ZERO-PRINCIPAL)) err-zero-address)
 		(let (
@@ -609,7 +618,7 @@
 )
 
 (define-read-only (get-stream (stream-id uint))
-	(if (> stream-id u0)
+	(if (>= stream-id u0)
 		(map-get? streams { stream-id: stream-id })
 		none
 	)
@@ -620,7 +629,7 @@
 )
 
 (define-read-only (get-claimable-balance (stream-id uint))
-	(if (> stream-id u0)
+	(if (>= stream-id u0)
 		(match (map-get? streams { stream-id: stream-id })
 			stream
 			(match (map-get? stream-balances { stream-id: stream-id })
@@ -635,7 +644,7 @@
 )
 
 (define-read-only (get-stream-status (stream-id uint))
-	(if (> stream-id u0)
+	(if (>= stream-id u0)
 		(match (map-get? streams { stream-id: stream-id })
 			stream
 			(match (map-get? stream-balances { stream-id: stream-id })
