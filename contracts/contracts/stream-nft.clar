@@ -6,11 +6,15 @@
 ;; Deployment Date: <YYYY-MM-DD>
 ;; Implements: SIP-009
 ;; Dependencies: stream-core, stream-conditions
-;; Cross-contract call graph:
+;; Cross-contract call graph (mutating paths):
 ;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
 ;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
 ;; - stream-nft -> stream-core: transfer-stream-sender (best-effort)
-;; Read-only dependencies are acyclic because stream-core does not call stream-nft or stream-conditions from any read-only path.
+;; Read-only dependency check:
+;; - stream-conditions reads stream-core.
+;; - stream-core read-only functions do not call stream-nft or stream-conditions.
+;; - stream-nft performs a best-effort write call into stream-core.
+;; Therefore read-only dependencies are acyclic.
 ;; Security Notes:
 ;; - NFT ownership transfer is authoritative.
 ;; - contract-caller is assigned by the Clarity runtime and cannot be spoofed by tx-sender.
