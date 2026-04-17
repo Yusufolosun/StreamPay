@@ -322,6 +322,16 @@ describe("stream-core", () => {
 		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(expectedClaim)));
 		expect(getStxBalance(accounts.recipient)).toBe(recipientBalanceBefore + expectedClaim);
 	});
+
+	it("claim-stream fails for non-recipient caller", () => {
+		const createReceipt = createStream(1_000_000n, 1_000n, 20n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		mineBlocks(3);
+
+		const claimReceipt = claimStream(0n, accounts.sender);
+		expect(claimReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_NOT_AUTHORISED)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
