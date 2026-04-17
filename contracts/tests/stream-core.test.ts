@@ -542,6 +542,14 @@ describe("stream-core", () => {
 		const withdrawableAfter = parseUInt(callReadOnly("get-withdrawable-fees", []));
 		expect(withdrawableAfter).toBe(0n);
 	});
+
+	it("withdraw-accumulated-fees fails for non-owner", () => {
+		const createReceipt = createStream(1_000_000n, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const withdrawReceipt = withdrawFees(2_500n, accounts.sender, accounts.sender);
+		expect(withdrawReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_NOT_AUTHORISED)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
