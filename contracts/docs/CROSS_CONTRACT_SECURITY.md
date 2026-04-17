@@ -3,14 +3,20 @@
 ## Call Graph
 
 ```text
-stream-conditions
-  -> stream-core (get-stream, get-whitelisted-tokens)
-
-stream-core
-  -> stream-nft (mint-stream-receipt, burn-stream-receipt)
-
-stream-nft
-  -> stream-core (transfer-stream-sender, best-effort)
+                    +----------------------------------+
+                    |         stream-conditions        |
+                    +----------------------------------+
+                               |
+                               | get-stream
+                               | get-whitelisted-tokens
+                               v
++----------------------------------+        mint-stream-receipt / burn-stream-receipt        +----------------------------------+
+|            stream-core           | ---------------------------------------------------------> |             stream-nft           |
++----------------------------------+                                                            +----------------------------------+
+                ^                                                                                               |
+                |                                                                                               | transfer-stream-sender
+                |                                                                                               | (best-effort)
+                +-----------------------------------------------------------------------------------------------+
 ```
 
 Read-only flow is acyclic:
