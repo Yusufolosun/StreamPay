@@ -395,6 +395,24 @@ describe("stream-core", () => {
 		const claimableAfterPausedBlocks = getClaimable(0n);
 		expect(claimableAfterPausedBlocks).toBe(claimableBeforePause);
 	});
+
+	it("resume-stream restarts accrual after pause", () => {
+		const createReceipt = createStream(2_000_000n, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		mineBlocks(5);
+		expect(pauseStream(0n).result).toStrictEqual(Cl.ok(Cl.bool(true)));
+
+		mineBlocks(8);
+		const pausedClaimable = getClaimable(0n);
+
+		const resumeReceipt = resumeStream(0n);
+		expect(resumeReceipt.result).toStrictEqual(Cl.ok(Cl.bool(true)));
+
+		mineBlocks(4);
+		const resumedClaimable = getClaimable(0n);
+		expect(resumedClaimable).toBe(pausedClaimable + 4_000n);
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
