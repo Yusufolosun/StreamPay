@@ -306,6 +306,22 @@ describe("stream-core", () => {
 		const ids = parseList(senderStreams).map((id) => parseUInt(id));
 		expect(ids).toStrictEqual([0n, 1n]);
 	});
+
+	it("claim-stream transfers N * rate after mining N blocks", () => {
+		const ratePerBlock = 2_000n;
+		const blocksToMine = 7;
+		const expectedClaim = ratePerBlock * BigInt(blocksToMine);
+
+		const createReceipt = createStream(1_000_000n, ratePerBlock, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		mineBlocks(blocksToMine);
+
+		const recipientBalanceBefore = getStxBalance(accounts.recipient);
+		const claimReceipt = claimStream(0n);
+		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(expectedClaim)));
+		expect(getStxBalance(accounts.recipient)).toBe(recipientBalanceBefore + expectedClaim);
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
