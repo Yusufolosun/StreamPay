@@ -260,6 +260,11 @@ describe("stream-core", () => {
 		const receipt = createStream(1_000_000n, 1_000n, 10n, accounts.sender, accounts.sender);
 		expect(receipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_RECIPIENT)));
 	});
+
+	it("create-stream fails when amount is below or equal to minimum", () => {
+		const receipt = createStream(1_000n, 1n, 10n);
+		expect(receipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_AMOUNT)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
