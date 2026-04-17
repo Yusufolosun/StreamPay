@@ -357,6 +357,29 @@ describe("stream-core", () => {
 		expect(stream).not.toBeNull();
 		expect(parseUInt(stream!["claimed-amount"])).toBe(7_000n);
 	});
+
+	it("claim-stream after expiry claims only remaining balance", () => {
+		const ratePerBlock = 100_000n;
+		const durationBlocks = 20n;
+		const createReceipt = createStream(1_200_000n, ratePerBlock, durationBlocks);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const initialStream = getStreamTuple(0n);
+		expect(initialStream).not.toBeNull();
+		const depositAmount = parseUInt(initialStream!["deposit-amount"]);
+
+		mineBlocks(5);
+		const firstClaim = claimStream(0n);
+		expect(firstClaim.result).toStrictEqual(Cl.ok(Cl.uint(500_000n)));
+
+		mineBlocks(30);
+		const remaining = depositAmount - 500_000n;
+		const secondClaim = claimStream(0n);
+		expect(secondClaim.result).toStrictEqual(Cl.ok(Cl.uint(remaining)));
+
+		const thirdClaim = claimStream(0n);
+		expect(thirdClaim.result).toStrictEqual(Cl.error(Cl.uint(ERR_INSUFFICIENT_BALANCE)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
