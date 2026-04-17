@@ -294,6 +294,18 @@ describe("stream-core", () => {
 		const ids = parseList(senderStreams).map((id) => parseUInt(id));
 		expect(ids).toStrictEqual([0n]);
 	});
+
+	it("create-stream nonce increments across multiple creates", () => {
+		const firstCreate = createStream(2_000_000n, 1_000n, 10n);
+		const secondCreate = createStream(2_500_000n, 1_000n, 10n);
+
+		expect(firstCreate.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+		expect(secondCreate.result).toStrictEqual(Cl.ok(Cl.uint(1)));
+
+		const senderStreams = callReadOnly("get-sender-streams", [Cl.standardPrincipal(accounts.sender)]);
+		const ids = parseList(senderStreams).map((id) => parseUInt(id));
+		expect(ids).toStrictEqual([0n, 1n]);
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
