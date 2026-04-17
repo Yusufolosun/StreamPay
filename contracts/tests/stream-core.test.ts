@@ -152,6 +152,13 @@ describe("stream-core", () => {
 		throw new Error("expected bool clarity value");
 	};
 
+	const parseList = (cv: ClarityValue): ClarityValue[] => {
+		if (cv.type !== ClarityType.List) {
+			throw new Error("expected list clarity value");
+		}
+		return cv.list;
+	};
+
 	const getStreamTuple = (streamId: bigint): Record<string, ClarityValue> | null => {
 		const result = callReadOnly("get-stream", [Cl.uint(streamId)]);
 		if (result.type === ClarityType.OptionalNone) {
@@ -277,6 +284,15 @@ describe("stream-core", () => {
 
 		const createReceipt = createStream(1_000_000n, 1_000n, 10n);
 		expect(createReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_PROTOCOL_PAUSED)));
+	});
+
+	it("create-stream updates sender-streams index", () => {
+		const createReceipt = createStream(2_000_000n, 2_000n, 10n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const senderStreams = callReadOnly("get-sender-streams", [Cl.standardPrincipal(accounts.sender)]);
+		const ids = parseList(senderStreams).map((id) => parseUInt(id));
+		expect(ids).toStrictEqual([0n]);
 	});
 });
 
