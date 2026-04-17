@@ -78,6 +78,10 @@
 	)
 )
 
+(define-private (has-valid-milestone-label (label (string-ascii 64)))
+	(and (> (len label) u0) (<= (len label) u64))
+)
+
 (define-private (all-labels-non-empty (milestones (list 10 {
 	label: (string-ascii 64),
 	basis-points: uint,
@@ -86,7 +90,7 @@
 })))
 	(fold
 		(lambda (milestone ok-so-far)
-			(and ok-so-far (> (len (get label milestone)) u0) (<= (len (get label milestone)) u64))
+			(and ok-so-far (has-valid-milestone-label (get label milestone)))
 		)
 		milestones
 		true
