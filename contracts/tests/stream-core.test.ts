@@ -413,6 +413,20 @@ describe("stream-core", () => {
 		const resumedClaimable = getClaimable(0n);
 		expect(resumedClaimable).toBe(pausedClaimable + 4_000n);
 	});
+
+	it("recipient can claim accrued amount even when stream is paused", () => {
+		const createReceipt = createStream(2_000_000n, 1_500n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		mineBlocks(6);
+		const expectedClaim = getClaimable(0n);
+		expect(expectedClaim > 0n).toBe(true);
+
+		expect(pauseStream(0n).result).toStrictEqual(Cl.ok(Cl.bool(true)));
+
+		const claimReceipt = claimStream(0n);
+		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(expectedClaim)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
