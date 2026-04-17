@@ -5,6 +5,7 @@ Clarinet smart-contract workspace scaffold for StreamPay.
 ## stream-nft function coverage
 
 Implemented public functions:
+- initialize-stream-core
 - mint-stream-receipt
 - burn-stream-receipt
 - transfer
@@ -14,11 +15,15 @@ Implemented read-only functions:
 - get-token-uri
 - get-owner
 - get-stream-for-token
+- get-initialisation-status
 - get-tokens-for-stream
 - is-approved-operator
 
 Implemented private helpers:
 - is-valid-receipt-type
+- has-valid-receipt-type-length
+- is-authorised-core-caller
+- sync-stream-core-sender-best-effort
 - get-stream-receipts
 - stream-receipt-slot
 - set-stream-receipt-slot
@@ -27,7 +32,8 @@ Implemented private helpers:
 ## receipt lifecycle notes
 
 - mint-stream-receipt is gated to stream-core through contract-caller.
-- burn-stream-receipt can be called by either stream-core or the current NFT owner.
+- burn-stream-receipt is gated to stream-core through contract-caller.
+- initialize-stream-core is one-time and permanently binds the authorised stream-core principal.
 - transfer updates NFT ownership first, then attempts to sync sender receipts back into stream-core as a best-effort convenience.
 - sender receipt transfer is authoritative for NFT ownership; a failed stream-core hook does not revert the NFT transfer.
 - receipt-type uses string-ascii 9 because the literal RECIPIENT requires nine ASCII characters.
