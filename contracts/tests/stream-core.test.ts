@@ -427,6 +427,14 @@ describe("stream-core", () => {
 		const claimReceipt = claimStream(0n);
 		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(expectedClaim)));
 	});
+
+	it("pause-stream can only be called by sender", () => {
+		const createReceipt = createStream(2_000_000n, 1_000n, 100n);
+		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
+
+		const pauseReceipt = pauseStream(0n, accounts.recipient);
+		expect(pauseReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_NOT_AUTHORISED)));
+	});
 });
 
 function requireAccount(accounts: Map<string, string>, key: string): string {
