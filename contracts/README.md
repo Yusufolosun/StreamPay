@@ -159,3 +159,18 @@ Implemented read-only functions:
 - dispute-milestone can only be raised by recipient and requires a configured arbiter.
 - resolve-dispute supports dual outcomes: release to recipient or refund to sender, then marks dispute resolved.
 - cancel-milestone-stream refunds only unreleased milestone amounts and rejects while any dispute remains active.
+
+## mainnet deployment
+
+- Deployment runbook: `docs/MAINNET_DEPLOYMENT_RUNBOOK.md`
+- Readiness checklist: `docs/MAINNET_READINESS_CHECKLIST.md`
+- Mainnet manifest: `deployments/mainnet.yaml`
+
+Use scripts:
+
+```bash
+cd contracts
+./scripts/deploy.sh --network mainnet --dry-run
+./scripts/deploy.sh --network mainnet --cost medium
+./scripts/verify.sh --deployer "$DEPLOYER_ADDRESS"
+```
