@@ -141,6 +141,71 @@
 	(/ (* total-amount (get basis-points milestone)) BPS-DENOMINATOR)
 )
 
+(define-private (sum-base-amounts-except-last-step
+	(milestone {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	})
+	(acc {
+		total-amount: uint,
+		last-index: uint,
+		current-index: uint,
+		sum: uint
+	})
+)
+	(let (
+		(current-index (get current-index acc))
+		(base-amount (milestone-amount (get total-amount acc) milestone))
+	)
+		(if (is-eq current-index (get last-index acc))
+			(merge acc { current-index: (+ current-index u1) })
+			(merge acc {
+				current-index: (+ current-index u1),
+				sum: (+ (get sum acc) base-amount)
+			})
+		)
+	)
+)
+
+(define-private (milestone-amount-at-index
+	(total-amount uint)
+	(milestones (list 10 {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	}))
+	(milestone-index uint)
+	(milestone {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	})
+)
+	(let (
+		(last-index (- (len milestones) u1))
+	)
+		(if (is-eq milestone-index last-index)
+			(let (
+				(base-sum-acc
+					(fold sum-base-amounts-except-last-step milestones {
+						total-amount: total-amount,
+						last-index: last-index,
+						current-index: u0,
+						sum: u0
+					})
+				)
+			)
+				(- total-amount (get sum base-sum-acc))
+			)
+			(milestone-amount total-amount milestone)
+		)
+	)
+)
+
 (define-private (has-any-active-dispute (milestone-stream-id uint))
 	(or
 		(is-dispute-active milestone-stream-id u0)
@@ -259,13 +324,29 @@
 		is-released: bool,
 		released-at: (optional uint)
 	})
-	(acc { total-amount: uint, refunded: uint })
-)
-	(if (get is-released milestone)
-		acc
-		(merge acc {
-			refunded: (+ (get refunded acc) (milestone-amount (get total-amount acc) milestone))
+	(acc {
+		total-amount: uint,
+		refunded: uint,
+		current-index: uint,
+		milestones: (list 10 {
+			label: (string-ascii 64),
+			basis-points: uint,
+			is-released: bool,
+			released-at: (optional uint)
 		})
+	})
+)
+	(let (
+		(current-index (get current-index acc))
+		(milestone-value (milestone-amount-at-index (get total-amount acc) (get milestones acc) current-index milestone))
+	)
+		(if (get is-released milestone)
+			(merge acc { current-index: (+ current-index u1) })
+			(merge acc {
+				current-index: (+ current-index u1),
+				refunded: (+ (get refunded acc) milestone-value)
+			})
+		)
 	)
 )
 
@@ -282,7 +363,7 @@
 				false
 			)
 		)
-		(release-amount (milestone-amount (get total-amount stream) milestone))
+		(release-amount (milestone-amount-at-index (get total-amount stream) (get milestones stream) milestone-index milestone))
 		(updated-milestone (merge milestone {
 			is-released: true,
 			released-at: (some block-height)
@@ -349,7 +430,7 @@
 			;; The arbiter must be configured on the stream before the dispute can be resolved.
 		(arbiter (unwrap! (get arbiter stream) err-invalid-arbiter))
 		(dispute-active (is-dispute-active milestone-stream-id milestone-index))
-		(amount (milestone-amount (get total-amount stream) milestone))
+		(amount (milestone-amount-at-index (get total-amount stream) (get milestones stream) milestone-index milestone))
 		(destination (if release-to-recipient (get recipient stream) (get sender stream)))
 		(updated-milestone (merge milestone {
 			is-released: true,
@@ -395,7 +476,12 @@
 			(fold
 				sum-unreleased-refund-step
 				(get milestones stream)
-				{ total-amount: (get total-amount stream), refunded: u0 }
+				{
+					total-amount: (get total-amount stream),
+					refunded: u0,
+					current-index: u0,
+					milestones: (get milestones stream)
+				}
 			)
 		)
 		(total-refunded
