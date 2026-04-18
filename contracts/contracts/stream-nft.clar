@@ -20,17 +20,6 @@
 ;; - contract-caller is assigned by the Clarity runtime and cannot be spoofed by tx-sender.
 ;; - stream-core sender sync is attempted after sender receipt transfers and is logged if it fails.
 
-(define-trait sip009-trait
-	(
-		(get-last-token-id () (response uint uint))
-		(get-token-uri (token-id uint) (response (optional (string-ascii 256)) uint))
-		(get-owner (token-id uint) (response (optional principal) uint))
-		(transfer (token-id uint) (sender principal) (recipient principal) (response bool uint))
-	)
-)
-
-(impl-trait .stream-nft.sip009-trait)
-
 (define-constant STREAM-CORE-CONTRACT .stream-core)
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
 (define-constant TOKEN-URI-BASE "https://metadata.streampay.xyz/receipts/")
@@ -94,7 +83,7 @@
 
 (define-private (sync-stream-core-sender-best-effort (stream-id uint) (recipient principal) (receipt-type (string-ascii 9)))
 	;; Best-effort by design: failures are surfaced via warning events instead of being silently ignored.
-	(match (contract-call? (var-get stream-core-contract) transfer-stream-sender stream-id recipient)
+	(match (contract-call? STREAM-CORE-CONTRACT transfer-stream-sender stream-id recipient)
 		sync-ok sync-ok
 		sync-error
 			(begin
@@ -167,7 +156,7 @@
 
 (define-read-only (get-token-uri (token-id uint))
 	(match (map-get? token-metadata { token-id: token-id })
-		metadata (ok (some (concat TOKEN-URI-BASE (to-string token-id))))
+		metadata (ok (some (concat TOKEN-URI-BASE (int-to-ascii token-id))))
 		(ok none)
 	)
 )
