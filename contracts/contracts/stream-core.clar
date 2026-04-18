@@ -175,11 +175,16 @@
 	)
 )
 
+;; INTENTIONAL STUB: SIP-010 transfer path.
+;; Clarity cannot dynamically dispatch contract-call? to a trait stored in a map.
+;; create-stream gates token-contract with (is-none token-contract), so this branch
+;; is unreachable in v1. When SIP-010 routing is enabled, this function must be
+;; replaced with a typed dispatch pattern (one function per whitelisted token).
 (define-private (transfer-funds (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
 	(if (is-eq amount u0)
 		(ok true)
 		(match token-contract
-			;; SIP-010 stream path
+			;; SIP-010 path — intentionally returns error; unreachable in v1
 			token
 				err-token-transfer-failed
 			;; STX stream path
@@ -235,6 +240,7 @@
 		(begin
 			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
 			;; STX fees remain in-contract and are later withdrawable only by owner within invariant limits.
+			;; SIP-010 fee handling is a no-op stub — unreachable in v1 because create-stream rejects token streams.
 			(match token-contract
 				token true
 				true
