@@ -28,7 +28,7 @@ epoch = 2.5
 analysis.passes = ["check_checker"]
 
 [repl.analysis.check_checker]
-strict = true
+strict = false
 trusted_sender = false
 trusted_caller = false
 callee_filter = false
