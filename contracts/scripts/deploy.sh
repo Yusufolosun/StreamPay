@@ -170,6 +170,21 @@ for plan_file in "$CONTRACTS_DIR"/deployments/*.yaml; do
 	fi
 done
 
+# Enforce minimum cost floor of 2.2 STX (2,200,000 µSTX) per contract publish.
+# Clarinet's estimated costs are often too low for timely mainnet confirmation.
+MIN_COST_USTX=2200000
+MAINNET_PLAN="$CONTRACTS_DIR/deployments/default.${NETWORK}-plan.yaml"
+if [[ -f "$MAINNET_PLAN" ]]; then
+	echo "==> Enforcing minimum cost floor: 2.2 STX ($MIN_COST_USTX µSTX) per contract"
+	awk -v min="$MIN_COST_USTX" '/^[[:space:]]*cost:/ {
+		match($0, /cost: *([0-9]+)/, arr);
+		if (arr[1]+0 < min) {
+			sub(/cost: *[0-9]+/, "cost: " min);
+			print "    Bumped cost from " arr[1] " to " min > "/dev/stderr";
+		}
+	} {print}' "$MAINNET_PLAN" > "${MAINNET_PLAN}.tmp" && mv "${MAINNET_PLAN}.tmp" "$MAINNET_PLAN"
+fi
+
 echo "==> Validating deployment format"
 (
 	cd "$CONTRACTS_DIR"
