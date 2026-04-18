@@ -13,6 +13,7 @@
 ;; Therefore read-only dependencies are acyclic.
 
 (define-constant BPS-DENOMINATOR u10000)
+(define-constant MIN-ARBITER-STAKE u10000)
 
 (define-constant err-not-authorized (err u2000))
 (define-constant err-stream-not-found (err u2001))
@@ -27,6 +28,7 @@
 (define-constant err-token-not-whitelisted (err u2010))
 (define-constant err-whitelist-check-failed (err u2011))
 (define-constant err-token-transfer-failed (err u2012))
+(define-constant err-insufficient-stake (err u2013))
 
 (define-map milestone-streams uint {
 	sender: principal,
@@ -234,23 +236,37 @@
 )
 
 (define-public (register-arbiter (stake-amount uint))
-	(begin
-		(map-set arbiter-registry tx-sender {
-			is-registered: true,
-			total-disputes: u0,
-			stake-amount: stake-amount
-		})
-		(ok true)
+	(let (
+		(contract-principal (as-contract tx-sender))
+	)
+		(begin
+			(asserts! (>= stake-amount MIN-ARBITER-STAKE) err-insufficient-stake)
+			(try! (stx-transfer? stake-amount tx-sender contract-principal))
+			(map-set arbiter-registry tx-sender {
+				is-registered: true,
+				total-disputes: u0,
+				stake-amount: stake-amount
+			})
+			(ok true)
+		)
 	)
 )
 
 (define-public (update-arbiter-stake (stake-amount uint))
 	(let (
+		(contract-principal (as-contract tx-sender))
 		;; The arbiter must already exist in the registry before its stake can be updated.
 		(entry (unwrap! (map-get? arbiter-registry tx-sender) err-invalid-arbiter))
+		(current-stake (get stake-amount entry))
 	)
 		(begin
 			(asserts! (get is-registered entry) err-invalid-arbiter)
+			(asserts! (>= stake-amount MIN-ARBITER-STAKE) err-insufficient-stake)
+			;; Transfer additional stake if the new amount exceeds the current stake.
+			(if (> stake-amount current-stake)
+				(try! (stx-transfer? (- stake-amount current-stake) tx-sender contract-principal))
+				true
+			)
 			(map-set arbiter-registry tx-sender {
 				is-registered: true,
 				total-disputes: (get total-disputes entry),
