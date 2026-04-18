@@ -354,16 +354,14 @@
 )
 
 (define-public (claim-stream (stream-id uint))
-	(begin
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
-		(let (
+	(let (
 			;; The stream record must exist before we can compute claimable amounts or transfer funds.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
 			;; The balance checkpoint must exist or the claim math would use stale state.
 			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
 		)
 			(begin
-			(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorised)
+				(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(let
 				(
@@ -404,7 +402,6 @@
 (define-public (pause-stream (stream-id uint))
 	(begin
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 			;; The stream record must exist before pausing so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -441,7 +438,6 @@
 (define-public (resume-stream (stream-id uint))
 	(begin
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 			;; The stream record must exist before resuming so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -476,7 +472,6 @@
 (define-public (cancel-stream (stream-id uint))
 	(begin
 		;; Intentionally not guarded by `is-paused` so senders can always unwind risk.
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 				;; The stream record must exist before cancellation so refunds are computed from canonical state.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -525,7 +520,6 @@
 
 (define-public (transfer-stream-sender (stream-id uint) (new-sender principal))
 	(begin
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(asserts! (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL)) err-not-authorised)
 		(asserts! (is-eq contract-caller (var-get stream-nft-contract)) err-not-authorised)
 		(asserts! (not (is-eq new-sender ZERO-PRINCIPAL)) err-zero-address)
@@ -657,10 +651,7 @@
 )
 
 (define-read-only (get-stream (stream-id uint))
-	(if (>= stream-id u0)
-		(map-get? streams { stream-id: stream-id })
-		none
-	)
+	(map-get? streams { stream-id: stream-id })
 )
 
 (define-read-only (get-whitelisted-tokens (token-contract principal))
@@ -668,14 +659,11 @@
 )
 
 (define-read-only (get-claimable-balance (stream-id uint))
-	(if (>= stream-id u0)
-		(match (map-get? streams { stream-id: stream-id })
-			stream
-			(match (map-get? stream-balances { stream-id: stream-id })
-				balance
-				(calculate-streamed-amount stream balance)
-				u0
-			)
+	(match (map-get? streams { stream-id: stream-id })
+		stream
+		(match (map-get? stream-balances { stream-id: stream-id })
+			balance
+			(calculate-streamed-amount stream balance)
 			u0
 		)
 		u0
@@ -683,26 +671,23 @@
 )
 
 (define-read-only (get-stream-status (stream-id uint))
-	(if (>= stream-id u0)
-		(match (map-get? streams { stream-id: stream-id })
-			stream
-			(match (map-get? stream-balances { stream-id: stream-id })
-				balance
-				(some {
-					is-paused: (get is-paused stream),
-					is-cancelled: (get is-cancelled stream),
-					is-expired: (is-stream-expired stream),
-					claimable: (calculate-streamed-amount stream balance),
-					status: (if (get is-cancelled stream)
-						STATUS-CANCELLED
-						(if (get is-paused stream)
-							STATUS-PAUSED
-							(if (is-stream-expired stream) STATUS-EXPIRED STATUS-ACTIVE)
-						)
+	(match (map-get? streams { stream-id: stream-id })
+		stream
+		(match (map-get? stream-balances { stream-id: stream-id })
+			balance
+			(some {
+				is-paused: (get is-paused stream),
+				is-cancelled: (get is-cancelled stream),
+				is-expired: (is-stream-expired stream),
+				claimable: (calculate-streamed-amount stream balance),
+				status: (if (get is-cancelled stream)
+					STATUS-CANCELLED
+					(if (get is-paused stream)
+						STATUS-PAUSED
+						(if (is-stream-expired stream) STATUS-EXPIRED STATUS-ACTIVE)
 					)
-				})
-				none
-			)
+				)
+			})
 			none
 		)
 		none
