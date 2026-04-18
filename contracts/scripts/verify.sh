@@ -51,16 +51,20 @@ if ! command -v curl >/dev/null 2>&1; then
 	exit 1
 fi
 
+VERIFY_TMPFILE="$(mktemp "${TMPDIR:-/tmp}/streampay_verify_XXXXXX.json" 2>/dev/null || echo "${TEMP:-/tmp}/streampay_verify_response.json")"
+cleanup_verify() { rm -f "$VERIFY_TMPFILE"; }
+trap cleanup_verify EXIT
+
 check_endpoint() {
 	local url="$1"
 	local label="$2"
 
 	local http_code
-	http_code="$(curl -sS -o /tmp/streampay_verify_response.json -w "%{http_code}" "$url")"
+	http_code="$(curl -sS -o "$VERIFY_TMPFILE" -w "%{http_code}" "$url")"
 
 	if [[ "$http_code" != "200" ]]; then
 		echo "[FAIL] $label -> HTTP $http_code" >&2
-		cat /tmp/streampay_verify_response.json >&2 || true
+		cat "$VERIFY_TMPFILE" >&2 || true
 		exit 1
 	fi
 

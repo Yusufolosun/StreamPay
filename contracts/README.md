@@ -33,11 +33,13 @@ Implemented private helpers:
 
 - mint-stream-receipt is gated to stream-core through contract-caller.
 - burn-stream-receipt is gated to stream-core through contract-caller.
+- burn-stream-receipts burns both sender and recipient receipts for a given stream-id.
 - initialize-stream-core is one-time and permanently binds the authorised stream-core principal.
-- transfer updates NFT ownership first, then attempts to sync sender receipts back into stream-core as a best-effort convenience.
-- sender receipt transfer is authoritative for NFT ownership; a failed stream-core hook does not revert the NFT transfer.
+- transfer updates NFT ownership first, then emits a sender-sync-required event for off-chain processing.
+- sender receipt transfer is authoritative for NFT ownership; the SDK/indexer handles stream-core sender sync.
 - receipt-type uses string-ascii 9 because the literal RECIPIENT requires nine ASCII characters.
 - approved-operators is queryable for future integrations, but the current transfer path still requires tx-sender to be the recorded owner.
+- stream-nft has NO compile-time dependency on stream-core (circular dependency eliminated).
 
 ## stream-core function coverage
 
@@ -79,8 +81,9 @@ Implemented private helpers:
 - claim-stream computes elapsed accrual from the latest checkpoint and caps claims by remaining deposit.
 - pause-stream checkpoints accrued claimable balance before toggling paused state.
 - resume-stream restarts accrual from current block while preserving pre-pause checkpoint balance.
-- cancel-stream pays accrued recipient amount first, then refunds remaining deposit to sender.
-- first post-deployment action: whitelist the deployed sBTC contract principal via the deployment script before creating any SIP-010 streams.
+- create-stream mints sender and recipient NFT receipts (best-effort, gated on NFT contract initialization).
+- cancel-stream burns both NFT receipts for the stream (best-effort).
+- first post-deployment action: initialize cross-contract bindings, then whitelist the deployed sBTC contract principal.
 
 ## local validation
 
@@ -162,6 +165,8 @@ Implemented read-only functions:
 
 ## mainnet deployment
 
+Deployment order: stream-nft → stream-core → stream-conditions
+
 - Deployment runbook: `docs/MAINNET_DEPLOYMENT_RUNBOOK.md`
 - Readiness checklist: `docs/MAINNET_READINESS_CHECKLIST.md`
 - Mainnet manifest: `deployments/mainnet.yaml`
@@ -172,5 +177,6 @@ Use scripts:
 cd contracts
 ./scripts/deploy.sh --network mainnet --dry-run
 ./scripts/deploy.sh --network mainnet --cost medium
+./scripts/post-deploy-init.sh --network mainnet
 ./scripts/verify.sh --deployer "$DEPLOYER_ADDRESS"
 ```

@@ -1,10 +1,10 @@
 ;; Contract: stream-core
-;; Version: v0.1.0
-;; Purpose: Core stream lifecycle scaffold for StreamPay.
-;; Purpose: Includes placeholders for CRUD flow, rate engine, and fee handling boundaries.
-;; Author: <AUTHOR_NAME>
-;; Deployment Date: <YYYY-MM-DD>
-;; Dependencies: stream-conditions, stream-nft
+;; Version: v1.0.0
+;; Purpose: Core stream lifecycle for StreamPay.
+;; Purpose: STX streaming with per-block accrual, pause/resume, cancel, and protocol fee collection.
+;; Author: StreamPay Core
+;; Deployment Date: pending-mainnet
+;; Dependencies: stream-nft
 ;; Cross-contract call graph (mutating paths):
 ;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
 ;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
@@ -175,11 +175,16 @@
 	)
 )
 
+;; INTENTIONAL STUB: SIP-010 transfer path.
+;; Clarity cannot dynamically dispatch contract-call? to a trait stored in a map.
+;; create-stream gates token-contract with (is-none token-contract), so this branch
+;; is unreachable in v1. When SIP-010 routing is enabled, this function must be
+;; replaced with a typed dispatch pattern (one function per whitelisted token).
 (define-private (transfer-funds (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
 	(if (is-eq amount u0)
 		(ok true)
 		(match token-contract
-			;; SIP-010 stream path
+			;; SIP-010 path -- intentionally returns error; unreachable in v1
 			token
 				err-token-transfer-failed
 			;; STX stream path
@@ -235,6 +240,7 @@
 		(begin
 			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
 			;; STX fees remain in-contract and are later withdrawable only by owner within invariant limits.
+			;; SIP-010 fee handling is a no-op stub -- unreachable in v1 because create-stream rejects token streams.
 			(match token-contract
 				token true
 				true
@@ -287,7 +293,7 @@
 			(asserts! (not (is-eq recipient tx-sender)) err-invalid-recipient)
 			(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
 			(asserts! (is-none token-contract) err-token-not-whitelisted)
-			(asserts! (> amount MIN-STREAM-AMOUNT) err-invalid-amount)
+			(asserts! (>= amount MIN-STREAM-AMOUNT) err-invalid-amount)
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
 			(asserts! (<= duration-blocks MAX-STREAM-DURATION) err-invalid-duration)
@@ -344,6 +350,22 @@
 						deposit-amount: deposit-amount,
 						fee-amount: (get fee-amount fee-result)
 					})
+					;; Best-effort NFT receipt minting -- stream creation succeeds even if minting fails.
+					;; Minting is skipped entirely until initialize-stream-nft-contract has been called.
+					(if (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL))
+						(begin
+							(match (contract-call? .stream-nft mint-stream-receipt new-stream-id tx-sender "SENDER")
+								success true
+								error true
+							)
+							(match (contract-call? .stream-nft mint-stream-receipt new-stream-id recipient "RECIPIENT")
+								success true
+								error true
+							)
+							true
+						)
+						true
+					)
 					(asserts! (is-some (map-get? streams { stream-id: new-stream-id })) err-stream-not-found)
 					(asserts! (is-eq (var-get stream-id-nonce) (+ new-stream-id u1)) err-stream-not-found)
 					(ok new-stream-id)
@@ -354,15 +376,13 @@
 )
 
 (define-public (claim-stream (stream-id uint))
-	(begin
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
-		(let (
-			;; The stream record must exist before we can compute claimable amounts or transfer funds.
-			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
-			;; The balance checkpoint must exist or the claim math would use stale state.
-			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
-		)
-			(begin
+	(let (
+		;; The stream record must exist before we can compute claimable amounts or transfer funds.
+		(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+		;; The balance checkpoint must exist or the claim math would use stale state.
+		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+	)
+		(begin
 			(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(let
@@ -372,7 +392,7 @@
 				)
 				(begin
 					(asserts! (> claimable-amount u0) err-insufficient-balance)
-						;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
+					;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 					(try! (as-contract (transfer-funds claimable-amount tx-sender (get recipient stream) (get token-contract stream))))
 					(if (is-none (get token-contract stream))
 						(var-set total-active-stx-deposits (- (var-get total-active-stx-deposits) claimable-amount))
@@ -396,7 +416,6 @@
 					(ok claimable-amount)
 				)
 			)
-			)
 		)
 	)
 )
@@ -404,7 +423,6 @@
 (define-public (pause-stream (stream-id uint))
 	(begin
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 			;; The stream record must exist before pausing so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -441,7 +459,6 @@
 (define-public (resume-stream (stream-id uint))
 	(begin
 		(asserts! (not (var-get is-paused)) err-protocol-paused)
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 			;; The stream record must exist before resuming so only live streams can transition.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -476,7 +493,6 @@
 (define-public (cancel-stream (stream-id uint))
 	(begin
 		;; Intentionally not guarded by `is-paused` so senders can always unwind risk.
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(let (
 				;; The stream record must exist before cancellation so refunds are computed from canonical state.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
@@ -515,6 +531,14 @@
 						recipient-paid: recipient-paid,
 						sender-refunded: sender-refunded
 					})
+					;; Best-effort NFT receipt burn -- cancellation succeeds even if burn fails.
+					(if (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL))
+						(match (contract-call? .stream-nft burn-stream-receipts stream-id)
+							success true
+							error true
+						)
+						true
+					)
 					(ok { recipient-paid: recipient-paid, sender-refunded: sender-refunded })
 				)
 			)
@@ -525,7 +549,6 @@
 
 (define-public (transfer-stream-sender (stream-id uint) (new-sender principal))
 	(begin
-		(asserts! (>= stream-id u0) err-invalid-stream-id)
 		(asserts! (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL)) err-not-authorised)
 		(asserts! (is-eq contract-caller (var-get stream-nft-contract)) err-not-authorised)
 		(asserts! (not (is-eq new-sender ZERO-PRINCIPAL)) err-zero-address)
@@ -657,10 +680,7 @@
 )
 
 (define-read-only (get-stream (stream-id uint))
-	(if (>= stream-id u0)
-		(map-get? streams { stream-id: stream-id })
-		none
-	)
+	(map-get? streams { stream-id: stream-id })
 )
 
 (define-read-only (get-whitelisted-tokens (token-contract principal))
@@ -668,14 +688,11 @@
 )
 
 (define-read-only (get-claimable-balance (stream-id uint))
-	(if (>= stream-id u0)
-		(match (map-get? streams { stream-id: stream-id })
-			stream
-			(match (map-get? stream-balances { stream-id: stream-id })
-				balance
-				(calculate-streamed-amount stream balance)
-				u0
-			)
+	(match (map-get? streams { stream-id: stream-id })
+		stream
+		(match (map-get? stream-balances { stream-id: stream-id })
+			balance
+			(calculate-streamed-amount stream balance)
 			u0
 		)
 		u0
@@ -683,26 +700,23 @@
 )
 
 (define-read-only (get-stream-status (stream-id uint))
-	(if (>= stream-id u0)
-		(match (map-get? streams { stream-id: stream-id })
-			stream
-			(match (map-get? stream-balances { stream-id: stream-id })
-				balance
-				(some {
-					is-paused: (get is-paused stream),
-					is-cancelled: (get is-cancelled stream),
-					is-expired: (is-stream-expired stream),
-					claimable: (calculate-streamed-amount stream balance),
-					status: (if (get is-cancelled stream)
-						STATUS-CANCELLED
-						(if (get is-paused stream)
-							STATUS-PAUSED
-							(if (is-stream-expired stream) STATUS-EXPIRED STATUS-ACTIVE)
-						)
+	(match (map-get? streams { stream-id: stream-id })
+		stream
+		(match (map-get? stream-balances { stream-id: stream-id })
+			balance
+			(some {
+				is-paused: (get is-paused stream),
+				is-cancelled: (get is-cancelled stream),
+				is-expired: (is-stream-expired stream),
+				claimable: (calculate-streamed-amount stream balance),
+				status: (if (get is-cancelled stream)
+					STATUS-CANCELLED
+					(if (get is-paused stream)
+						STATUS-PAUSED
+						(if (is-stream-expired stream) STATUS-EXPIRED STATUS-ACTIVE)
 					)
-				})
-				none
-			)
+				)
+			})
 			none
 		)
 		none

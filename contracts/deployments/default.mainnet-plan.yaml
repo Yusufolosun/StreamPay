@@ -1,0 +1,32 @@
+---
+id: 0
+name: Mainnet deployment
+network: mainnet
+stacks-node: "https://api.hiro.so"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: stream-nft
+            expected-sender: SP1N3809W9CBWWX04KN3TCQHP8A9GN520BD4JMP8Z
+            cost: 115000
+            path: "contracts/stream-nft.clar"
+            anchor-block-only: true
+            clarity-version: 2
+        - contract-publish:
+            contract-name: stream-core
+            expected-sender: SP1N3809W9CBWWX04KN3TCQHP8A9GN520BD4JMP8Z
+            cost: 287550
+            path: "contracts/stream-core.clar"
+            anchor-block-only: true
+            clarity-version: 2
+        - contract-publish:
+            contract-name: stream-conditions
+            expected-sender: SP1N3809W9CBWWX04KN3TCQHP8A9GN520BD4JMP8Z
+            cost: 175340
+            path: "contracts/stream-conditions.clar"
+            anchor-block-only: true
+            clarity-version: 2
+      epoch: "2.5"

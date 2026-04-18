@@ -10,6 +10,11 @@ requirements = []
 mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 balance = 100_000_000_000_000
 
+[contracts.stream-nft]
+path = "contracts/stream-nft.clar"
+clarity_version = 2
+epoch = 2.5
+
 [contracts.stream-core]
 path = "contracts/stream-core.clar"
 clarity_version = 2
@@ -17,11 +22,6 @@ epoch = 2.5
 
 [contracts.stream-conditions]
 path = "contracts/stream-conditions.clar"
-clarity_version = 2
-epoch = 2.5
-
-[contracts.stream-nft]
-path = "contracts/stream-nft.clar"
 clarity_version = 2
 epoch = 2.5
 
