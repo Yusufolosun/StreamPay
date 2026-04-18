@@ -298,3 +298,34 @@
 		)
 	)
 )
+
+;; Burns both sender and recipient receipt NFTs for a given stream.
+;; Callable only by the authorized stream-core contract.
+;; Silently skips any receipt slot that is already empty or burned.
+(define-public (burn-stream-receipts (stream-id uint))
+	(begin
+		(asserts! (is-authorised-core-caller) err-not-authorised)
+		(let ((receipt-record (get-stream-receipts stream-id)))
+			(match (get sender-token-id receipt-record)
+				sender-id
+				(begin
+					(map-delete token-owner { token-id: sender-id })
+					(map-delete token-metadata { token-id: sender-id })
+					true
+				)
+				true
+			)
+			(match (get recipient-token-id receipt-record)
+				recipient-id
+				(begin
+					(map-delete token-owner { token-id: recipient-id })
+					(map-delete token-metadata { token-id: recipient-id })
+					true
+				)
+				true
+			)
+			(map-delete stream-receipts { stream-id: stream-id })
+			(ok true)
+		)
+	)
+)
