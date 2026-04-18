@@ -207,7 +207,6 @@
 	(begin
 		;; contract-caller is runtime-assigned by Clarity to the immediate caller contract and cannot be forged by external tx-sender input.
 		(asserts! (is-authorised-core-caller) err-not-authorised)
-		(asserts! (> stream-id u0) err-invalid-token-id)
 		(asserts! (not (is-eq stream-owner ZERO-PRINCIPAL)) err-zero-address)
 		(asserts! (has-valid-receipt-type-length receipt-type) err-invalid-receipt-type)
 		(asserts! (is-valid-receipt-type receipt-type) err-invalid-receipt-type)
