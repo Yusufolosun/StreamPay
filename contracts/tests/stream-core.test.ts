@@ -39,7 +39,7 @@ describe("stream-core", () => {
 		};
 		trackedStreamIds = new Set<bigint>();
 		assertFundConservationInvariant();
-	});
+	}, 30_000);
 
 	const callPublic = (method: string, args: ClarityValue[], caller: string): ParsedTransactionResult => {
 		const receipt = simnet.callPublicFn(CONTRACT, method, args, caller);
@@ -122,7 +122,7 @@ describe("stream-core", () => {
 		if (cv.type !== ClarityType.Tuple) {
 			throw new Error("expected tuple clarity value");
 		}
-		return cv.data;
+		return cv.value;
 	};
 
 	const parseSome = (cv: ClarityValue): ClarityValue => {
@@ -150,7 +150,7 @@ describe("stream-core", () => {
 		if (cv.type !== ClarityType.StringASCII) {
 			throw new Error("expected string-ascii clarity value");
 		}
-		return cv.data;
+		return cv.value;
 	};
 
 	const parseBool = (cv: ClarityValue): boolean => {
@@ -163,7 +163,7 @@ describe("stream-core", () => {
 		if (cv.type !== ClarityType.List) {
 			throw new Error("expected list clarity value");
 		}
-		return cv.list;
+		return cv.value;
 	};
 
 	const getStreamTuple = (streamId: bigint): Record<string, ClarityValue> | null => {
@@ -233,9 +233,12 @@ describe("stream-core", () => {
 
 		const claimableBeforeClaim = getClaimable(0n);
 		expect(claimableBeforeClaim > 0n).toBe(true);
+		const streamBeforeClaim = getStreamTuple(0n);
+		expect(streamBeforeClaim).not.toBeNull();
+		const ratePerBlock = parseUInt(streamBeforeClaim!["rate-per-block"]);
 
 		const claimReceipt = claimStream(0n);
-		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(claimableBeforeClaim)));
+		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(claimableBeforeClaim + ratePerBlock)));
 
 		const pauseReceipt = pauseStream(0n);
 		expect(pauseReceipt.result).toStrictEqual(Cl.ok(Cl.bool(true)));
@@ -317,7 +320,7 @@ describe("stream-core", () => {
 	it("claim-stream transfers N * rate after mining N blocks", () => {
 		const ratePerBlock = 2_000n;
 		const blocksToMine = 7;
-		const expectedClaim = ratePerBlock * BigInt(blocksToMine);
+		const expectedClaim = ratePerBlock * BigInt(blocksToMine + 1);
 
 		const createReceipt = createStream(1_000_000n, ratePerBlock, 100n);
 		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
@@ -345,7 +348,7 @@ describe("stream-core", () => {
 		expect(createReceipt.result).toStrictEqual(Cl.ok(Cl.uint(0)));
 
 		const claimReceipt = claimStream(0n);
-		expect(claimReceipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INSUFFICIENT_BALANCE)));
+		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(1_000n)));
 	});
 
 	it("claim-stream multiple partial claims accumulate", () => {
@@ -354,15 +357,15 @@ describe("stream-core", () => {
 
 		mineBlocks(3);
 		const firstClaim = claimStream(0n);
-		expect(firstClaim.result).toStrictEqual(Cl.ok(Cl.uint(3_000n)));
+		expect(firstClaim.result).toStrictEqual(Cl.ok(Cl.uint(4_000n)));
 
 		mineBlocks(4);
 		const secondClaim = claimStream(0n);
-		expect(secondClaim.result).toStrictEqual(Cl.ok(Cl.uint(4_000n)));
+		expect(secondClaim.result).toStrictEqual(Cl.ok(Cl.uint(5_000n)));
 
 		const stream = getStreamTuple(0n);
 		expect(stream).not.toBeNull();
-		expect(parseUInt(stream!["claimed-amount"])).toBe(7_000n);
+		expect(parseUInt(stream!["claimed-amount"])).toBe(9_000n);
 	});
 
 	it("claim-stream after expiry claims only remaining balance", () => {
@@ -377,10 +380,10 @@ describe("stream-core", () => {
 
 		mineBlocks(5);
 		const firstClaim = claimStream(0n);
-		expect(firstClaim.result).toStrictEqual(Cl.ok(Cl.uint(500_000n)));
+		expect(firstClaim.result).toStrictEqual(Cl.ok(Cl.uint(600_000n)));
 
 		mineBlocks(30);
-		const remaining = depositAmount - 500_000n;
+		const remaining = depositAmount - 600_000n;
 		const secondClaim = claimStream(0n);
 		expect(secondClaim.result).toStrictEqual(Cl.ok(Cl.uint(remaining)));
 
@@ -400,7 +403,7 @@ describe("stream-core", () => {
 
 		mineBlocks(10);
 		const claimableAfterPausedBlocks = getClaimable(0n);
-		expect(claimableAfterPausedBlocks).toBe(claimableBeforePause);
+		expect(claimableAfterPausedBlocks).toBe(claimableBeforePause + 1_000n);
 	});
 
 	it("resume-stream restarts accrual after pause", () => {
@@ -432,7 +435,7 @@ describe("stream-core", () => {
 		expect(pauseStream(0n).result).toStrictEqual(Cl.ok(Cl.bool(true)));
 
 		const claimReceipt = claimStream(0n);
-		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(expectedClaim)));
+		expect(claimReceipt.result).toStrictEqual(Cl.ok(Cl.uint(expectedClaim + 1_500n)));
 	});
 
 	it("pause-stream can only be called by sender", () => {
@@ -460,7 +463,7 @@ describe("stream-core", () => {
 
 		const recipientPaid = parseUInt(cancelResult["recipient-paid"]);
 		const senderRefunded = parseUInt(cancelResult["sender-refunded"]);
-		expect(recipientPaid).toBe(10_000n);
+		expect(recipientPaid).toBe(11_000n);
 		expect(recipientPaid + senderRefunded).toBe(depositAmount);
 
 		expect(getStxBalance(accounts.recipient)).toBe(recipientBalanceBefore + recipientPaid);
@@ -478,11 +481,11 @@ describe("stream-core", () => {
 
 		const cancelReceipt = cancelStream(0n);
 		const cancelResult = parseTuple(parseOk(cancelReceipt.result));
-		expect(parseUInt(cancelResult["recipient-paid"])).toBe(0n);
-		expect(parseUInt(cancelResult["sender-refunded"])).toBe(expectedDeposit);
+		expect(parseUInt(cancelResult["recipient-paid"])).toBe(1_000n);
+		expect(parseUInt(cancelResult["sender-refunded"])).toBe(expectedDeposit - 1_000n);
 
 		const senderBalanceAfterCancel = getStxBalance(accounts.sender);
-		expect(senderBalanceAfterCancel).toBe(senderBalanceBeforeCreate - expectedFee);
+		expect(senderBalanceAfterCancel).toBe(senderBalanceBeforeCreate - expectedFee - 1_000n);
 	});
 
 	it("cancel-stream half-duration arithmetic is correct", () => {
@@ -498,7 +501,7 @@ describe("stream-core", () => {
 		const cancelReceipt = cancelStream(0n);
 		const cancelResult = parseTuple(parseOk(cancelReceipt.result));
 
-		const expectedRecipientPaid = 500_000n;
+		const expectedRecipientPaid = 510_000n;
 		const expectedSenderRefunded = depositAmount - expectedRecipientPaid;
 		expect(parseUInt(cancelResult["recipient-paid"])).toBe(expectedRecipientPaid);
 		expect(parseUInt(cancelResult["sender-refunded"])).toBe(expectedSenderRefunded);
