@@ -161,12 +161,14 @@ if [[ "$COST_MODE" == "high" ]]; then COST_FLAG="--high-cost"; fi
 )
 
 # Fix Windows backslash paths in generated YAML files.
-# Clarinet on Windows emits paths like `ontracts\\stream-core.clar` because YAML
-# treats \c as an escape sequence. Normalize all contract paths to forward slashes.
+# Clarinet on Windows emits YAML-escaped backslash paths. Order matters:
+# 1) Match full 'contracts\\' first to avoid leaving a stray leading 'c'
+# 2) Match 'ontracts\\' for the YAML \c escape variant
+# 3) Clean up any prior double-c artifacts
 echo "==> Fixing Windows paths in generated deployment plans"
 for plan_file in "$CONTRACTS_DIR"/deployments/*.yaml; do
 	if [[ -f "$plan_file" ]]; then
-		sed -i 's|ontracts\\\\|contracts/|g; s|contracts\\\\|contracts/|g' "$plan_file"
+		sed -i 's|contracts\\\\|contracts/|g; s|ontracts\\\\|contracts/|g; s|ccontracts/|contracts/|g' "$plan_file"
 	fi
 done
 
