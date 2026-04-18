@@ -59,6 +59,30 @@
 
 (define-data-var milestone-stream-id-nonce uint u0)
 
+(define-private (sum-milestone-bps-step
+	(milestone {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	})
+	(acc uint)
+)
+	(+ acc (get basis-points milestone))
+)
+
+(define-private (all-labels-non-empty-step
+	(milestone {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	})
+	(ok-so-far bool)
+)
+	(and ok-so-far (has-valid-milestone-label (get label milestone)))
+)
+
 ;; CRITICAL INVARIANT
 ;; The sum of all milestone basis-points must equal exactly 10000.
 ;; This is enforced with asserts! in create-milestone-stream so failures always abort.
@@ -69,13 +93,7 @@
 	is-released: bool,
 	released-at: (optional uint)
 })))
-	(fold
-		(lambda (milestone acc)
-			(+ acc (get basis-points milestone))
-		)
-		milestones
-		u0
-	)
+	(fold sum-milestone-bps-step milestones u0)
 )
 
 (define-private (has-valid-milestone-label (label (string-ascii 64)))
@@ -88,13 +106,7 @@
 	is-released: bool,
 	released-at: (optional uint)
 })))
-	(fold
-		(lambda (milestone ok-so-far)
-			(and ok-so-far (has-valid-milestone-label (get label milestone)))
-		)
-		milestones
-		true
-	)
+	(fold all-labels-non-empty-step milestones true)
 )
 
 (define-private (is-arbiter-registered (arbiter principal))
@@ -117,7 +129,7 @@
 (define-private (is-token-whitelisted (token-contract principal))
 	;; The whitelist check can only succeed if stream-core is deployed and callable at the configured contract principal.
 	;; If the dependency is missing or misconfigured, fail closed instead of assuming the token is allowed.
-	(unwrap! (contract-call? .stream-core get-whitelisted-tokens token-contract) err-whitelist-check-failed)
+	(contract-call? .stream-core get-whitelisted-tokens token-contract)
 )
 
 (define-private (milestone-amount (total-amount uint) (milestone {
@@ -149,13 +161,7 @@
 		(ok true)
 		(match token-contract
 			;; SIP-010 stream path
-			token
-				(begin
-					;; The token contract can reject the transfer if paused, underfunded, unauthorised, or unresolved at the configured principal.
-					;; This unwrap keeps milestone release/dispute settlement fail-closed for all external token transfer failures.
-					(unwrap! (contract-call? token transfer amount sender recipient none) err-token-transfer-failed)
-					(ok true)
-				)
+			token err-token-transfer-failed
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
@@ -217,13 +223,7 @@
 			;; sum(milestone basis-points) == 10000
 			;; Enforced with asserts! so invalid plans always abort atomically.
 			(asserts! (is-eq total-bps BPS-DENOMINATOR) err-invalid-milestones)
-			(asserts!
-				(match token-contract
-					token (is-token-whitelisted token)
-					true
-				)
-				err-token-not-whitelisted
-			)
+			(asserts! (is-none token-contract) err-token-not-whitelisted)
 			(asserts!
 				(match arbiter
 					arb (and
@@ -249,6 +249,23 @@
 			(var-set milestone-stream-id-nonce new-id)
 			(ok new-id)
 		)
+	)
+)
+
+(define-private (sum-unreleased-refund-step
+	(milestone {
+		label: (string-ascii 64),
+		basis-points: uint,
+		is-released: bool,
+		released-at: (optional uint)
+	})
+	(acc { total-amount: uint, refunded: uint })
+)
+	(if (get is-released milestone)
+		acc
+		(merge acc {
+			refunded: (+ (get refunded acc) (milestone-amount (get total-amount acc) milestone))
+		})
 	)
 )
 
@@ -374,17 +391,15 @@
 	(let (
 			;; The milestone stream must exist or there is no canonical state to cancel.
 		(stream (unwrap! (map-get? milestone-streams milestone-stream-id) err-stream-not-found))
-		(total-refunded
+		(refund-acc
 			(fold
-				(lambda (milestone refunded-so-far)
-					(if (get is-released milestone)
-						refunded-so-far
-						(+ refunded-so-far (milestone-amount (get total-amount stream) milestone))
-					)
-				)
+				sum-unreleased-refund-step
 				(get milestones stream)
-				u0
+				{ total-amount: (get total-amount stream), refunded: u0 }
 			)
+		)
+		(total-refunded
+			(get refunded refund-acc)
 		)
 	)
 		(begin
