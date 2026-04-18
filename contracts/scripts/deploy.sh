@@ -172,35 +172,38 @@ for plan_file in "$CONTRACTS_DIR"/deployments/*.yaml; do
 	fi
 done
 
-# stream-nft is already deployed to mainnet. Remove it from the generated plan
-# so only stream-core and stream-conditions are published.
+# stream-nft and stream-core are already deployed to mainnet.
+# Remove them from the generated plan so only stream-conditions is published.
 MAINNET_PLAN="$CONTRACTS_DIR/deployments/default.${NETWORK}-plan.yaml"
 if [[ -f "$MAINNET_PLAN" ]]; then
-	echo "==> Removing already-deployed stream-nft from deployment plan"
+	echo "==> Removing already-deployed contracts (stream-nft, stream-core) from plan"
 	awk '
 		/contract-name: stream-nft/ { skip=1; next }
+		/contract-name: stream-core/ { skip=1; next }
 		skip && /^ *- contract-publish:/ { skip=0 }
 		skip && /^ *- emulated-contract-publish:/ { skip=0 }
 		skip { next }
 		/^ *- contract-publish:$/ {
 			hold=$0; getline;
-			if ($0 ~ /contract-name: stream-nft/) { skip=1; next }
+			if ($0 ~ /contract-name: stream-nft|contract-name: stream-core/) { skip=1; next }
 			else { print hold; print; next }
 		}
 		{print}
 	' "$MAINNET_PLAN" > "${MAINNET_PLAN}.tmp" && mv "${MAINNET_PLAN}.tmp" "$MAINNET_PLAN"
 fi
 
-# Enforce minimum cost floor of 1.6 STX (1,600,000 µSTX) per contract publish.
-# Clarinet's estimated costs are often too low for timely mainnet confirmation.
-MIN_COST_USTX=1600000
+# Cap deployment cost at 0.7 STX (700,000 µSTX) per contract publish.
+MAX_COST_USTX=700000
 if [[ -f "$MAINNET_PLAN" ]]; then
-	echo "==> Enforcing minimum cost floor: 1.6 STX ($MIN_COST_USTX µSTX) per contract"
-	awk -v min="$MIN_COST_USTX" '/^[[:space:]]*cost:/ {
+	echo "==> Capping deployment cost at 0.7 STX ($MAX_COST_USTX µSTX) per contract"
+	awk -v max="$MAX_COST_USTX" '/^[[:space:]]*cost:/ {
 		match($0, /cost: *([0-9]+)/, arr);
-		if (arr[1]+0 < min) {
-			sub(/cost: *[0-9]+/, "cost: " min);
-			print "    Bumped cost from " arr[1] " to " min > "/dev/stderr";
+		if (arr[1]+0 > max) {
+			sub(/cost: *[0-9]+/, "cost: " max);
+			print "    Capped cost from " arr[1] " to " max > "/dev/stderr";
+		} else if (arr[1]+0 < max) {
+			sub(/cost: *[0-9]+/, "cost: " max);
+			print "    Set cost from " arr[1] " to " max > "/dev/stderr";
 		}
 	} {print}' "$MAINNET_PLAN" > "${MAINNET_PLAN}.tmp" && mv "${MAINNET_PLAN}.tmp" "$MAINNET_PLAN"
 fi
