@@ -526,6 +526,14 @@
 						recipient-paid: recipient-paid,
 						sender-refunded: sender-refunded
 					})
+					;; Best-effort NFT receipt burn — cancellation succeeds even if burn fails.
+					(if (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL))
+						(match (contract-call? .stream-nft burn-stream-receipts stream-id)
+							success true
+							error true
+						)
+						true
+					)
 					(ok { recipient-paid: recipient-paid, sender-refunded: sender-refunded })
 				)
 			)
