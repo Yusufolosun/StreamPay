@@ -3,13 +3,13 @@ name = "devnet"
 stacks_node_rpc_address = "http://localhost:20443"
 
 [accounts.deployer]
-mnemonic = "${DEPLOYER_MNEMONIC}"
+mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 balance = 100_000_000_000_000
 
 [accounts.wallet_1]
-mnemonic = "<YOUR_MNEMONIC_HERE>"
+mnemonic = "legal winner thank year wave sausage worth useful legal winner thank yellow"
 balance = 100_000_000_000_000
 
 [accounts.wallet_2]
-mnemonic = "<YOUR_MNEMONIC_HERE>"
+mnemonic = "letter advice cage absurd amount doctor acoustic avoid letter advice cage above"
 balance = 100_000_000_000_000

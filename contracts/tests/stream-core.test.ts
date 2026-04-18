@@ -29,7 +29,7 @@ describe("stream-core", () => {
 	let trackedStreamIds: Set<bigint>;
 
 	beforeEach(async () => {
-		process.env.DEPLOYER_MNEMONIC ??= DEFAULT_DEPLOYER_MNEMONIC;
+		process.env.DEPLOYER_MNEMONIC = DEFAULT_DEPLOYER_MNEMONIC;
 		simnet = await initSimnet("./Clarinet.toml", true);
 		const loadedAccounts = simnet.getAccounts();
 		accounts = {

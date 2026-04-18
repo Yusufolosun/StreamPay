@@ -7,7 +7,7 @@ cache_dir = "./.cache"
 requirements = []
 
 [accounts.deployer]
-mnemonic = "${DEPLOYER_MNEMONIC}"
+mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 balance = 100_000_000_000_000
 
 [contracts.stream-core]
