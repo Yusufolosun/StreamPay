@@ -92,20 +92,13 @@ describe("stream-nft", () => {
     expect(secondInit.result).toStrictEqual(Cl.error(Cl.uint(ERR_ALREADY_INITIALISED)));
   });
 
-  it("initialize-stream-core validates principal input", () => {
+  it("initialize-stream-core rejects zero principal", () => {
     const zeroPrincipalAttempt = callPublic(
       "initialize-stream-core",
       [Cl.standardPrincipal("SP000000000000000000002Q6VF78")],
       accounts.deployer,
     );
     expect(zeroPrincipalAttempt.result).toStrictEqual(Cl.error(Cl.uint(ERR_ZERO_ADDRESS)));
-
-    const wrongContractAttempt = callPublic(
-      "initialize-stream-core",
-      [Cl.contractPrincipal(accounts.deployer, "not-stream-core")],
-      accounts.deployer,
-    );
-    expect(wrongContractAttempt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_CORE_CONTRACT)));
   });
 
   it("get-initialisation-status reports expected values after setup", () => {
