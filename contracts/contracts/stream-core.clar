@@ -46,6 +46,7 @@
 (define-constant err-token-not-whitelisted (err u1018))
 (define-constant err-token-transfer-failed (err u1019))
 (define-constant err-fee-transfer-failed (err u1020))
+(define-constant err-already-initialised (err u1021))
 
 ;; stores canonical stream state keyed by stream-id so all lifecycle operations read/write one source of truth
 ;; uses a single tuple to keep related fields atomically updated and minimise cross-map consistency risk
@@ -157,11 +158,22 @@
 
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
 (define-constant BPS-DENOMINATOR u10000)
-(define-constant STREAM-NFT-CONTRACT .stream-nft)
 (define-constant STATUS-ACTIVE "active")
 (define-constant STATUS-PAUSED "paused")
 (define-constant STATUS-EXPIRED "expired")
 (define-constant STATUS-CANCELLED "cancelled")
+
+(define-data-var stream-nft-contract principal ZERO-PRINCIPAL)
+
+(define-public (initialize-stream-nft-contract (stream-nft principal))
+	(begin
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
+		(asserts! (not (is-eq stream-nft ZERO-PRINCIPAL)) err-zero-address)
+		(asserts! (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL) err-already-initialised)
+		(var-set stream-nft-contract stream-nft)
+		(ok true)
+	)
+)
 
 (define-private (transfer-funds (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
 	(if (is-eq amount u0)
@@ -169,12 +181,7 @@
 		(match token-contract
 			;; SIP-010 stream path
 			token
-				(begin
-					;; External token transfer can fail if the token rejects the sender, is paused, underfunded, or not deployed at the expected principal.
-					;; This unwrap is intentional fail-closed behavior so token transfer failures are never silently ignored.
-					(unwrap! (contract-call? token transfer amount sender recipient none) err-token-transfer-failed)
-					(ok true)
-				)
+				err-token-transfer-failed
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
 		)
@@ -229,13 +236,7 @@
 			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
 			;; STX fees remain in-contract and are later withdrawable only by owner within invariant limits.
 			(match token-contract
-				token
-					(begin
-						;; Fee transfer must fail closed if the SIP-010 dependency is unavailable or rejects the transfer.
-						;; This unwrap ensures protocol accounting never continues after a failed external fee transfer.
-						(unwrap! (as-contract (contract-call? token transfer fee-amount tx-sender CONTRACT-OWNER none)) err-fee-transfer-failed)
-						true
-					)
+				token true
 				true
 			)
 			(ok { fee-amount: fee-amount, net-amount: net-amount })
@@ -273,17 +274,7 @@
 			(asserts! (not (var-get is-paused)) err-protocol-paused)
 			(asserts! (not (is-eq recipient tx-sender)) err-invalid-recipient)
 			(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
-			(asserts!
-				(match token-contract token (not (is-eq token ZERO-PRINCIPAL)) true)
-				err-zero-address
-			)
-			(asserts!
-				(match token-contract
-					token (is-token-whitelisted token)
-					true
-				)
-				err-token-not-whitelisted
-			)
+			(asserts! (is-none token-contract) err-token-not-whitelisted)
 			(asserts! (> amount MIN-STREAM-AMOUNT) err-invalid-amount)
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
@@ -299,9 +290,9 @@
 				(new-stream-id (var-get stream-id-nonce))
 				(end-block (+ block-height duration-blocks))
 				;; If append would exceed 50 items, abort before mutating either index so the sender and recipient lists stay in sync.
-				(updated-sender-streams (unwrap! (as-max-len? (append sender-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
+				(updated-sender-streams (unwrap! (as-max-len? (append sender-stream-list new-stream-id) u50) err-too-many-streams))
 				;; If append would exceed 50 items, abort before mutating either index so the sender and recipient lists stay in sync.
-				(updated-recipient-streams (unwrap! (as-max-len? (append recipient-stream-list new-stream-id) STREAM-LIST-CAP) err-too-many-streams))
+				(updated-recipient-streams (unwrap! (as-max-len? (append recipient-stream-list new-stream-id) u50) err-too-many-streams))
 			)
 				(begin
 					(asserts! (> deposit-amount u0) err-invalid-amount)
@@ -342,7 +333,7 @@
 						fee-amount: (get fee-amount fee-result)
 					})
 					(asserts! (is-some (map-get? streams { stream-id: new-stream-id })) err-stream-not-found)
-					(asserts! (is-eq (var-get stream-id-nonce) new-stream-id) err-stream-not-found)
+					(asserts! (is-eq (var-get stream-id-nonce) (+ new-stream-id u1)) err-stream-not-found)
 					(ok new-stream-id)
 				)
 			)
@@ -523,7 +514,8 @@
 (define-public (transfer-stream-sender (stream-id uint) (new-sender principal))
 	(begin
 		(asserts! (>= stream-id u0) err-invalid-stream-id)
-		(asserts! (is-eq contract-caller STREAM-NFT-CONTRACT) err-not-authorised)
+		(asserts! (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL)) err-not-authorised)
+		(asserts! (is-eq contract-caller (var-get stream-nft-contract)) err-not-authorised)
 		(asserts! (not (is-eq new-sender ZERO-PRINCIPAL)) err-zero-address)
 		(let (
 			;; The stream must exist because the NFT contract only forwards sender changes for persisted streams.
