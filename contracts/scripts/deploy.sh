@@ -160,6 +160,16 @@ if [[ "$COST_MODE" == "high" ]]; then COST_FLAG="--high-cost"; fi
 	clarinet deployments generate "$GENERATE_FLAG" "$COST_FLAG" -m Clarinet.toml
 )
 
+# Fix Windows backslash paths in generated YAML files.
+# Clarinet on Windows emits paths like `ontracts\\stream-core.clar` because YAML
+# treats \c as an escape sequence. Normalize all contract paths to forward slashes.
+echo "==> Fixing Windows paths in generated deployment plans"
+for plan_file in "$CONTRACTS_DIR"/deployments/*.yaml; do
+	if [[ -f "$plan_file" ]]; then
+		sed -i 's|ontracts\\\\|contracts/|g; s|contracts\\\\|contracts/|g' "$plan_file"
+	fi
+done
+
 echo "==> Validating deployment format"
 (
 	cd "$CONTRACTS_DIR"
