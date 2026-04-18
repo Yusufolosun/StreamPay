@@ -21,6 +21,7 @@
 ;; - stream-core sender sync is attempted after sender receipt transfers and is logged if it fails.
 
 (define-constant STREAM-CORE-CONTRACT .stream-core)
+(define-constant CONTRACT-OWNER tx-sender)
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
 (define-constant TOKEN-URI-BASE "https://metadata.streampay.xyz/receipts/")
 ;; RECIPIENT is nine ASCII characters, so receipt-type must be string-ascii 9.
@@ -36,6 +37,7 @@
 (define-constant err-invalid-token-id (err u1006))
 (define-constant err-already-initialised (err u1007))
 (define-constant err-core-sync-failed (err u1008))
+(define-constant err-invalid-core-contract (err u1009))
 
 (define-data-var is-initialised bool false)
 (define-data-var stream-core-contract principal ZERO-PRINCIPAL)
@@ -102,8 +104,10 @@
 (define-public (initialize-stream-core (stream-core principal))
 	(begin
 		;; One-time latch prevents rebinding mint/burn authority after deployment.
+		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
 		(asserts! (not (var-get is-initialised)) err-already-initialised)
 		(asserts! (not (is-eq stream-core ZERO-PRINCIPAL)) err-zero-address)
+		(asserts! (is-eq stream-core STREAM-CORE-CONTRACT) err-invalid-core-contract)
 		(var-set stream-core-contract stream-core)
 		(var-set is-initialised true)
 		(ok true)
