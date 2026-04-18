@@ -3,9 +3,9 @@ network: testnet
 mode: manual
 manual_trigger: true
 contracts:
+  - name: stream-nft
+    path: contracts/stream-nft.clar
   - name: stream-core
     path: contracts/stream-core.clar
   - name: stream-conditions
     path: contracts/stream-conditions.clar
-  - name: stream-nft
-    path: contracts/stream-nft.clar
