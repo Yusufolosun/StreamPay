@@ -262,6 +262,18 @@
 	(>= block-height (get end-block stream))
 )
 
+(define-private (remove-stream-id-step
+	(candidate-stream-id uint)
+	(acc { target-stream-id: uint, stream-ids: (list 50 uint) })
+)
+	(if (is-eq candidate-stream-id (get target-stream-id acc))
+		acc
+		(merge acc {
+			stream-ids: (unwrap-panic (as-max-len? (append (get stream-ids acc) candidate-stream-id) u50))
+		})
+	)
+)
+
 (define-public (create-stream (recipient principal) (amount uint) (rate-per-block uint) (duration-blocks uint) (token-contract (optional principal)))
 	(let (
 		(contract-principal (as-contract tx-sender))
@@ -520,17 +532,45 @@
 		(let (
 			;; The stream must exist because the NFT contract only forwards sender changes for persisted streams.
 			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+			(current-sender (get sender stream))
+			(current-sender-entry (map-get? sender-streams { sender: current-sender }))
+			(new-sender-entry (map-get? sender-streams { sender: new-sender }))
+			(current-sender-streams (match current-sender-entry data (get stream-ids data) (list)))
+			(new-sender-streams (match new-sender-entry data (get stream-ids data) (list)))
 		)
 			(begin
-				(map-set streams { stream-id: stream-id } (merge stream { sender: new-sender }))
-				(print {
-					event-type: "sender-transferred",
-					stream-id: (some stream-id),
-					caller: tx-sender,
-					block-height: block-height,
-					new-sender: new-sender
-				})
-				(ok true)
+				(if (is-eq current-sender new-sender)
+					(ok true)
+					(let (
+						(filtered-current-acc
+							(fold remove-stream-id-step current-sender-streams {
+								target-stream-id: stream-id,
+								stream-ids: (list)
+							})
+						)
+						(filtered-current-streams (get stream-ids filtered-current-acc))
+						(updated-new-sender-streams
+							(if (is-some (index-of? new-sender-streams stream-id))
+								new-sender-streams
+								(unwrap! (as-max-len? (append new-sender-streams stream-id) u50) err-too-many-streams)
+							)
+						)
+					)
+						(begin
+							(map-set sender-streams { sender: current-sender } { stream-ids: filtered-current-streams })
+							(map-set sender-streams { sender: new-sender } { stream-ids: updated-new-sender-streams })
+							(map-set streams { stream-id: stream-id } (merge stream { sender: new-sender }))
+							(print {
+								event-type: "sender-transferred",
+								stream-id: (some stream-id),
+								caller: tx-sender,
+								block-height: block-height,
+								new-sender: new-sender
+							})
+							(ok true)
+						)
+					)
+				)
 			)
 		)
 	)
