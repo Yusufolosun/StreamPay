@@ -184,7 +184,7 @@
 	(if (is-eq amount u0)
 		(ok true)
 		(match token-contract
-			;; SIP-010 path — intentionally returns error; unreachable in v1
+			;; SIP-010 path -- intentionally returns error; unreachable in v1
 			token
 				err-token-transfer-failed
 			;; STX stream path
@@ -240,7 +240,7 @@
 		(begin
 			(asserts! (<= fee-bps MAX-FEE-BPS) err-fee-too-high)
 			;; STX fees remain in-contract and are later withdrawable only by owner within invariant limits.
-			;; SIP-010 fee handling is a no-op stub — unreachable in v1 because create-stream rejects token streams.
+			;; SIP-010 fee handling is a no-op stub -- unreachable in v1 because create-stream rejects token streams.
 			(match token-contract
 				token true
 				true
@@ -350,7 +350,7 @@
 						deposit-amount: deposit-amount,
 						fee-amount: (get fee-amount fee-result)
 					})
-					;; Best-effort NFT receipt minting — stream creation succeeds even if minting fails.
+					;; Best-effort NFT receipt minting -- stream creation succeeds even if minting fails.
 					;; Minting is skipped entirely until initialize-stream-nft-contract has been called.
 					(if (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL))
 						(begin
@@ -377,13 +377,13 @@
 
 (define-public (claim-stream (stream-id uint))
 	(let (
-			;; The stream record must exist before we can compute claimable amounts or transfer funds.
-			(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
-			;; The balance checkpoint must exist or the claim math would use stale state.
-			(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
-		)
-			(begin
-				(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorised)
+		;; The stream record must exist before we can compute claimable amounts or transfer funds.
+		(stream (unwrap! (map-get? streams { stream-id: stream-id }) err-stream-not-found))
+		;; The balance checkpoint must exist or the claim math would use stale state.
+		(balance (unwrap! (map-get? stream-balances { stream-id: stream-id }) err-stream-not-found))
+	)
+		(begin
+			(asserts! (is-eq tx-sender (get recipient stream)) err-not-authorised)
 			(asserts! (not (get is-cancelled stream)) err-stream-cancelled)
 			(let
 				(
@@ -392,7 +392,7 @@
 				)
 				(begin
 					(asserts! (> claimable-amount u0) err-insufficient-balance)
-						;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
+					;; The stored token-contract determines whether this is the STX stream path or the SIP-010 stream path.
 					(try! (as-contract (transfer-funds claimable-amount tx-sender (get recipient stream) (get token-contract stream))))
 					(if (is-none (get token-contract stream))
 						(var-set total-active-stx-deposits (- (var-get total-active-stx-deposits) claimable-amount))
@@ -415,7 +415,6 @@
 					})
 					(ok claimable-amount)
 				)
-			)
 			)
 		)
 	)
@@ -532,7 +531,7 @@
 						recipient-paid: recipient-paid,
 						sender-refunded: sender-refunded
 					})
-					;; Best-effort NFT receipt burn — cancellation succeeds even if burn fails.
+					;; Best-effort NFT receipt burn -- cancellation succeeds even if burn fails.
 					(if (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL))
 						(match (contract-call? .stream-nft burn-stream-receipts stream-id)
 							success true

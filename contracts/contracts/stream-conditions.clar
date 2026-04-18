@@ -230,7 +230,7 @@
 	(if (is-eq amount u0)
 		(ok true)
 		(match token-contract
-			;; SIP-010 path — intentionally returns error; unreachable in v1
+			;; SIP-010 path -- intentionally returns error; unreachable in v1
 			token err-token-transfer-failed
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
