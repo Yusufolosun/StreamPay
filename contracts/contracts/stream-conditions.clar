@@ -223,11 +223,14 @@
 	)
 )
 
+;; INTENTIONAL STUB: SIP-010 transfer path.
+;; create-milestone-stream gates token-contract with (is-none token-contract),
+;; so this branch is unreachable in v1. See stream-core for full rationale.
 (define-private (transfer-token (amount uint) (sender principal) (recipient principal) (token-contract (optional principal)))
 	(if (is-eq amount u0)
 		(ok true)
 		(match token-contract
-			;; SIP-010 stream path
+			;; SIP-010 path — intentionally returns error; unreachable in v1
 			token err-token-transfer-failed
 			;; STX stream path
 			(stx-transfer? amount sender recipient)
