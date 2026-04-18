@@ -1,10 +1,10 @@
 ;; Contract: stream-core
-;; Version: v0.1.0
-;; Purpose: Core stream lifecycle scaffold for StreamPay.
-;; Purpose: Includes placeholders for CRUD flow, rate engine, and fee handling boundaries.
-;; Author: <AUTHOR_NAME>
-;; Deployment Date: <YYYY-MM-DD>
-;; Dependencies: stream-conditions, stream-nft
+;; Version: v1.0.0
+;; Purpose: Core stream lifecycle for StreamPay.
+;; Purpose: STX streaming with per-block accrual, pause/resume, cancel, and protocol fee collection.
+;; Author: StreamPay Core
+;; Deployment Date: pending-mainnet
+;; Dependencies: stream-nft
 ;; Cross-contract call graph (mutating paths):
 ;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
 ;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens

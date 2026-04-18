@@ -1,11 +1,11 @@
 ;; Contract: stream-nft
-;; Version: v0.1.0
+;; Version: v1.0.0
 ;; Purpose: SIP-009 receipt NFTs for StreamPay stream ownership.
-;; Purpose: Mints one receipt per stream participant and keeps stream-core ownership in sync best-effort.
-;; Author: <AUTHOR_NAME>
-;; Deployment Date: <YYYY-MM-DD>
+;; Purpose: Mints one receipt per stream participant. Sender sync is event-based.
+;; Author: StreamPay Core
+;; Deployment Date: pending-mainnet
 ;; Implements: SIP-009
-;; Dependencies: stream-core, stream-conditions
+;; Dependencies: none (stream-core calls into this contract, not the reverse)
 ;; Cross-contract call graph (mutating paths):
 ;; - stream-core -> stream-nft: mint-stream-receipt, burn-stream-receipt
 ;; - stream-conditions -> stream-core: get-stream, get-whitelisted-tokens
