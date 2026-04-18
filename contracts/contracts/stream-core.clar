@@ -287,7 +287,7 @@
 			(asserts! (not (is-eq recipient tx-sender)) err-invalid-recipient)
 			(asserts! (not (is-eq recipient ZERO-PRINCIPAL)) err-zero-address)
 			(asserts! (is-none token-contract) err-token-not-whitelisted)
-			(asserts! (> amount MIN-STREAM-AMOUNT) err-invalid-amount)
+			(asserts! (>= amount MIN-STREAM-AMOUNT) err-invalid-amount)
 			(asserts! (> rate-per-block u0) err-invalid-rate)
 			(asserts! (> duration-blocks u0) err-invalid-duration)
 			(asserts! (<= duration-blocks MAX-STREAM-DURATION) err-invalid-duration)
