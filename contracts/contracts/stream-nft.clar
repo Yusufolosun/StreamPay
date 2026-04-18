@@ -20,7 +20,6 @@
 ;; - contract-caller is assigned by the Clarity runtime and cannot be spoofed by tx-sender.
 ;; - stream-core sender sync is attempted after sender receipt transfers and is logged if it fails.
 
-(define-constant STREAM-CORE-CONTRACT .stream-core)
 (define-constant CONTRACT-OWNER tx-sender)
 (define-constant ZERO-PRINCIPAL 'SP000000000000000000002Q6VF78)
 (define-constant TOKEN-URI-BASE "https://metadata.streampay.xyz/receipts/")
@@ -83,21 +82,17 @@
 	(and (var-get is-initialised) (is-eq contract-caller (var-get stream-core-contract)))
 )
 
-(define-private (sync-stream-core-sender-best-effort (stream-id uint) (recipient principal) (receipt-type (string-ascii 9)))
-	;; Best-effort by design: failures are surfaced via warning events instead of being silently ignored.
-	(match (contract-call? STREAM-CORE-CONTRACT transfer-stream-sender stream-id recipient)
-		sync-ok sync-ok
-		sync-error
-			(begin
-				(print {
-					event: "sender-sync-warning",
-					local-error: err-core-sync-failed,
-					reason: sync-error,
-					stream-id: stream-id,
-					receipt-type: receipt-type
-				})
-				true
-			)
+(define-private (emit-sender-sync-event (stream-id uint) (new-sender principal) (receipt-type (string-ascii 9)))
+	;; Sender sync is signalled via print event for off-chain processing.
+	;; The SDK or indexer should call stream-core.transfer-stream-sender when this event is observed.
+	(begin
+		(print {
+			event: "sender-sync-required",
+			stream-id: stream-id,
+			new-sender: new-sender,
+			receipt-type: receipt-type
+		})
+		true
 	)
 )
 
@@ -107,7 +102,6 @@
 		(asserts! (is-eq tx-sender CONTRACT-OWNER) err-not-authorised)
 		(asserts! (not (var-get is-initialised)) err-already-initialised)
 		(asserts! (not (is-eq stream-core ZERO-PRINCIPAL)) err-zero-address)
-		(asserts! (is-eq stream-core STREAM-CORE-CONTRACT) err-invalid-core-contract)
 		(var-set stream-core-contract stream-core)
 		(var-set is-initialised true)
 		(ok true)
@@ -286,8 +280,9 @@
 			(map-set token-owner { token-id: token-id } { owner: recipient })
 			(if (is-eq (get receipt-type token-metadata-record) SENDER-RECEIPT)
 				(begin
-					;; If stream-core rejects the sync, keep the NFT transfer authoritative and emit a warning for operators.
-					(sync-stream-core-sender-best-effort (get stream-id token-metadata-record) recipient (get receipt-type token-metadata-record))
+					;; Signal that the stream-core sender record needs updating.
+					;; The SDK or indexer should call stream-core.transfer-stream-sender when this event is observed.
+					(emit-sender-sync-event (get stream-id token-metadata-record) recipient (get receipt-type token-metadata-record))
 					true
 				)
 				true
