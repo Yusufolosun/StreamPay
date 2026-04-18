@@ -278,9 +278,14 @@ describe("stream-core", () => {
 		expect(receipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_RECIPIENT)));
 	});
 
-	it("create-stream fails when amount is below or equal to minimum", () => {
-		const receipt = createStream(1_000n, 1n, 10n);
+	it("create-stream fails when amount is below minimum", () => {
+		const receipt = createStream(999n, 1n, 10n);
 		expect(receipt.result).toStrictEqual(Cl.error(Cl.uint(ERR_INVALID_AMOUNT)));
+	});
+
+	it("create-stream accepts exact minimum amount", () => {
+		const receipt = createStream(1_000n, 1n, 10n);
+		expect(receipt.result.type).toBe(ClarityType.ResponseOk);
 	});
 
 	it("create-stream fails when rate-per-block is zero", () => {
