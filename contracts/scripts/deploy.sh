@@ -170,12 +170,30 @@ for plan_file in "$CONTRACTS_DIR"/deployments/*.yaml; do
 	fi
 done
 
-# Enforce minimum cost floor of 2.2 STX (2,200,000 µSTX) per contract publish.
-# Clarinet's estimated costs are often too low for timely mainnet confirmation.
-MIN_COST_USTX=2200000
+# stream-nft is already deployed to mainnet. Remove it from the generated plan
+# so only stream-core and stream-conditions are published.
 MAINNET_PLAN="$CONTRACTS_DIR/deployments/default.${NETWORK}-plan.yaml"
 if [[ -f "$MAINNET_PLAN" ]]; then
-	echo "==> Enforcing minimum cost floor: 2.2 STX ($MIN_COST_USTX µSTX) per contract"
+	echo "==> Removing already-deployed stream-nft from deployment plan"
+	awk '
+		/contract-name: stream-nft/ { skip=1; next }
+		skip && /^ *- contract-publish:/ { skip=0 }
+		skip && /^ *- emulated-contract-publish:/ { skip=0 }
+		skip { next }
+		/^ *- contract-publish:$/ {
+			hold=$0; getline;
+			if ($0 ~ /contract-name: stream-nft/) { skip=1; next }
+			else { print hold; print; next }
+		}
+		{print}
+	' "$MAINNET_PLAN" > "${MAINNET_PLAN}.tmp" && mv "${MAINNET_PLAN}.tmp" "$MAINNET_PLAN"
+fi
+
+# Enforce minimum cost floor of 1.6 STX (1,600,000 µSTX) per contract publish.
+# Clarinet's estimated costs are often too low for timely mainnet confirmation.
+MIN_COST_USTX=1600000
+if [[ -f "$MAINNET_PLAN" ]]; then
+	echo "==> Enforcing minimum cost floor: 1.6 STX ($MIN_COST_USTX µSTX) per contract"
 	awk -v min="$MIN_COST_USTX" '/^[[:space:]]*cost:/ {
 		match($0, /cost: *([0-9]+)/, arr);
 		if (arr[1]+0 < min) {
