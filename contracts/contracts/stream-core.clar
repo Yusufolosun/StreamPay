@@ -344,6 +344,22 @@
 						deposit-amount: deposit-amount,
 						fee-amount: (get fee-amount fee-result)
 					})
+					;; Best-effort NFT receipt minting — stream creation succeeds even if minting fails.
+					;; Minting is skipped entirely until initialize-stream-nft-contract has been called.
+					(if (not (is-eq (var-get stream-nft-contract) ZERO-PRINCIPAL))
+						(begin
+							(match (contract-call? .stream-nft mint-stream-receipt new-stream-id tx-sender "SENDER")
+								success true
+								error true
+							)
+							(match (contract-call? .stream-nft mint-stream-receipt new-stream-id recipient "RECIPIENT")
+								success true
+								error true
+							)
+							true
+						)
+						true
+					)
 					(asserts! (is-some (map-get? streams { stream-id: new-stream-id })) err-stream-not-found)
 					(asserts! (is-eq (var-get stream-id-nonce) (+ new-stream-id u1)) err-stream-not-found)
 					(ok new-stream-id)
