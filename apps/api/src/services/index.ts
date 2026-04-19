@@ -1,3 +1,3 @@
-export { calculateClaimableBalance } from "./balanceCalculator.js";
+export { calculateClaimableBalance, calculateRemainingBalance, calculateStreamBalance } from "./balanceCalculator.js";
 export { StacksService } from "./stacksService.js";
-export { StreamIndexer } from "./streamIndexer.js";
+export { StreamIndexer, summarizeStream } from "./streamIndexer.js";
