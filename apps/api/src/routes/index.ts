@@ -1,4 +1,4 @@
-// TODO: Export API route modules from this barrel file.
-// TODO: Add streams, payments, and health endpoints.
-
-export {};
+export { healthRouter } from "./health.js";
+export { milestonesRouter } from "./milestones.js";
+export { streamsRouter } from "./streams.js";
+export { webhooksRouter } from "./webhooks.js";

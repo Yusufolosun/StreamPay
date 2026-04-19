@@ -1,4 +1,3 @@
-// TODO: Export API service modules from this barrel file.
-// TODO: Add stream, payment, and chain service layers.
-
-export {};
+export { calculateClaimableBalance } from "./balanceCalculator.js";
+export { StacksService } from "./stacksService.js";
+export { StreamIndexer } from "./streamIndexer.js";

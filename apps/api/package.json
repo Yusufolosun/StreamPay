@@ -2,6 +2,7 @@
   "name": "@streampay/api",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "echo \"TODO: start API dev server\"",
     "build": "echo \"TODO: build API server\"",
