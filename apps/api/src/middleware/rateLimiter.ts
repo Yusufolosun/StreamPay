@@ -8,7 +8,6 @@ const createLimiter = (limit: number, code: string, message: string) => {
 		limit,
 		standardHeaders: true,
 		legacyHeaders: false,
-		keyGenerator: (request) => request.ip ?? request.socket.remoteAddress ?? "unknown",
 		handler: (_request, _response, next, options) => {
 			next(createApiError(429, code, options.message));
 		},
