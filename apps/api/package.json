@@ -1,8 +1,13 @@
 {
   "name": "@streampay/api",
   "version": "0.1.0",
+  "description": "Express API for indexed StreamPay data",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "nodemon --config nodemon.json",
     "build": "tsc -p tsconfig.build.json",
