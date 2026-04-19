@@ -93,15 +93,3 @@ export const createLogger = (defaultMeta: LoggerMeta = {}): Logger => createBase
 export const logger = createLogger();
 
 export { serializeError };
-
-export const logger = {
-	info(message: string, meta?: LoggerMeta): void {
-		write("info", message, meta);
-	},
-	warn(message: string, meta?: LoggerMeta): void {
-		write("warn", message, meta);
-	},
-	error(message: string, meta?: LoggerMeta): void {
-		process.stderr.write(`${JSON.stringify({ level: "error", message, ...meta, timestamp: Date.now() })}\n`);
-	},
-};

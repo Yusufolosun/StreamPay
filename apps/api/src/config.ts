@@ -85,7 +85,7 @@ const requiredVariables = [
 ] as const;
 
 const collectMissingVariables = (env: Record<string, string | undefined>): string[] => {
-	const missing = requiredVariables.filter((name) => env[name] == null);
+	const missing: string[] = requiredVariables.filter((name) => env[name] == null);
 
 	if (env.NODE_ENV === "production" && env.HIRO_API_KEY == null) {
 		missing.push("HIRO_API_KEY");
