@@ -4,10 +4,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "echo \"TODO: start API dev server\"",
-    "build": "echo \"TODO: build API server\"",
+    "dev": "nodemon --config nodemon.json",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --enable-source-maps dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"TODO: add API tests\"",
-    "lint": "echo \"TODO: add API lint\""
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.0.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.3",
+    "nodemon": "^3.1.10",
+    "tsx": "^4.19.4",
+    "typescript": "^6.0.2",
+    "vitest": "^3.2.4"
   }
 }
