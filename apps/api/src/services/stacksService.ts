@@ -1,3 +1,28 @@
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * BIGINT CONVENTION — applies to the entire StreamPay API codebase
+ * ════════════════════════════════════════════════════════════════════════════
+ *
+ * All on-chain token amounts MUST be represented as `bigint` in TypeScript.
+ *
+ * Rules:
+ *   1. Use `bigint` for every Clarity `uint` that represents a token amount
+ *      (deposit-amount, rate-per-block, claimed-amount, fee-amount, etc.).
+ *   2. NEVER convert a bigint amount to `Number` for arithmetic — this risks
+ *      silent precision loss for values > Number.MAX_SAFE_INTEGER.
+ *   3. Convert to `string` ONLY when serialising for JSON API responses.
+ *   4. Block heights and basis-point values may use `number` because they
+ *      are bounded indices (≤ ~12.6M blocks) or small constants (≤ 10 000).
+ *   5. Comparisons between bigint values must use bigint operators
+ *      (e.g. `a < b`, NOT `Number(a) < Number(b)`).
+ *
+ * Rationale:
+ *   Stacks amounts are u128 — they can exceed 2^53. JavaScript's `number`
+ *   (IEEE 754 double) silently truncates above MAX_SAFE_INTEGER. Using
+ *   `bigint` everywhere prevents an entire class of financial bugs.
+ * ════════════════════════════════════════════════════════════════════════════
+ */
+
 export type StacksHealth = {
 	reachable: boolean;
 	blockHeight: number;
