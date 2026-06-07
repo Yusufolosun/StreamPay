@@ -368,4 +368,44 @@ export class StacksService {
 		this.cache.set(cacheKey, height, 5_000);
 		return height;
 	}
+
+	public async getStreamById(streamId: number): Promise<OnChainStream | null> {
+		const cacheKey = `stream-${streamId}`;
+		const cached = this.cache.get<OnChainStream | null>(cacheKey);
+		if (cached !== undefined) {
+			return cached;
+		}
+
+		const stream = await withRetry(async () => {
+			const [contractAddress, contractName] = this.contractStreamCore.split(".");
+			const resultHex = await this.callReadOnly(
+				contractAddress,
+				contractName,
+				"get-stream",
+				[serializeUint(streamId)],
+			);
+			const parsed = deserializeClarityHex(resultHex);
+			if (parsed === null) {
+				return null;
+			}
+
+			const mapped: OnChainStream = {
+				sender: parsed.sender,
+				recipient: parsed.recipient,
+				tokenContract: parsed["token-contract"],
+				depositAmount: parsed["deposit-amount"],
+				ratePerBlock: parsed["rate-per-block"],
+				startBlock: Number(parsed["start-block"]),
+				endBlock: Number(parsed["end-block"]),
+				claimedAmount: parsed["claimed-amount"],
+				isPaused: parsed["is-paused"],
+				isCancelled: parsed["is-cancelled"],
+				createdAt: Number(parsed["created-at"]),
+			};
+			return mapped;
+		});
+
+		this.cache.set(cacheKey, stream, 10_000);
+		return stream;
+	}
 }
