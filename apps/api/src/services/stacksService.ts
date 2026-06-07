@@ -23,6 +23,34 @@
  * ════════════════════════════════════════════════════════════════════════════
  */
 
+
+import type { CacheEntry } from "../types/stacks.js";
+
+class TTLCache {
+	private readonly cache = new Map<string, CacheEntry<any>>();
+
+	public get<T>(key: string): T | undefined {
+		const entry = this.cache.get(key);
+		if (!entry) {
+			return undefined;
+		}
+
+		if (Date.now() > entry.expiresAt) {
+			this.cache.delete(key);
+			return undefined;
+		}
+
+		return entry.value as T;
+	}
+
+	public set<T>(key: string, value: T, ttlMs: number): void {
+		this.cache.set(key, {
+			value,
+			expiresAt: Date.now() + ttlMs,
+		});
+	}
+}
+
 export type StacksHealth = {
 	reachable: boolean;
 	blockHeight: number;
