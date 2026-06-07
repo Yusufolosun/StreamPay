@@ -656,4 +656,55 @@ export class StacksService {
 		this.cache.set(cacheKey, stream, 10_000);
 		return stream;
 	}
+
+	public async getContractEvents(
+		contractId: string,
+		options: PaginationOptions = {},
+	): Promise<StreamEvent[]> {
+		const limit = options.limit ?? 20;
+		const offset = options.offset ?? 0;
+		const path = `/extended/v1/contract/${contractId}/events?limit=${limit}&offset=${offset}`;
+
+		const response = await withRetry(async () => {
+			return await this.fetchJson<{ results: any[] }>(path);
+		});
+
+		const events: StreamEvent[] = [];
+		for (const item of response.results) {
+			if (item.event_type !== "smart_contract_log") {
+				continue;
+			}
+			const log = item.contract_log;
+			if (!log || !log.value) {
+				continue;
+			}
+
+			try {
+				let parsed: any = null;
+				if (log.value.hex) {
+					parsed = deserializeClarityHex(log.value.hex);
+				} else if (log.value.repr) {
+					parsed = parseClarityRepr(log.value.repr);
+				}
+
+				if (!parsed) {
+					continue;
+				}
+
+				const mapped = mapEventTupleToStreamEvent(
+					parsed,
+					item.tx_id,
+					item.event_index,
+					item.block_height,
+				);
+				if (mapped) {
+					events.push(mapped);
+				}
+			} catch (e) {
+				// skip malformed logs but don't fail the whole request
+			}
+		}
+
+		return events;
+	}
 }
