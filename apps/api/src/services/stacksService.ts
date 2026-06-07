@@ -206,6 +206,158 @@ export function deserializeClarityHex(hex: string): any {
 	return deserializer.deserialize();
 }
 
+export function parseClarityRepr(repr: string): any {
+	if (!repr.startsWith("(tuple")) {
+		return null;
+	}
+
+	const obj: Record<string, any> = {};
+	const entryRegex = /\(([a-zA-Z0-9-]+)\s+([^)]+)\)/g;
+	let match;
+	while ((match = entryRegex.exec(repr)) !== null) {
+		const key = match[1];
+		const valStr = match[2].trim();
+
+		if (valStr.startsWith('"') && valStr.endsWith('"')) {
+			obj[key] = valStr.slice(1, -1);
+		} else if (valStr.startsWith("'")) {
+			obj[key] = valStr.slice(1);
+		} else if (valStr.startsWith("u")) {
+			obj[key] = BigInt(valStr.slice(1));
+		} else if (valStr === "true") {
+			obj[key] = true;
+		} else if (valStr === "false") {
+			obj[key] = false;
+		} else if (valStr === "none") {
+			obj[key] = null;
+		} else if (valStr.startsWith("(some ")) {
+			const inner = valStr.slice(6, -1).trim();
+			if (inner.startsWith("u")) {
+				obj[key] = BigInt(inner.slice(1));
+			} else {
+				obj[key] = inner;
+			}
+		} else {
+			obj[key] = valStr;
+		}
+	}
+	return obj;
+}
+
+export function mapEventTupleToStreamEvent(
+	parsed: any,
+	txId: string,
+	eventIndex: number,
+	txBlockHeight?: number,
+): StreamEvent | null {
+	const eventType = parsed["event-type"] || parsed["event"];
+	if (typeof eventType !== "string") {
+		return null;
+	}
+
+	const blockHeightVal = parsed["block-height"] !== undefined ? parsed["block-height"] : txBlockHeight;
+	const blockHeight = typeof blockHeightVal === "bigint" ? Number(blockHeightVal) : Number(blockHeightVal || 0);
+	const caller = parsed.caller || "";
+
+	let streamId: number | null = null;
+	if (parsed["stream-id"] !== undefined && parsed["stream-id"] !== null) {
+		streamId = Number(parsed["stream-id"]);
+	}
+
+	const base = {
+		eventType,
+		streamId,
+		caller,
+		blockHeight,
+		txId,
+		eventIndex,
+	};
+
+	switch (eventType) {
+		case "stream-created":
+			return {
+				...base,
+				eventType: "stream-created",
+				streamId: streamId!,
+				depositAmount: BigInt(parsed["deposit-amount"] || 0n),
+				feeAmount: BigInt(parsed["fee-amount"] || 0n),
+			};
+		case "stream-claimed":
+			return {
+				...base,
+				eventType: "stream-claimed",
+				streamId: streamId!,
+				claimedAmount: BigInt(parsed["claimed-amount"] || 0n),
+			};
+		case "stream-paused":
+			return {
+				...base,
+				eventType: "stream-paused",
+				streamId: streamId!,
+				checkpointBalance: BigInt(parsed["checkpoint-balance"] || 0n),
+			};
+		case "stream-resumed":
+			return {
+				...base,
+				eventType: "stream-resumed",
+				streamId: streamId!,
+				checkpointBalance: BigInt(parsed["checkpoint-balance"] || 0n),
+			};
+		case "stream-cancelled":
+			return {
+				...base,
+				eventType: "stream-cancelled",
+				streamId: streamId!,
+				recipientPaid: BigInt(parsed["recipient-paid"] || 0n),
+				senderRefunded: BigInt(parsed["sender-refunded"] || 0n),
+			};
+		case "sender-transferred":
+			return {
+				...base,
+				eventType: "sender-transferred",
+				streamId: streamId!,
+				newSender: parsed["new-sender"] || "",
+			};
+		case "fee-updated":
+			return {
+				...base,
+				eventType: "fee-updated",
+				streamId: null,
+				oldFee: Number(parsed["old-fee"] || 0),
+				newFee: Number(parsed["new-fee"] || 0),
+			};
+		case "protocol-paused":
+			return {
+				...base,
+				eventType: "protocol-paused",
+				streamId: null,
+			};
+		case "protocol-resumed":
+			return {
+				...base,
+				eventType: "protocol-resumed",
+				streamId: null,
+			};
+		case "fees-withdrawn":
+			return {
+				...base,
+				eventType: "fees-withdrawn",
+				streamId: null,
+				amount: BigInt(parsed.amount || 0n),
+				recipient: parsed.recipient || "",
+			};
+		case "dispute-raised":
+			return {
+				...base,
+				eventType: "dispute-raised",
+				streamId: streamId!,
+				milestoneIndex: Number(parsed["milestone-index"] || 0),
+			};
+		default:
+			return null;
+	}
+}
+
 export type StacksHealth = {
 	reachable: boolean;
 	blockHeight: number;
