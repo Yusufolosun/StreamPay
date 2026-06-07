@@ -24,7 +24,7 @@
  */
 
 
-import type { CacheEntry } from "../types/stacks.js";
+import type { CacheEntry, OnChainStream, OnChainMilestoneStream, StreamEvent, PaginationOptions, AddressStreams } from "../types/stacks.js";
 import { StacksServiceError } from "../types/stacks.js";
 import { c32address, c32addressDecode } from "c32check";
 
@@ -340,11 +340,10 @@ export class StacksService {
 
 	public async getHealth(): Promise<StacksHealth> {
 		try {
-			const status = await this.fetchStatus();
-
+			const blockHeight = await this.getCurrentBlockHeight();
 			return {
 				reachable: true,
-				blockHeight: extractBlockHeight(status),
+				blockHeight,
 			};
 		} catch {
 			return {
@@ -352,5 +351,21 @@ export class StacksService {
 				blockHeight: 0,
 			};
 		}
+	}
+
+	public async getCurrentBlockHeight(): Promise<number> {
+		const cacheKey = "block-height";
+		const cached = this.cache.get<number>(cacheKey);
+		if (cached !== undefined) {
+			return cached;
+		}
+
+		const height = await withRetry(async () => {
+			const status = await this.fetchStatus();
+			return extractBlockHeight(status);
+		});
+
+		this.cache.set(cacheKey, height, 5_000);
+		return height;
 	}
 }
