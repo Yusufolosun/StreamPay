@@ -26,6 +26,7 @@
 
 import type { CacheEntry } from "../types/stacks.js";
 import { StacksServiceError } from "../types/stacks.js";
+import { c32addressDecode } from "c32check";
 
 class TTLCache {
 	private readonly cache = new Map<string, CacheEntry<any>>();
@@ -104,10 +105,96 @@ const extractBlockHeight = (payload: StacksStatusPayload): number => {
 };
 
 export class StacksService {
+	private readonly cache = new TTLCache();
+
 	public constructor(
 		private readonly baseUrl: string,
 		private readonly apiKey: string | null = null,
+		private readonly contractStreamCore: string = "",
+		private readonly contractStreamConditions: string = "",
 	) {}
+
+	private async fetchJson<T>(path: string, options: RequestInit = {}): Promise<T> {
+		const url = new URL(path, this.baseUrl);
+		const headers: Record<string, string> = {
+			"content-type": "application/json",
+			...(options.headers as Record<string, string>),
+		};
+		if (this.apiKey) {
+			headers["x-api-key"] = this.apiKey;
+		}
+
+		try {
+			const response = await fetch(url, {
+				...options,
+				headers,
+				signal: AbortSignal.timeout(5_000),
+			});
+
+			if (!response.ok) {
+				const status = response.status;
+				let message = `Hiro API responded with status ${status}`;
+				try {
+					const errBody = (await response.json()) as any;
+					if (errBody && errBody.error) {
+						message = errBody.error;
+					}
+				} catch {}
+
+				const retryable = status === 429 || status >= 500;
+				const code =
+					status === 429
+						? "RATE_LIMIT_ERROR"
+						: status === 404
+						? "NOT_FOUND"
+						: status >= 500
+						? "SERVER_ERROR"
+						: "CLIENT_ERROR";
+
+				throw new StacksServiceError(code, message, retryable);
+			}
+
+			return (await response.json()) as T;
+		} catch (error) {
+			if (error instanceof StacksServiceError) {
+				throw error;
+			}
+			throw new StacksServiceError(
+				"NETWORK_ERROR",
+				error instanceof Error ? error.message : String(error),
+				true,
+				error,
+			);
+		}
+	}
+
+	private async callReadOnly(
+		contractAddress: string,
+		contractName: string,
+		functionName: string,
+		args: string[],
+	): Promise<string> {
+		const path = `/v2/contracts/call-read/${contractAddress}/${contractName}/${functionName}`;
+		const payload = {
+			sender: contractAddress,
+			arguments: args,
+		};
+
+		const response = await this.fetchJson<{ okay: boolean; result: string }>(path, {
+			method: "POST",
+			body: JSON.stringify(payload),
+		});
+
+		if (!response.okay) {
+			throw new StacksServiceError(
+				"READ_ONLY_CALL_FAILED",
+				`Read-only call to ${contractName}.${functionName} returned okay=false`,
+				false,
+			);
+		}
+
+		return response.result;
+	}
 
 	private async fetchStatus(): Promise<StacksStatusPayload> {
 		const statusUrl = new URL("/extended/v1/status", this.baseUrl);
