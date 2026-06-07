@@ -49,6 +49,14 @@ class TTLCache {
 			expiresAt: Date.now() + ttlMs,
 		});
 	}
+
+	public invalidate(key: string): void {
+		this.cache.delete(key);
+	}
+
+	public clear(): void {
+		this.cache.clear();
+	}
 }
 
 export type StacksHealth = {
