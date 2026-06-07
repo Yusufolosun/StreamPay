@@ -67,4 +67,99 @@ export type OnChainMilestoneStream = {
 	createdAt: number;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// StreamEvents (Discriminated union for events parsed from contract logs)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type StreamEventBase = {
+	eventType: string;
+	streamId: number | null;
+	caller: string;
+	blockHeight: number;
+	txId: string;
+	eventIndex: number;
+};
+
+export type StreamCreatedEvent = StreamEventBase & {
+	eventType: "stream-created";
+	streamId: number;
+	depositAmount: bigint;
+	feeAmount: bigint;
+};
+
+export type StreamClaimedEvent = StreamEventBase & {
+	eventType: "stream-claimed";
+	streamId: number;
+	claimedAmount: bigint;
+};
+
+export type StreamPausedEvent = StreamEventBase & {
+	eventType: "stream-paused";
+	streamId: number;
+	checkpointBalance: bigint;
+};
+
+export type StreamResumedEvent = StreamEventBase & {
+	eventType: "stream-resumed";
+	streamId: number;
+	checkpointBalance: bigint;
+};
+
+export type StreamCancelledEvent = StreamEventBase & {
+	eventType: "stream-cancelled";
+	streamId: number;
+	recipientPaid: bigint;
+	senderRefunded: bigint;
+};
+
+export type SenderTransferredEvent = StreamEventBase & {
+	eventType: "sender-transferred";
+	streamId: number;
+	newSender: string;
+};
+
+export type FeeUpdatedEvent = StreamEventBase & {
+	eventType: "fee-updated";
+	streamId: null;
+	oldFee: number;
+	newFee: number;
+};
+
+export type ProtocolPausedEvent = StreamEventBase & {
+	eventType: "protocol-paused";
+	streamId: null;
+};
+
+export type ProtocolResumedEvent = StreamEventBase & {
+	eventType: "protocol-resumed";
+	streamId: null;
+};
+
+export type FeesWithdrawnEvent = StreamEventBase & {
+	eventType: "fees-withdrawn";
+	streamId: null;
+	amount: bigint;
+	recipient: string;
+};
+
+export type DisputeRaisedEvent = StreamEventBase & {
+	eventType: "dispute-raised";
+	streamId: number;
+	milestoneIndex: number;
+};
+
+export type StreamEvent =
+	| StreamCreatedEvent
+	| StreamClaimedEvent
+	| StreamPausedEvent
+	| StreamResumedEvent
+	| StreamCancelledEvent
+	| SenderTransferredEvent
+	| FeeUpdatedEvent
+	| ProtocolPausedEvent
+	| ProtocolResumedEvent
+	| FeesWithdrawnEvent
+	| DisputeRaisedEvent;
+
+
 
