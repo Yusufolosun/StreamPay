@@ -207,14 +207,37 @@ export function deserializeClarityHex(hex: string): any {
 }
 
 export function parseClarityRepr(repr: string): any {
-	if (!repr.startsWith("(tuple")) {
+	let str = repr.trim();
+	if (!str.startsWith("(tuple") || !str.endsWith(")")) {
 		return null;
 	}
 
+	str = str.slice(6, -1).trim();
+
 	const obj: Record<string, any> = {};
-	const entryRegex = /\(([a-zA-Z0-9-]+)\s+([^)]+)\)/g;
-	let match;
-	while ((match = entryRegex.exec(repr)) !== null) {
+	const entries: string[] = [];
+	let depth = 0;
+	let start = -1;
+	for (let i = 0; i < str.length; i++) {
+		const char = str[i];
+		if (char === '(') {
+			if (depth === 0) {
+				start = i;
+			}
+			depth++;
+		} else if (char === ')') {
+			depth--;
+			if (depth === 0 && start !== -1) {
+				entries.push(str.slice(start + 1, i));
+				start = -1;
+			}
+		}
+	}
+
+	for (const entry of entries) {
+		const trimmed = entry.trim();
+		const match = trimmed.match(/^([a-zA-Z0-9-]+)\s+(.*)$/s);
+		if (!match) continue;
 		const key = match[1];
 		const valStr = match[2].trim();
 
@@ -234,6 +257,10 @@ export function parseClarityRepr(repr: string): any {
 			const inner = valStr.slice(6, -1).trim();
 			if (inner.startsWith("u")) {
 				obj[key] = BigInt(inner.slice(1));
+			} else if (inner.startsWith('"') && inner.endsWith('"')) {
+				obj[key] = inner.slice(1, -1);
+			} else if (inner === "none") {
+				obj[key] = null;
 			} else {
 				obj[key] = inner;
 			}
@@ -477,17 +504,7 @@ export class StacksService {
 	}
 
 	private async fetchStatus(): Promise<StacksStatusPayload> {
-		const statusUrl = new URL("/extended/v1/status", this.baseUrl);
-		const response = await fetch(statusUrl, {
-			headers: this.apiKey == null ? undefined : { "x-api-key": this.apiKey },
-			signal: AbortSignal.timeout(2_000),
-		});
-
-		if (!response.ok) {
-			throw new Error(`Stacks API responded with ${response.status}`);
-		}
-
-		return (await response.json()) as StacksStatusPayload;
+		return this.fetchJson<StacksStatusPayload>("/extended/v1/status");
 	}
 
 	public async getHealth(): Promise<StacksHealth> {
