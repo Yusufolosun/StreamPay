@@ -161,5 +161,25 @@ export type StreamEvent =
 	| FeesWithdrawnEvent
 	| DisputeRaisedEvent;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pagination, Address streams, and Cache Entry Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type PaginationOptions = {
+	limit?: number;
+	offset?: number;
+};
+
+export type AddressStreams = {
+	sent: number[];
+	received: number[];
+};
+
+export type CacheEntry<T> = {
+	value: T;
+	expiresAt: number;
+};
+
+
 
 
