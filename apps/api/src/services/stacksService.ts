@@ -26,7 +26,7 @@
 
 import type { CacheEntry } from "../types/stacks.js";
 import { StacksServiceError } from "../types/stacks.js";
-import { c32addressDecode } from "c32check";
+import { c32address, c32addressDecode } from "c32check";
 
 class TTLCache {
 	private readonly cache = new Map<string, CacheEntry<any>>();
@@ -76,6 +76,134 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelayMs = 
 			await new Promise((resolve) => setTimeout(resolve, delay));
 		}
 	}
+}
+
+function hexToBytes(hex: string): Uint8Array {
+	const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
+	if (clean.length % 2 !== 0) {
+		throw new Error("Invalid hex string length");
+	}
+	const bytes = new Uint8Array(clean.length / 2);
+	for (let i = 0; i < clean.length; i += 2) {
+		bytes[i / 2] = parseInt(clean.slice(i, i + 2), 16);
+	}
+	return bytes;
+}
+
+export function serializeUint(val: bigint | number): string {
+	const hexVal = BigInt(val).toString(16).padStart(32, "0");
+	return `0x01${hexVal}`;
+}
+
+export function serializePrincipal(address: string): string {
+	const [version, hash160] = c32addressDecode(address);
+	const versionHex = version.toString(16).padStart(2, "0");
+	return `0x05${versionHex}${hash160}`;
+}
+
+class ClarityDeserializer {
+	private pos = 0;
+
+	constructor(private readonly bytes: Uint8Array) {}
+
+	public deserialize(): any {
+		if (this.pos >= this.bytes.length) {
+			throw new Error("Unexpected end of bytes during Clarity deserialization");
+		}
+
+		const tag = this.bytes[this.pos++];
+		switch (tag) {
+			case 0x01: {
+				const valBytes = this.bytes.slice(this.pos, this.pos + 16);
+				this.pos += 16;
+				let val = 0n;
+				for (const byte of valBytes) {
+					val = (val << 8n) + BigInt(byte);
+				}
+				return val;
+			}
+			case 0x03:
+				return true;
+			case 0x04:
+				return false;
+			case 0x05: {
+				const version = this.bytes[this.pos++];
+				const hash160Bytes = this.bytes.slice(this.pos, this.pos + 20);
+				this.pos += 20;
+				const hash160Hex = Array.from(hash160Bytes)
+					.map((b) => b.toString(16).padStart(2, "0"))
+					.join("");
+				return c32address(version, hash160Hex);
+			}
+			case 0x06: {
+				const version = this.bytes[this.pos++];
+				const hash160Bytes = this.bytes.slice(this.pos, this.pos + 20);
+				this.pos += 20;
+				const hash160Hex = Array.from(hash160Bytes)
+					.map((b) => b.toString(16).padStart(2, "0"))
+					.join("");
+				const address = c32address(version, hash160Hex);
+
+				const nameLen = this.bytes[this.pos++];
+				const nameBytes = this.bytes.slice(this.pos, this.pos + nameLen);
+				this.pos += nameLen;
+				const name = new TextDecoder().decode(nameBytes);
+				return `${address}.${name}`;
+			}
+			case 0x09:
+				return null;
+			case 0x0a:
+				return this.deserialize();
+			case 0x0b: {
+				const len = this.readUint32();
+				const list: any[] = [];
+				for (let i = 0; i < len; i++) {
+					list.push(this.deserialize());
+				}
+				return list;
+			}
+			case 0x0c: {
+				const len = this.readUint32();
+				const obj: Record<string, any> = {};
+				for (let i = 0; i < len; i++) {
+					const keyLen = this.bytes[this.pos++];
+					const keyBytes = this.bytes.slice(this.pos, this.pos + keyLen);
+					this.pos += keyLen;
+					const key = new TextDecoder().decode(keyBytes);
+					const val = this.deserialize();
+					obj[key] = val;
+				}
+				return obj;
+			}
+			case 0x0d: {
+				const len = this.readUint32();
+				const strBytes = this.bytes.slice(this.pos, this.pos + len);
+				this.pos += len;
+				return new TextDecoder().decode(strBytes);
+			}
+			default:
+				throw new Error(`Unsupported Clarity tag: 0x${tag.toString(16)}`);
+		}
+	}
+
+	private readUint32(): number {
+		if (this.pos + 4 > this.bytes.length) {
+			throw new Error("Unexpected end of bytes when reading uint32");
+		}
+		const val =
+			(this.bytes[this.pos] << 24) |
+			(this.bytes[this.pos + 1] << 16) |
+			(this.bytes[this.pos + 2] << 8) |
+			this.bytes[this.pos + 3];
+		this.pos += 4;
+		return val >>> 0;
+	}
+}
+
+export function deserializeClarityHex(hex: string): any {
+	const bytes = hexToBytes(hex);
+	const deserializer = new ClarityDeserializer(bytes);
+	return deserializer.deserialize();
 }
 
 export type StacksHealth = {
