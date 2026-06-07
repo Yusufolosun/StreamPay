@@ -25,6 +25,7 @@
 
 
 import type { CacheEntry } from "../types/stacks.js";
+import { StacksServiceError } from "../types/stacks.js";
 
 class TTLCache {
 	private readonly cache = new Map<string, CacheEntry<any>>();
@@ -56,6 +57,23 @@ class TTLCache {
 
 	public clear(): void {
 		this.cache.clear();
+	}
+}
+
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelayMs = 500): Promise<T> {
+	let attempt = 0;
+	while (true) {
+		try {
+			return await fn();
+		} catch (error) {
+			attempt++;
+			const isRetryable = error instanceof StacksServiceError && error.retryable;
+			if (!isRetryable || attempt > maxRetries) {
+				throw error;
+			}
+			const delay = baseDelayMs * Math.pow(2, attempt - 1);
+			await new Promise((resolve) => setTimeout(resolve, delay));
+		}
 	}
 }
 
