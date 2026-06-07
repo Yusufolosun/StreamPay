@@ -408,4 +408,27 @@ export class StacksService {
 		this.cache.set(cacheKey, stream, 10_000);
 		return stream;
 	}
+
+	public async getClaimableBalance(streamId: number): Promise<bigint> {
+		const cacheKey = `claimable-${streamId}`;
+		const cached = this.cache.get<bigint>(cacheKey);
+		if (cached !== undefined) {
+			return cached;
+		}
+
+		const balance = await withRetry(async () => {
+			const [contractAddress, contractName] = this.contractStreamCore.split(".");
+			const resultHex = await this.callReadOnly(
+				contractAddress,
+				contractName,
+				"get-claimable-balance",
+				[serializeUint(streamId)],
+			);
+			const parsed = deserializeClarityHex(resultHex);
+			return BigInt(parsed);
+		});
+
+		this.cache.set(cacheKey, balance, 10_000);
+		return balance;
+	}
 }
