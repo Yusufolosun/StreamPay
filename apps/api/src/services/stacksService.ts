@@ -460,4 +460,48 @@ export class StacksService {
 		this.cache.set(cacheKey, result, 10_000);
 		return result;
 	}
+
+	public async getMilestoneStream(id: number): Promise<OnChainMilestoneStream | null> {
+		const cacheKey = `milestone-stream-${id}`;
+		const cached = this.cache.get<OnChainMilestoneStream | null>(cacheKey);
+		if (cached !== undefined) {
+			return cached;
+		}
+
+		const stream = await withRetry(async () => {
+			const [contractAddress, contractName] = this.contractStreamConditions.split(".");
+			const resultHex = await this.callReadOnly(
+				contractAddress,
+				contractName,
+				"get-milestone-stream",
+				[serializeUint(id)],
+			);
+			const parsed = deserializeClarityHex(resultHex);
+			if (parsed === null) {
+				return null;
+			}
+
+			const milestonesMapped = (parsed.milestones as any[]).map((m) => ({
+				label: m.label,
+				basisPoints: Number(m["basis-points"]),
+				isReleased: m["is-released"],
+				releasedAt: m["released-at"] !== null ? Number(m["released-at"]) : null,
+			}));
+
+			const mapped: OnChainMilestoneStream = {
+				sender: parsed.sender,
+				recipient: parsed.recipient,
+				arbiter: parsed.arbiter,
+				totalAmount: parsed["total-amount"],
+				tokenContract: parsed["token-contract"],
+				milestones: milestonesMapped,
+				isCancelled: parsed["is-cancelled"],
+				createdAt: Number(parsed["created-at"]),
+			};
+			return mapped;
+		});
+
+		this.cache.set(cacheKey, stream, 10_000);
+		return stream;
+	}
 }
