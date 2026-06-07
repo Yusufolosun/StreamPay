@@ -16,3 +16,25 @@ export class StacksServiceError extends Error {
 		this.name = "StacksServiceError";
 	}
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// On-chain stream (from stream-core `get-stream` read-only)
+// Maps the Clarity tuple: { sender, recipient, token-contract, deposit-amount,
+// rate-per-block, start-block, end-block, claimed-amount, is-paused,
+// is-cancelled, created-at }
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type OnChainStream = {
+	sender: string;
+	recipient: string;
+	tokenContract: string | null;
+	depositAmount: bigint;
+	ratePerBlock: bigint;
+	startBlock: number;
+	endBlock: number;
+	claimedAmount: bigint;
+	isPaused: boolean;
+	isCancelled: boolean;
+	createdAt: number;
+};
+
