@@ -38,3 +38,33 @@ export type OnChainStream = {
 	createdAt: number;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Milestone nested struct (inside OnChainMilestoneStream)
+// Maps the Clarity tuple: { label, basis-points, is-released, released-at }
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type OnChainMilestone = {
+	label: string;
+	basisPoints: number;
+	isReleased: boolean;
+	releasedAt: number | null;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// On-chain milestone stream (from stream-conditions `get-milestone-stream` read-only)
+// Maps the Clarity tuple: { sender, recipient, arbiter, total-amount,
+// token-contract, milestones, is-cancelled, created-at }
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type OnChainMilestoneStream = {
+	sender: string;
+	recipient: string;
+	arbiter: string | null;
+	totalAmount: bigint;
+	tokenContract: string | null;
+	milestones: OnChainMilestone[];
+	isCancelled: boolean;
+	createdAt: number;
+};
+
+
