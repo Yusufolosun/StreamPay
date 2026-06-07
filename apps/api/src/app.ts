@@ -14,7 +14,12 @@ import { StacksService } from "./services/stacksService.js";
 
 export const createApp = (config: AppConfig): Express => {
 	const app = express();
-	const stacksService = new StacksService(config.hiroApiUrl, config.hiroApiKey);
+	const stacksService = new StacksService(
+		config.hiroApiUrl,
+		config.hiroApiKey,
+		config.contractStreamCore,
+		config.contractStreamConditions,
+	);
 
 	app.disable("x-powered-by");
 	app.use(helmet());

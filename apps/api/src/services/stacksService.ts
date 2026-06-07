@@ -707,4 +707,17 @@ export class StacksService {
 
 		return events;
 	}
+
+	public invalidateCache(key: string): void {
+		this.cache.invalidate(key);
+	}
+
+	public invalidateStreamCache(streamId: number): void {
+		this.cache.invalidate(`stream-${streamId}`);
+		this.cache.invalidate(`claimable-${streamId}`);
+	}
+
+	public clearCache(): void {
+		this.cache.clear();
+	}
 }
