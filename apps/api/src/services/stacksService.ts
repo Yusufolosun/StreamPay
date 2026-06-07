@@ -431,4 +431,33 @@ export class StacksService {
 		this.cache.set(cacheKey, balance, 10_000);
 		return balance;
 	}
+
+	public async getAddressStreams(address: string): Promise<AddressStreams> {
+		const cacheKey = `address-streams-${address}`;
+		const cached = this.cache.get<AddressStreams>(cacheKey);
+		if (cached !== undefined) {
+			return cached;
+		}
+
+		const result = await withRetry(async () => {
+			const [contractAddress, contractName] = this.contractStreamCore.split(".");
+			const serializedAddr = serializePrincipal(address);
+
+			const [senderResultHex, recipientResultHex] = await Promise.all([
+				this.callReadOnly(contractAddress, contractName, "get-sender-streams", [serializedAddr]),
+				this.callReadOnly(contractAddress, contractName, "get-recipient-streams", [serializedAddr]),
+			]);
+
+			const senderParsed = deserializeClarityHex(senderResultHex) as bigint[];
+			const recipientParsed = deserializeClarityHex(recipientResultHex) as bigint[];
+
+			return {
+				sent: senderParsed.map((id) => Number(id)),
+				received: recipientParsed.map((id) => Number(id)),
+			};
+		});
+
+		this.cache.set(cacheKey, result, 10_000);
+		return result;
+	}
 }
