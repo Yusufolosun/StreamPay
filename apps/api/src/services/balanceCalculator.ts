@@ -1,3 +1,31 @@
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * PRECISION RULE: All amount arithmetic uses bigint. Never convert to Number
+ * for arithmetic. Only to string for API responses, only to Number for display percentages.
+ * ════════════════════════════════════════════════════════════════════════════
+ */
+
+import type { StreamIndexEntry } from "./streamIndexer.js";
+import type { OnChainMilestoneStream } from "../types/stacks.js";
+
+export type StreamProgress = {
+	percentComplete: number;
+	blocksElapsed: number;
+	blocksRemaining: number;
+	estimatedEndDate: Date;
+	totalStreamed: bigint;
+	totalClaimed: bigint;
+	totalUnclaimed: bigint;
+};
+
+export type MilestoneAmounts = {
+	label: string;
+	basisPoints: number;
+	amount: bigint;
+	isReleased: boolean;
+	releasedAt: number | null;
+};
+
 export type StreamBalanceInput = {
 	startBlock: number;
 	currentBlock: number;
@@ -7,6 +35,7 @@ export type StreamBalanceInput = {
 	pausedAtBlock?: number | null;
 	cancelledAtBlock?: number | null;
 };
+
 
 export type StreamBalanceSnapshot = {
 	streamedBlocks: number;
