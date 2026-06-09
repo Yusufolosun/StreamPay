@@ -98,3 +98,12 @@ export const calculateClaimableBalance = (input: StreamBalanceInput): bigint => 
 export const calculateRemainingBalance = (input: StreamBalanceInput): bigint => {
 	return calculateStreamBalance(input).remainingAmount;
 };
+
+export const blockToTimestamp = (blockHeight: number, currentBlock: number, currentTimestamp = Date.now()): number => {
+	return currentTimestamp + (blockHeight - currentBlock) * 5 * 1000;
+};
+
+export const timestampToBlock = (timestamp: number, currentBlock: number, currentTimestamp = Date.now()): number => {
+	const secondsDiff = Math.round((timestamp - currentTimestamp) / 1000);
+	return currentBlock + Math.floor(secondsDiff / 5);
+};
