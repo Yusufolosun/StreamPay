@@ -16,10 +16,16 @@ export type ApiSuccessResponse<T> = {
 };
 
 export type HealthResponse = {
-	status: "ok";
+	status: "ok" | "warn" | "error";
 	uptime: number;
 	stacks_node_reachable: boolean;
 	block_height: number;
+	indexer?: {
+		status: "ok" | "warn" | "error";
+		cursor: number;
+		tip: number;
+		lag: number;
+	};
 };
 
 export type WebhookAcceptedResponse = {
