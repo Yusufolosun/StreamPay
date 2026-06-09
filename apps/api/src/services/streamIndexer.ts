@@ -1,3 +1,5 @@
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import { calculateStreamBalance, type StreamBalanceInput, type StreamBalanceSnapshot } from "./balanceCalculator.js";
 import { type StacksService } from "./stacksService.js";
 import { type StreamEvent } from "../types/stacks.js";
@@ -32,6 +34,21 @@ export type StreamIndexEntry = {
 	isCancelled: boolean;
 	createdAt: number;
 };
+
+export function bigintJsonReplacer(key: string, value: any): any {
+	if (typeof value === "bigint") {
+		return { __type: "bigint", value: value.toString() };
+	}
+	return value;
+}
+
+export function bigintJsonReviver(key: string, value: any): any {
+	if (value && typeof value === "object" && value.__type === "bigint") {
+		return BigInt(value.value);
+	}
+	return value;
+}
+
 
 const resolveStatus = (record: IndexedStreamRecord, balance: StreamBalanceSnapshot): StreamLifecycleStatus => {
 	if (record.cancelledAtBlock != null) {
@@ -125,7 +142,24 @@ export class StreamIndexer {
 	}
 
 	private async saveState(): Promise<void> {
-		// skeleton
+		if (!this.stateFilePath) return;
+
+		try {
+			const dir = path.dirname(this.stateFilePath);
+			await fs.mkdir(dir, { recursive: true });
+
+			const data = {
+				cursor: this.cursor,
+				streams: Array.from(this.streams.entries()),
+				protocolFee: this.protocolFee,
+				isProtocolPaused: this.isProtocolPaused,
+			};
+
+			const serialized = JSON.stringify(data, bigintJsonReplacer, 2);
+			await fs.writeFile(this.stateFilePath, serialized, "utf8");
+		} catch (error) {
+			console.error("Failed to save indexer state:", error);
+		}
 	}
 
 	public summarizeStream(record: IndexedStreamRecord): IndexedStreamView {
