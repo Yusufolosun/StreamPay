@@ -181,3 +181,16 @@ export const projectBalance = (stream: StreamIndexEntry, atBlock: number): bigin
 	};
 	return calculateStreamBalance(input).claimableAmount;
 };
+
+export const calculateMilestoneAmounts = (milestoneStream: OnChainMilestoneStream): MilestoneAmounts[] => {
+	return milestoneStream.milestones.map((m) => {
+		const amount = (milestoneStream.totalAmount * BigInt(m.basisPoints)) / 10000n;
+		return {
+			label: m.label,
+			basisPoints: m.basisPoints,
+			amount,
+			isReleased: m.isReleased,
+			releasedAt: m.releasedAt,
+		};
+	});
+};
