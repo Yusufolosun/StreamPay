@@ -226,33 +226,40 @@ export class StreamIndexer {
 	}
 
 	private async dispatchEvent(event: StreamEvent): Promise<void> {
-		switch (event.eventType) {
-			case "stream-created":
-				await this.handleStreamCreated(event);
-				break;
-			case "stream-claimed":
-				this.handleStreamClaimed(event);
-				break;
-			case "stream-paused":
-				this.handleStreamPaused(event);
-				break;
-			case "stream-resumed":
-				this.handleStreamResumed(event);
-				break;
-			case "stream-cancelled":
-				this.handleStreamCancelled(event);
-				break;
-			case "fee-updated":
-				this.handleFeeUpdated(event);
-				break;
-			case "protocol-paused":
-				this.handleProtocolPaused();
-				break;
-			case "protocol-resumed":
-				this.handleProtocolResumed();
-				break;
-			default:
-				break;
+		try {
+			switch (event.eventType) {
+				case "stream-created":
+					await this.handleStreamCreated(event);
+					break;
+				case "stream-claimed":
+					this.handleStreamClaimed(event);
+					break;
+				case "stream-paused":
+					this.handleStreamPaused(event);
+					break;
+				case "stream-resumed":
+					this.handleStreamResumed(event);
+					break;
+				case "stream-cancelled":
+					this.handleStreamCancelled(event);
+					break;
+				case "fee-updated":
+					this.handleFeeUpdated(event);
+					break;
+				case "protocol-paused":
+					this.handleProtocolPaused();
+					break;
+				case "protocol-resumed":
+					this.handleProtocolResumed();
+					break;
+				default:
+					break;
+			}
+		} catch (error) {
+			console.error(
+				`Skipping malformed event (type=${event.eventType}, tx=${event.txId}, index=${event.eventIndex}):`,
+				error,
+			);
 		}
 	}
 
