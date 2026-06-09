@@ -1,4 +1,8 @@
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import { calculateStreamBalance, type StreamBalanceInput, type StreamBalanceSnapshot } from "./balanceCalculator.js";
+import { type StacksService } from "./stacksService.js";
+import { type StreamEvent } from "../types/stacks.js";
 
 export type StreamLifecycleStatus = "active" | "paused" | "cancelled" | "completed";
 
@@ -13,6 +17,38 @@ export type IndexedStreamView = IndexedStreamRecord & {
 	status: StreamLifecycleStatus;
 	balance: StreamBalanceSnapshot;
 };
+
+export type StreamIndexEntry = {
+	id: number;
+	sender: string;
+	recipient: string;
+	tokenContract: string;
+	depositAmount: bigint;
+	ratePerBlock: bigint;
+	startBlock: number;
+	endBlock: number;
+	claimedAmount: bigint;
+	pausedAtBlock: number | null;
+	cancelledAtBlock: number | null;
+	isPaused: boolean;
+	isCancelled: boolean;
+	createdAt: number;
+};
+
+export function bigintJsonReplacer(key: string, value: any): any {
+	if (typeof value === "bigint") {
+		return { __type: "bigint", value: value.toString() };
+	}
+	return value;
+}
+
+export function bigintJsonReviver(key: string, value: any): any {
+	if (value && typeof value === "object" && value.__type === "bigint") {
+		return BigInt(value.value);
+	}
+	return value;
+}
+
 
 const resolveStatus = (record: IndexedStreamRecord, balance: StreamBalanceSnapshot): StreamLifecycleStatus => {
 	if (record.cancelledAtBlock != null) {
@@ -41,11 +77,456 @@ export const summarizeStream = (record: IndexedStreamRecord): IndexedStreamView 
 };
 
 export class StreamIndexer {
+	private cursor = 0;
+	private streams = new Map<number, StreamIndexEntry>();
+	private senderStreams = new Map<string, number[]>();
+	private recipientStreams = new Map<string, number[]>();
+	private protocolFee = 0;
+	private isProtocolPaused = false;
+	private isRunning = false;
+	private intervalId: NodeJS.Timeout | null = null;
+	private readonly stateFilePath: string;
+	private onStreamUpdate: ((streamId: number, event: StreamEvent) => void) | null = null;
+
+	constructor(
+		private readonly stacksService: StacksService,
+		private readonly contractAddress: string,
+		stateFilePath?: string,
+	) {
+		this.stateFilePath = stateFilePath || "";
+	}
+
+	public setOnStreamUpdate(cb: (streamId: number, event: StreamEvent) => void): void {
+		this.onStreamUpdate = cb;
+	}
+
+	public getCursor(): number {
+		return this.cursor;
+	}
+
+	public async getHealth(): Promise<{
+		status: "ok" | "warn" | "error";
+		cursor: number;
+		tip: number;
+		lag: number;
+	}> {
+		try {
+			const tip = await this.stacksService.getCurrentBlockHeight();
+			const lag = Math.max(0, tip - this.cursor);
+			let status: "ok" | "warn" | "error" = "ok";
+			if (lag > 100) {
+				status = "error";
+			} else if (lag > 20) {
+				status = "warn";
+			}
+			return {
+				status,
+				cursor: this.cursor,
+				tip,
+				lag,
+			};
+		} catch (error) {
+			return {
+				status: "error",
+				cursor: this.cursor,
+				tip: 0,
+				lag: 0,
+			};
+		}
+	}
+
+	public getStreams(): StreamIndexEntry[] {
+		return Array.from(this.streams.values());
+	}
+
+	public getStream(id: number): StreamIndexEntry | undefined {
+		return this.streams.get(id);
+	}
+
+	public getSenderStreams(sender: string): StreamIndexEntry[] {
+		const ids = this.senderStreams.get(sender) || [];
+		return ids.map((id) => this.streams.get(id)!).filter(Boolean);
+	}
+
+	public getRecipientStreams(recipient: string): StreamIndexEntry[] {
+		const ids = this.recipientStreams.get(recipient) || [];
+		return ids.map((id) => this.streams.get(id)!).filter(Boolean);
+	}
+
+	public getProtocolFee(): number {
+		return this.protocolFee;
+	}
+
+	public getIsProtocolPaused(): boolean {
+		return this.isProtocolPaused;
+	}
+
+	public getIsRunning(): boolean {
+		return this.isRunning;
+	}
+
+	public async start(): Promise<void> {
+		if (this.isRunning) return;
+		this.isRunning = true;
+
+		await this.loadState();
+
+		// Run immediate poll, then set interval
+		this.poll().catch((err) => console.error("Initial indexer poll failed:", err));
+
+		this.intervalId = setInterval(() => {
+			this.poll().catch((err) => console.error("Indexer poll failed:", err));
+		}, 5000);
+	}
+
+	public stop(): void {
+		if (!this.isRunning) return;
+		this.isRunning = false;
+
+		if (this.intervalId) {
+			clearInterval(this.intervalId);
+			this.intervalId = null;
+		}
+	}
+
+	private async poll(): Promise<void> {
+		try {
+			const tip = await this.stacksService.getCurrentBlockHeight();
+			if (tip <= this.cursor) {
+				return;
+			}
+
+			// Skeleton: fetch new events and process them
+			const events = await this.fetchEventsSince(this.cursor, tip);
+			
+			for (const event of events) {
+				await this.dispatchEvent(event);
+			}
+
+			this.cursor = tip;
+			await this.saveState();
+		} catch (error) {
+			console.error("Error in indexer poll cycle:", error);
+		}
+	}
+
+	private async fetchEventsSince(cursor: number, tip: number): Promise<StreamEvent[]> {
+		const limit = 50;
+		let offset = 0;
+		let fetchMore = true;
+		const allEvents: StreamEvent[] = [];
+		const maxRetries = 3;
+
+		while (fetchMore) {
+			let events: StreamEvent[] = [];
+			let attempt = 0;
+
+			while (attempt <= maxRetries) {
+				try {
+					events = await this.stacksService.getContractEvents(this.contractAddress, { limit, offset });
+					break;
+				} catch (error) {
+					attempt++;
+					if (attempt > maxRetries) {
+						console.error(`Failed to fetch events at offset ${offset} after ${maxRetries} retries:`, error);
+						throw error;
+					}
+					const delay = 500 * Math.pow(2, attempt - 1);
+					console.warn(`Retrying event fetch (attempt ${attempt}/${maxRetries}) after ${delay}ms...`);
+					await new Promise((resolve) => setTimeout(resolve, delay));
+				}
+			}
+
+			if (events.length === 0) {
+				break;
+			}
+
+			for (const event of events) {
+				if (event.blockHeight <= cursor) {
+					fetchMore = false;
+					break;
+				}
+				if (event.blockHeight <= tip) {
+					allEvents.push(event);
+				}
+			}
+
+			if (events.length < limit) {
+				break;
+			}
+			offset += limit;
+		}
+
+		return allEvents.sort((a, b) => {
+			if (a.blockHeight !== b.blockHeight) {
+				return a.blockHeight - b.blockHeight;
+			}
+			return a.eventIndex - b.eventIndex;
+		});
+	}
+
+	private async dispatchEvent(event: StreamEvent): Promise<void> {
+		try {
+			switch (event.eventType) {
+				case "stream-created":
+					await this.handleStreamCreated(event);
+					break;
+				case "stream-claimed":
+					this.handleStreamClaimed(event);
+					break;
+				case "stream-paused":
+					this.handleStreamPaused(event);
+					break;
+				case "stream-resumed":
+					this.handleStreamResumed(event);
+					break;
+				case "stream-cancelled":
+					this.handleStreamCancelled(event);
+					break;
+				case "fee-updated":
+					this.handleFeeUpdated(event);
+					break;
+				case "protocol-paused":
+					this.handleProtocolPaused();
+					break;
+				case "protocol-resumed":
+					this.handleProtocolResumed();
+					break;
+				default:
+					break;
+			}
+		} catch (error) {
+			console.error(
+				`Skipping malformed event (type=${event.eventType}, tx=${event.txId}, index=${event.eventIndex}):`,
+				error,
+			);
+		}
+	}
+
+	private async handleStreamCreated(event: StreamEvent & { eventType: "stream-created" }): Promise<void> {
+		if (event.streamId == null) return;
+
+		const onChain = await this.stacksService.getStreamById(event.streamId);
+		if (!onChain) return;
+
+		const entry: StreamIndexEntry = {
+			id: event.streamId,
+			sender: onChain.sender,
+			recipient: onChain.recipient,
+			tokenContract: onChain.tokenContract || "",
+			depositAmount: onChain.depositAmount,
+			ratePerBlock: onChain.ratePerBlock,
+			startBlock: onChain.startBlock,
+			endBlock: onChain.endBlock,
+			claimedAmount: onChain.claimedAmount,
+			pausedAtBlock: null,
+			cancelledAtBlock: null,
+			isPaused: onChain.isPaused,
+			isCancelled: onChain.isCancelled,
+			createdAt: onChain.createdAt,
+		};
+
+		this.streams.set(event.streamId, entry);
+		this.addStreamToSenderRecipientMaps(entry);
+	}
+
+	private handleStreamClaimed(event: StreamEvent & { eventType: "stream-claimed" }): void {
+		if (event.streamId == null) return;
+		const entry = this.streams.get(event.streamId);
+		if (!entry) return;
+
+		entry.claimedAmount = event.claimedAmount;
+
+		if (this.onStreamUpdate) {
+			this.onStreamUpdate(event.streamId, event);
+		}
+	}
+
+	private handleStreamPaused(event: StreamEvent & { eventType: "stream-paused" }): void {
+		if (event.streamId == null) return;
+		const entry = this.streams.get(event.streamId);
+		if (!entry) return;
+
+		entry.isPaused = true;
+		entry.pausedAtBlock = event.blockHeight;
+	}
+
+	private handleStreamResumed(event: StreamEvent & { eventType: "stream-resumed" }): void {
+		if (event.streamId == null) return;
+		const entry = this.streams.get(event.streamId);
+		if (!entry) return;
+
+		entry.isPaused = false;
+		entry.pausedAtBlock = null;
+	}
+
+	private handleStreamCancelled(event: StreamEvent & { eventType: "stream-cancelled" }): void {
+		if (event.streamId == null) return;
+		const entry = this.streams.get(event.streamId);
+		if (!entry) return;
+
+		entry.isCancelled = true;
+		entry.cancelledAtBlock = event.blockHeight;
+		this.removeStreamFromSenderRecipientMaps(entry);
+	}
+
+	private handleFeeUpdated(event: StreamEvent & { eventType: "fee-updated" }): void {
+		this.protocolFee = event.newFee;
+	}
+
+	private handleProtocolPaused(): void {
+		this.isProtocolPaused = true;
+	}
+
+	private handleProtocolResumed(): void {
+		this.isProtocolPaused = false;
+	}
+
+	private addStreamToSenderRecipientMaps(entry: StreamIndexEntry): void {
+		const senderIds = this.senderStreams.get(entry.sender) || [];
+		if (!senderIds.includes(entry.id)) {
+			senderIds.push(entry.id);
+			this.senderStreams.set(entry.sender, senderIds);
+		}
+
+		const recipientIds = this.recipientStreams.get(entry.recipient) || [];
+		if (!recipientIds.includes(entry.id)) {
+			recipientIds.push(entry.id);
+			this.recipientStreams.set(entry.recipient, recipientIds);
+		}
+	}
+
+	private removeStreamFromSenderRecipientMaps(entry: StreamIndexEntry): void {
+		const senderIds = this.senderStreams.get(entry.sender);
+		if (senderIds) {
+			const index = senderIds.indexOf(entry.id);
+			if (index !== -1) {
+				senderIds.splice(index, 1);
+			}
+			if (senderIds.length === 0) {
+				this.senderStreams.delete(entry.sender);
+			}
+		}
+
+		const recipientIds = this.recipientStreams.get(entry.recipient);
+		if (recipientIds) {
+			const index = recipientIds.indexOf(entry.id);
+			if (index !== -1) {
+				recipientIds.splice(index, 1);
+			}
+			if (recipientIds.length === 0) {
+				this.recipientStreams.delete(entry.recipient);
+			}
+		}
+	}
+
+	private async loadState(): Promise<void> {
+		if (!this.stateFilePath) return;
+
+		try {
+			try {
+				await fs.access(this.stateFilePath);
+			} catch {
+				return;
+			}
+
+			const serialized = await fs.readFile(this.stateFilePath, "utf8");
+			const parsed = JSON.parse(serialized, bigintJsonReviver);
+
+			if (parsed) {
+				if (typeof parsed.cursor === "number") {
+					this.cursor = parsed.cursor;
+				}
+				if (Array.isArray(parsed.streams)) {
+					this.streams = new Map<number, StreamIndexEntry>(parsed.streams);
+
+					this.senderStreams.clear();
+					this.recipientStreams.clear();
+					for (const entry of this.streams.values()) {
+						this.addStreamToSenderRecipientMaps(entry);
+					}
+				}
+				if (typeof parsed.protocolFee === "number") {
+					this.protocolFee = parsed.protocolFee;
+				}
+				if (typeof parsed.isProtocolPaused === "boolean") {
+					this.isProtocolPaused = parsed.isProtocolPaused;
+				}
+			}
+		} catch (error) {
+			console.error("Failed to load indexer state:", error);
+		}
+	}
+
+	private async saveState(): Promise<void> {
+		if (!this.stateFilePath) return;
+
+		try {
+			const dir = path.dirname(this.stateFilePath);
+			await fs.mkdir(dir, { recursive: true });
+
+			const data = {
+				cursor: this.cursor,
+				streams: Array.from(this.streams.entries()),
+				protocolFee: this.protocolFee,
+				isProtocolPaused: this.isProtocolPaused,
+			};
+
+			const serialized = JSON.stringify(data, bigintJsonReplacer, 2);
+			await fs.writeFile(this.stateFilePath, serialized, "utf8");
+		} catch (error) {
+			console.error("Failed to save indexer state:", error);
+		}
+	}
+
 	public summarizeStream(record: IndexedStreamRecord): IndexedStreamView {
 		return summarizeStream(record);
 	}
 
 	public summarizeStreams(records: IndexedStreamRecord[]): IndexedStreamView[] {
 		return records.map((record) => summarizeStream(record));
+	}
+
+	public async getStreamView(id: number): Promise<IndexedStreamView | undefined> {
+		const entry = this.streams.get(id);
+		if (!entry) return undefined;
+
+		const currentBlock = await this.stacksService.getCurrentBlockHeight();
+		const record: IndexedStreamRecord = {
+			id: entry.id.toString(),
+			sender: entry.sender,
+			recipient: entry.recipient,
+			tokenContract: entry.tokenContract,
+			startBlock: entry.startBlock,
+			currentBlock,
+			ratePerBlock: entry.ratePerBlock,
+			fundedAmount: entry.depositAmount,
+			withdrawnAmount: entry.claimedAmount,
+			pausedAtBlock: entry.pausedAtBlock,
+			cancelledAtBlock: entry.cancelledAtBlock,
+		};
+
+		return summarizeStream(record);
+	}
+
+	public async getStreamViews(entries: StreamIndexEntry[]): Promise<IndexedStreamView[]> {
+		if (entries.length === 0) return [];
+		const currentBlock = await this.stacksService.getCurrentBlockHeight();
+		return entries.map((entry) => {
+			const record: IndexedStreamRecord = {
+				id: entry.id.toString(),
+				sender: entry.sender,
+				recipient: entry.recipient,
+				tokenContract: entry.tokenContract,
+				startBlock: entry.startBlock,
+				currentBlock,
+				ratePerBlock: entry.ratePerBlock,
+				fundedAmount: entry.depositAmount,
+				withdrawnAmount: entry.claimedAmount,
+				pausedAtBlock: entry.pausedAtBlock,
+				cancelledAtBlock: entry.cancelledAtBlock,
+			};
+			return summarizeStream(record);
+		});
 	}
 }
