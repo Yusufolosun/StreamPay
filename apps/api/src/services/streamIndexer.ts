@@ -99,6 +99,37 @@ export class StreamIndexer {
 		return this.cursor;
 	}
 
+	public async getHealth(): Promise<{
+		status: "ok" | "warn" | "error";
+		cursor: number;
+		tip: number;
+		lag: number;
+	}> {
+		try {
+			const tip = await this.stacksService.getCurrentBlockHeight();
+			const lag = Math.max(0, tip - this.cursor);
+			let status: "ok" | "warn" | "error" = "ok";
+			if (lag > 100) {
+				status = "error";
+			} else if (lag > 20) {
+				status = "warn";
+			}
+			return {
+				status,
+				cursor: this.cursor,
+				tip,
+				lag,
+			};
+		} catch (error) {
+			return {
+				status: "error",
+				cursor: this.cursor,
+				tip: 0,
+				lag: 0,
+			};
+		}
+	}
+
 	public getStreams(): StreamIndexEntry[] {
 		return Array.from(this.streams.values());
 	}
