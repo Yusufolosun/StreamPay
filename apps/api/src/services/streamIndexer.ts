@@ -207,7 +207,40 @@ export class StreamIndexer {
 	}
 
 	private async dispatchEvent(event: StreamEvent): Promise<void> {
-		// skeleton
+		switch (event.eventType) {
+			case "stream-created":
+				await this.handleStreamCreated(event);
+				break;
+			default:
+				break;
+		}
+	}
+
+	private async handleStreamCreated(event: StreamEvent & { eventType: "stream-created" }): Promise<void> {
+		if (event.streamId == null) return;
+
+		const onChain = await this.stacksService.getStreamById(event.streamId);
+		if (!onChain) return;
+
+		const entry: StreamIndexEntry = {
+			id: event.streamId,
+			sender: onChain.sender,
+			recipient: onChain.recipient,
+			tokenContract: onChain.tokenContract || "",
+			depositAmount: onChain.depositAmount,
+			ratePerBlock: onChain.ratePerBlock,
+			startBlock: onChain.startBlock,
+			endBlock: onChain.endBlock,
+			claimedAmount: onChain.claimedAmount,
+			pausedAtBlock: null,
+			cancelledAtBlock: null,
+			isPaused: onChain.isPaused,
+			isCancelled: onChain.isCancelled,
+			createdAt: onChain.createdAt,
+		};
+
+		this.streams.set(event.streamId, entry);
+		this.addStreamToSenderRecipientMaps(entry);
 	}
 
 	private addStreamToSenderRecipientMaps(entry: StreamIndexEntry): void {
