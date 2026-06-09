@@ -107,3 +107,11 @@ export const timestampToBlock = (timestamp: number, currentBlock: number, curren
 	const secondsDiff = Math.round((timestamp - currentTimestamp) / 1000);
 	return currentBlock + Math.floor(secondsDiff / 5);
 };
+
+export const blocksToSeconds = (blocks: number): number => {
+	return blocks * 5;
+};
+
+export const secondsToBlocks = (seconds: number): number => {
+	return Math.ceil(seconds / 5);
+};
