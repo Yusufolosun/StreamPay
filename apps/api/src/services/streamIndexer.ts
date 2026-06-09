@@ -214,6 +214,12 @@ export class StreamIndexer {
 			case "stream-claimed":
 				this.handleStreamClaimed(event);
 				break;
+			case "stream-paused":
+				this.handleStreamPaused(event);
+				break;
+			case "stream-resumed":
+				this.handleStreamResumed(event);
+				break;
 			default:
 				break;
 		}
@@ -252,6 +258,24 @@ export class StreamIndexer {
 		if (!entry) return;
 
 		entry.claimedAmount = event.claimedAmount;
+	}
+
+	private handleStreamPaused(event: StreamEvent & { eventType: "stream-paused" }): void {
+		if (event.streamId == null) return;
+		const entry = this.streams.get(event.streamId);
+		if (!entry) return;
+
+		entry.isPaused = true;
+		entry.pausedAtBlock = event.blockHeight;
+	}
+
+	private handleStreamResumed(event: StreamEvent & { eventType: "stream-resumed" }): void {
+		if (event.streamId == null) return;
+		const entry = this.streams.get(event.streamId);
+		if (!entry) return;
+
+		entry.isPaused = false;
+		entry.pausedAtBlock = null;
 	}
 
 	private addStreamToSenderRecipientMaps(entry: StreamIndexEntry): void {
