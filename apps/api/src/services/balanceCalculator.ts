@@ -194,3 +194,23 @@ export const calculateMilestoneAmounts = (milestoneStream: OnChainMilestoneStrea
 		};
 	});
 };
+
+let activeStreamIndexer: any = null;
+
+export const setStreamIndexerForCalculator = (indexer: any): void => {
+	activeStreamIndexer = indexer;
+};
+
+export const getLiveBalanceProjection = (streamId: number, secondsFromNow: number): bigint => {
+	if (!activeStreamIndexer) {
+		return 0n;
+	}
+	const stream = activeStreamIndexer.getStream(streamId);
+	if (!stream) {
+		return 0n;
+	}
+	const blocks = secondsToBlocks(secondsFromNow);
+	const currentBlock = activeStreamIndexer.getCursor();
+	const targetBlock = currentBlock + blocks;
+	return projectBalance(stream, targetBlock);
+};
