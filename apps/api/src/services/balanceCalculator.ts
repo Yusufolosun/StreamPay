@@ -115,3 +115,46 @@ export const blocksToSeconds = (blocks: number): number => {
 export const secondsToBlocks = (seconds: number): number => {
 	return Math.ceil(seconds / 5);
 };
+
+export const formatDuration = (seconds: number): string => {
+	if (seconds <= 0) return "0 seconds";
+	const secondsInMinute = 60;
+	const secondsInHour = 3600;
+	const secondsInDay = 86400;
+	const secondsInMonth = 30 * secondsInDay;
+	const secondsInYear = 365 * secondsInDay;
+
+	let remaining = seconds;
+	const parts: string[] = [];
+
+	if (remaining >= secondsInYear) {
+		const years = Math.floor(remaining / secondsInYear);
+		remaining %= secondsInYear;
+		parts.push(`${years} year${years > 1 ? "s" : ""}`);
+	}
+	if (remaining >= secondsInMonth) {
+		const months = Math.floor(remaining / secondsInMonth);
+		remaining %= secondsInMonth;
+		parts.push(`${months} month${months > 1 ? "s" : ""}`);
+	}
+	if (remaining >= secondsInDay) {
+		const days = Math.floor(remaining / secondsInDay);
+		remaining %= secondsInDay;
+		parts.push(`${days} day${days > 1 ? "s" : ""}`);
+	}
+	if (remaining >= secondsInHour) {
+		const hours = Math.floor(remaining / secondsInHour);
+		remaining %= secondsInHour;
+		parts.push(`${hours} hour${hours > 1 ? "s" : ""}`);
+	}
+	if (remaining >= secondsInMinute) {
+		const minutes = Math.floor(remaining / secondsInMinute);
+		remaining %= secondsInMinute;
+		parts.push(`${minutes} minute${minutes > 1 ? "s" : ""}`);
+	}
+	if (remaining > 0 && parts.length === 0) {
+		parts.push(`${remaining} second${remaining > 1 ? "s" : ""}`);
+	}
+
+	return parts.slice(0, 2).join(", ");
+};
