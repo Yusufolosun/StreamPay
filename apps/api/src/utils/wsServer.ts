@@ -57,6 +57,27 @@ export class WebSocketServerManager {
 		this.clientSubscriptions.clear();
 	}
 
+	public broadcastStreamUpdate(streamId: number, event: any): void {
+		const clients = this.subscriptions.get(streamId);
+		if (!clients || clients.size === 0) return;
+
+		const payload = JSON.stringify({
+			type: "stream-update",
+			streamId,
+			event,
+		});
+
+		for (const client of clients) {
+			if (client.readyState === WebSocket.OPEN) {
+				try {
+					client.send(payload);
+				} catch (error) {
+					console.error(`Failed to send message to client for stream ${streamId}:`, error);
+				}
+			}
+		}
+	}
+
 	private subscribe(ws: WebSocket, streamId: number): void {
 		// Add to subscriptions map
 		let clients = this.subscriptions.get(streamId);
