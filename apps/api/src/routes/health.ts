@@ -19,7 +19,7 @@ export const createHealthRouter = (stacksService: StacksService, streamIndexer?:
 			}
 
 			let indexerPayload: HealthResponse["indexer"] | undefined;
-			if (streamIndexer) {
+			if (streamIndexer && streamIndexer.getIsRunning()) {
 				const indexerHealth = await streamIndexer.getHealth();
 				indexerPayload = indexerHealth;
 				if (indexerHealth.status === "error") {

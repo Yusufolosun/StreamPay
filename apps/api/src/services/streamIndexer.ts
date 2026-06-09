@@ -161,6 +161,10 @@ export class StreamIndexer {
 		return this.isProtocolPaused;
 	}
 
+	public getIsRunning(): boolean {
+		return this.isRunning;
+	}
+
 	public async start(): Promise<void> {
 		if (this.isRunning) return;
 		this.isRunning = true;

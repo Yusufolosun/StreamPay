@@ -20,6 +20,12 @@ export const createApp = (
 	streamIndexer?: StreamIndexer,
 ): Express => {
 	const app = express();
+	app.set("json replacer", (key: string, value: any) => {
+		if (typeof value === "bigint") {
+			return value.toString();
+		}
+		return value;
+	});
 	const actualStacksService = stacksService ?? new StacksService(
 		config.hiroApiUrl,
 		config.hiroApiKey,
