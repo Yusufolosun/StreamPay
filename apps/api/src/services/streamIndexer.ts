@@ -137,8 +137,80 @@ export class StreamIndexer {
 		// skeleton
 	}
 
+	private addStreamToSenderRecipientMaps(entry: StreamIndexEntry): void {
+		const senderIds = this.senderStreams.get(entry.sender) || [];
+		if (!senderIds.includes(entry.id)) {
+			senderIds.push(entry.id);
+			this.senderStreams.set(entry.sender, senderIds);
+		}
+
+		const recipientIds = this.recipientStreams.get(entry.recipient) || [];
+		if (!recipientIds.includes(entry.id)) {
+			recipientIds.push(entry.id);
+			this.recipientStreams.set(entry.recipient, recipientIds);
+		}
+	}
+
+	private removeStreamFromSenderRecipientMaps(entry: StreamIndexEntry): void {
+		const senderIds = this.senderStreams.get(entry.sender);
+		if (senderIds) {
+			const index = senderIds.indexOf(entry.id);
+			if (index !== -1) {
+				senderIds.splice(index, 1);
+			}
+			if (senderIds.length === 0) {
+				this.senderStreams.delete(entry.sender);
+			}
+		}
+
+		const recipientIds = this.recipientStreams.get(entry.recipient);
+		if (recipientIds) {
+			const index = recipientIds.indexOf(entry.id);
+			if (index !== -1) {
+				recipientIds.splice(index, 1);
+			}
+			if (recipientIds.length === 0) {
+				this.recipientStreams.delete(entry.recipient);
+			}
+		}
+	}
+
 	private async loadState(): Promise<void> {
-		// skeleton
+		if (!this.stateFilePath) return;
+
+		try {
+			try {
+				await fs.access(this.stateFilePath);
+			} catch {
+				return;
+			}
+
+			const serialized = await fs.readFile(this.stateFilePath, "utf8");
+			const parsed = JSON.parse(serialized, bigintJsonReviver);
+
+			if (parsed) {
+				if (typeof parsed.cursor === "number") {
+					this.cursor = parsed.cursor;
+				}
+				if (Array.isArray(parsed.streams)) {
+					this.streams = new Map<number, StreamIndexEntry>(parsed.streams);
+
+					this.senderStreams.clear();
+					this.recipientStreams.clear();
+					for (const entry of this.streams.values()) {
+						this.addStreamToSenderRecipientMaps(entry);
+					}
+				}
+				if (typeof parsed.protocolFee === "number") {
+					this.protocolFee = parsed.protocolFee;
+				}
+				if (typeof parsed.isProtocolPaused === "boolean") {
+					this.isProtocolPaused = parsed.isProtocolPaused;
+				}
+			}
+		} catch (error) {
+			console.error("Failed to load indexer state:", error);
+		}
 	}
 
 	private async saveState(): Promise<void> {
