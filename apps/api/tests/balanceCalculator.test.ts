@@ -7,6 +7,7 @@ import {
 	secondsToBlocks,
 	formatDuration,
 	calculateClaimableBalance,
+	projectBalance,
 } from "../src/services/balanceCalculator.js";
 
 describe("balanceCalculator utilities", () => {
@@ -117,6 +118,35 @@ describe("balanceCalculator utilities", () => {
 			const activeStream = { ...mockStream, endBlock: 20000 };
 			const balance = calculateClaimableBalance(activeStream, 15000); // 14900 blocks elapsed -> would be 1.49M, capped at 1M
 			expect(balance).toBe(1000000n);
+		});
+	});
+
+	describe("projectBalance", () => {
+		const mockStream: StreamIndexEntry = {
+			id: 1,
+			sender: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
+			recipient: "ST2ST8J2J5370K6KKR0WGPPH8AHRW8XDXW2M5W16B",
+			tokenContract: "",
+			depositAmount: 1000000n,
+			ratePerBlock: 100n,
+			startBlock: 100,
+			endBlock: 10100,
+			claimedAmount: 0n,
+			pausedAtBlock: null,
+			cancelledAtBlock: null,
+			isPaused: false,
+			isCancelled: false,
+			createdAt: 100,
+		};
+
+		it("projects correct accrued balance at future block height", () => {
+			const balance = projectBalance(mockStream, 200);
+			expect(balance).toBe(10000n);
+		});
+
+		it("projects correct balance at block height after endBlock (caps at deposit)", () => {
+			const balance = projectBalance(mockStream, 15000);
+			expect(balance).toBe(1000000n); // unlike calculateClaimableBalance which returns 0 when expired, projectBalance is used for live counter projection, so it should return the capped accrued balance.
 		});
 	});
 });
