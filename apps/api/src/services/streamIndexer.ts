@@ -175,9 +175,28 @@ export class StreamIndexer {
 		let offset = 0;
 		let fetchMore = true;
 		const allEvents: StreamEvent[] = [];
+		const maxRetries = 3;
 
 		while (fetchMore) {
-			const events = await this.stacksService.getContractEvents(this.contractAddress, { limit, offset });
+			let events: StreamEvent[] = [];
+			let attempt = 0;
+
+			while (attempt <= maxRetries) {
+				try {
+					events = await this.stacksService.getContractEvents(this.contractAddress, { limit, offset });
+					break;
+				} catch (error) {
+					attempt++;
+					if (attempt > maxRetries) {
+						console.error(`Failed to fetch events at offset ${offset} after ${maxRetries} retries:`, error);
+						throw error;
+					}
+					const delay = 500 * Math.pow(2, attempt - 1);
+					console.warn(`Retrying event fetch (attempt ${attempt}/${maxRetries}) after ${delay}ms...`);
+					await new Promise((resolve) => setTimeout(resolve, delay));
+				}
+			}
+
 			if (events.length === 0) {
 				break;
 			}
