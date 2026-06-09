@@ -171,8 +171,39 @@ export class StreamIndexer {
 	}
 
 	private async fetchEventsSince(cursor: number, tip: number): Promise<StreamEvent[]> {
-		// skeleton
-		return [];
+		const limit = 50;
+		let offset = 0;
+		let fetchMore = true;
+		const allEvents: StreamEvent[] = [];
+
+		while (fetchMore) {
+			const events = await this.stacksService.getContractEvents(this.contractAddress, { limit, offset });
+			if (events.length === 0) {
+				break;
+			}
+
+			for (const event of events) {
+				if (event.blockHeight <= cursor) {
+					fetchMore = false;
+					break;
+				}
+				if (event.blockHeight <= tip) {
+					allEvents.push(event);
+				}
+			}
+
+			if (events.length < limit) {
+				break;
+			}
+			offset += limit;
+		}
+
+		return allEvents.sort((a, b) => {
+			if (a.blockHeight !== b.blockHeight) {
+				return a.blockHeight - b.blockHeight;
+			}
+			return a.eventIndex - b.eventIndex;
+		});
 	}
 
 	private async dispatchEvent(event: StreamEvent): Promise<void> {
