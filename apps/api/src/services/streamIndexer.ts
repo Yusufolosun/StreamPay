@@ -86,6 +86,7 @@ export class StreamIndexer {
 	private isRunning = false;
 	private intervalId: NodeJS.Timeout | null = null;
 	private readonly stateFilePath: string;
+	private onStreamUpdate: ((streamId: number, event: StreamEvent) => void) | null = null;
 
 	constructor(
 		private readonly stacksService: StacksService,
@@ -93,6 +94,10 @@ export class StreamIndexer {
 		stateFilePath?: string,
 	) {
 		this.stateFilePath = stateFilePath || "";
+	}
+
+	public setOnStreamUpdate(cb: (streamId: number, event: StreamEvent) => void): void {
+		this.onStreamUpdate = cb;
 	}
 
 	public getCursor(): number {
@@ -327,6 +332,10 @@ export class StreamIndexer {
 		if (!entry) return;
 
 		entry.claimedAmount = event.claimedAmount;
+
+		if (this.onStreamUpdate) {
+			this.onStreamUpdate(event.streamId, event);
+		}
 	}
 
 	private handleStreamPaused(event: StreamEvent & { eventType: "stream-paused" }): void {
@@ -472,5 +481,48 @@ export class StreamIndexer {
 
 	public summarizeStreams(records: IndexedStreamRecord[]): IndexedStreamView[] {
 		return records.map((record) => summarizeStream(record));
+	}
+
+	public async getStreamView(id: number): Promise<IndexedStreamView | undefined> {
+		const entry = this.streams.get(id);
+		if (!entry) return undefined;
+
+		const currentBlock = await this.stacksService.getCurrentBlockHeight();
+		const record: IndexedStreamRecord = {
+			id: entry.id.toString(),
+			sender: entry.sender,
+			recipient: entry.recipient,
+			tokenContract: entry.tokenContract,
+			startBlock: entry.startBlock,
+			currentBlock,
+			ratePerBlock: entry.ratePerBlock,
+			fundedAmount: entry.depositAmount,
+			withdrawnAmount: entry.claimedAmount,
+			pausedAtBlock: entry.pausedAtBlock,
+			cancelledAtBlock: entry.cancelledAtBlock,
+		};
+
+		return summarizeStream(record);
+	}
+
+	public async getStreamViews(entries: StreamIndexEntry[]): Promise<IndexedStreamView[]> {
+		if (entries.length === 0) return [];
+		const currentBlock = await this.stacksService.getCurrentBlockHeight();
+		return entries.map((entry) => {
+			const record: IndexedStreamRecord = {
+				id: entry.id.toString(),
+				sender: entry.sender,
+				recipient: entry.recipient,
+				tokenContract: entry.tokenContract,
+				startBlock: entry.startBlock,
+				currentBlock,
+				ratePerBlock: entry.ratePerBlock,
+				fundedAmount: entry.depositAmount,
+				withdrawnAmount: entry.claimedAmount,
+				pausedAtBlock: entry.pausedAtBlock,
+				cancelledAtBlock: entry.cancelledAtBlock,
+			};
+			return summarizeStream(record);
+		});
 	}
 }
