@@ -220,6 +220,9 @@ export class StreamIndexer {
 			case "stream-resumed":
 				this.handleStreamResumed(event);
 				break;
+			case "stream-cancelled":
+				this.handleStreamCancelled(event);
+				break;
 			default:
 				break;
 		}
@@ -276,6 +279,16 @@ export class StreamIndexer {
 
 		entry.isPaused = false;
 		entry.pausedAtBlock = null;
+	}
+
+	private handleStreamCancelled(event: StreamEvent & { eventType: "stream-cancelled" }): void {
+		if (event.streamId == null) return;
+		const entry = this.streams.get(event.streamId);
+		if (!entry) return;
+
+		entry.isCancelled = true;
+		entry.cancelledAtBlock = event.blockHeight;
+		this.removeStreamFromSenderRecipientMaps(entry);
 	}
 
 	private addStreamToSenderRecipientMaps(entry: StreamIndexEntry): void {
