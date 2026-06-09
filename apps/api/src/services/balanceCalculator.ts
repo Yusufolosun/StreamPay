@@ -168,3 +168,16 @@ export const formatDuration = (seconds: number): string => {
 
 	return parts.slice(0, 2).join(", ");
 };
+
+export const projectBalance = (stream: StreamIndexEntry, atBlock: number): bigint => {
+	const input: StreamBalanceInput = {
+		startBlock: stream.startBlock,
+		currentBlock: atBlock,
+		ratePerBlock: stream.ratePerBlock,
+		fundedAmount: stream.depositAmount,
+		withdrawnAmount: stream.claimedAmount,
+		pausedAtBlock: stream.pausedAtBlock,
+		cancelledAtBlock: stream.cancelledAtBlock,
+	};
+	return calculateStreamBalance(input).claimableAmount;
+};
