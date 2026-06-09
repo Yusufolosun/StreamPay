@@ -13,6 +13,7 @@ import { createStreamsRouter } from "./routes/streams.js";
 import { createWebhooksRouter } from "./routes/webhooks.js";
 import { StacksService } from "./services/stacksService.js";
 import { StreamIndexer } from "./services/streamIndexer.js";
+import { setStreamIndexerForCalculator } from "./services/balanceCalculator.js";
 
 export const createApp = (
 	config: AppConfig,
@@ -39,6 +40,8 @@ export const createApp = (
 		config.contractStreamCore,
 		stateFilePath,
 	);
+
+	setStreamIndexerForCalculator(actualStreamIndexer);
 
 	app.disable("x-powered-by");
 	app.use(helmet());
