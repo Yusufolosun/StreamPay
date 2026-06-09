@@ -126,14 +126,56 @@ export class StreamIndexer {
 	}
 
 	public async start(): Promise<void> {
-		// skeleton
+		if (this.isRunning) return;
+		this.isRunning = true;
+
+		await this.loadState();
+
+		// Run immediate poll, then set interval
+		this.poll().catch((err) => console.error("Initial indexer poll failed:", err));
+
+		this.intervalId = setInterval(() => {
+			this.poll().catch((err) => console.error("Indexer poll failed:", err));
+		}, 5000);
 	}
 
 	public stop(): void {
-		// skeleton
+		if (!this.isRunning) return;
+		this.isRunning = false;
+
+		if (this.intervalId) {
+			clearInterval(this.intervalId);
+			this.intervalId = null;
+		}
 	}
 
 	private async poll(): Promise<void> {
+		try {
+			const tip = await this.stacksService.getCurrentBlockHeight();
+			if (tip <= this.cursor) {
+				return;
+			}
+
+			// Skeleton: fetch new events and process them
+			const events = await this.fetchEventsSince(this.cursor, tip);
+			
+			for (const event of events) {
+				await this.dispatchEvent(event);
+			}
+
+			this.cursor = tip;
+			await this.saveState();
+		} catch (error) {
+			console.error("Error in indexer poll cycle:", error);
+		}
+	}
+
+	private async fetchEventsSince(cursor: number, tip: number): Promise<StreamEvent[]> {
+		// skeleton
+		return [];
+	}
+
+	private async dispatchEvent(event: StreamEvent): Promise<void> {
 		// skeleton
 	}
 
