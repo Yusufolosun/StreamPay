@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StreamIndexEntry } from "../src/services/streamIndexer.js";
+import type { OnChainMilestoneStream } from "../src/types/stacks.js";
 import {
 	blockToTimestamp,
 	timestampToBlock,
@@ -8,6 +9,7 @@ import {
 	formatDuration,
 	calculateClaimableBalance,
 	projectBalance,
+	calculateMilestoneAmounts,
 } from "../src/services/balanceCalculator.js";
 
 describe("balanceCalculator utilities", () => {
@@ -147,6 +149,41 @@ describe("balanceCalculator utilities", () => {
 		it("projects correct balance at block height after endBlock (caps at deposit)", () => {
 			const balance = projectBalance(mockStream, 15000);
 			expect(balance).toBe(1000000n); // unlike calculateClaimableBalance which returns 0 when expired, projectBalance is used for live counter projection, so it should return the capped accrued balance.
+		});
+	});
+
+	describe("calculateMilestoneAmounts", () => {
+		const mockMilestoneStream: OnChainMilestoneStream = {
+			sender: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
+			recipient: "ST2ST8J2J5370K6KKR0WGPPH8AHRW8XDXW2M5W16B",
+			arbiter: null,
+			totalAmount: 10000n,
+			tokenContract: null,
+			milestones: [
+				{ label: "M1", basisPoints: 3000, isReleased: true, releasedAt: 150 },
+				{ label: "M2", basisPoints: 7000, isReleased: false, releasedAt: null },
+			],
+			isCancelled: false,
+			createdAt: 100,
+		};
+
+		it("calculates amounts correctly using basis points", () => {
+			const amounts = calculateMilestoneAmounts(mockMilestoneStream);
+			expect(amounts).toHaveLength(2);
+			expect(amounts[0]).toEqual({
+				label: "M1",
+				basisPoints: 3000,
+				amount: 3000n,
+				isReleased: true,
+				releasedAt: 150,
+			});
+			expect(amounts[1]).toEqual({
+				label: "M2",
+				basisPoints: 7000,
+				amount: 7000n,
+				isReleased: false,
+				releasedAt: null,
+			});
 		});
 	});
 });
