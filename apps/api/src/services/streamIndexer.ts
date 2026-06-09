@@ -223,6 +223,15 @@ export class StreamIndexer {
 			case "stream-cancelled":
 				this.handleStreamCancelled(event);
 				break;
+			case "fee-updated":
+				this.handleFeeUpdated(event);
+				break;
+			case "protocol-paused":
+				this.handleProtocolPaused();
+				break;
+			case "protocol-resumed":
+				this.handleProtocolResumed();
+				break;
 			default:
 				break;
 		}
@@ -289,6 +298,18 @@ export class StreamIndexer {
 		entry.isCancelled = true;
 		entry.cancelledAtBlock = event.blockHeight;
 		this.removeStreamFromSenderRecipientMaps(entry);
+	}
+
+	private handleFeeUpdated(event: StreamEvent & { eventType: "fee-updated" }): void {
+		this.protocolFee = event.newFee;
+	}
+
+	private handleProtocolPaused(): void {
+		this.isProtocolPaused = true;
+	}
+
+	private handleProtocolResumed(): void {
+		this.isProtocolPaused = false;
 	}
 
 	private addStreamToSenderRecipientMaps(entry: StreamIndexEntry): void {
