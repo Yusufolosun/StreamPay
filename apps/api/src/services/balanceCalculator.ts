@@ -91,9 +91,19 @@ export const calculateStreamBalance = (input: StreamBalanceInput): StreamBalance
 	};
 };
 
-export const calculateClaimableBalance = (input: StreamBalanceInput): bigint => {
-	return calculateStreamBalance(input).claimableAmount;
+export const calculateClaimableBalance = (stream: StreamIndexEntry, currentBlock: number): bigint => {
+	if (stream.isPaused || stream.isCancelled || currentBlock >= stream.endBlock) {
+		return 0n;
+	}
+
+	const lastCheckpointBlock = stream.startBlock + Number(stream.claimedAmount / stream.ratePerBlock);
+	const elapsed = BigInt(Math.max(0, currentBlock - lastCheckpointBlock));
+	const accrued = elapsed * stream.ratePerBlock;
+	const remaining = stream.depositAmount - stream.claimedAmount;
+
+	return accrued < remaining ? accrued : remaining;
 };
+
 
 export const calculateRemainingBalance = (input: StreamBalanceInput): bigint => {
 	return calculateStreamBalance(input).remainingAmount;
