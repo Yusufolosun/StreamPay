@@ -1,4 +1,6 @@
 import { calculateStreamBalance, type StreamBalanceInput, type StreamBalanceSnapshot } from "./balanceCalculator.js";
+import { type StacksService } from "./stacksService.js";
+import { type StreamEvent } from "../types/stacks.js";
 
 export type StreamLifecycleStatus = "active" | "paused" | "cancelled" | "completed";
 
@@ -12,6 +14,23 @@ export type IndexedStreamRecord = StreamBalanceInput & {
 export type IndexedStreamView = IndexedStreamRecord & {
 	status: StreamLifecycleStatus;
 	balance: StreamBalanceSnapshot;
+};
+
+export type StreamIndexEntry = {
+	id: number;
+	sender: string;
+	recipient: string;
+	tokenContract: string;
+	depositAmount: bigint;
+	ratePerBlock: bigint;
+	startBlock: number;
+	endBlock: number;
+	claimedAmount: bigint;
+	pausedAtBlock: number | null;
+	cancelledAtBlock: number | null;
+	isPaused: boolean;
+	isCancelled: boolean;
+	createdAt: number;
 };
 
 const resolveStatus = (record: IndexedStreamRecord, balance: StreamBalanceSnapshot): StreamLifecycleStatus => {
@@ -41,6 +60,74 @@ export const summarizeStream = (record: IndexedStreamRecord): IndexedStreamView 
 };
 
 export class StreamIndexer {
+	private cursor = 0;
+	private streams = new Map<number, StreamIndexEntry>();
+	private senderStreams = new Map<string, number[]>();
+	private recipientStreams = new Map<string, number[]>();
+	private protocolFee = 0;
+	private isProtocolPaused = false;
+	private isRunning = false;
+	private intervalId: NodeJS.Timeout | null = null;
+	private readonly stateFilePath: string;
+
+	constructor(
+		private readonly stacksService: StacksService,
+		private readonly contractAddress: string,
+		stateFilePath?: string,
+	) {
+		this.stateFilePath = stateFilePath || "";
+	}
+
+	public getCursor(): number {
+		return this.cursor;
+	}
+
+	public getStreams(): StreamIndexEntry[] {
+		return Array.from(this.streams.values());
+	}
+
+	public getStream(id: number): StreamIndexEntry | undefined {
+		return this.streams.get(id);
+	}
+
+	public getSenderStreams(sender: string): StreamIndexEntry[] {
+		const ids = this.senderStreams.get(sender) || [];
+		return ids.map((id) => this.streams.get(id)!).filter(Boolean);
+	}
+
+	public getRecipientStreams(recipient: string): StreamIndexEntry[] {
+		const ids = this.recipientStreams.get(recipient) || [];
+		return ids.map((id) => this.streams.get(id)!).filter(Boolean);
+	}
+
+	public getProtocolFee(): number {
+		return this.protocolFee;
+	}
+
+	public getIsProtocolPaused(): boolean {
+		return this.isProtocolPaused;
+	}
+
+	public async start(): Promise<void> {
+		// skeleton
+	}
+
+	public stop(): void {
+		// skeleton
+	}
+
+	private async poll(): Promise<void> {
+		// skeleton
+	}
+
+	private async loadState(): Promise<void> {
+		// skeleton
+	}
+
+	private async saveState(): Promise<void> {
+		// skeleton
+	}
+
 	public summarizeStream(record: IndexedStreamRecord): IndexedStreamView {
 		return summarizeStream(record);
 	}
