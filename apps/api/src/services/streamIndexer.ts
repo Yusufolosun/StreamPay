@@ -211,6 +211,9 @@ export class StreamIndexer {
 			case "stream-created":
 				await this.handleStreamCreated(event);
 				break;
+			case "stream-claimed":
+				this.handleStreamClaimed(event);
+				break;
 			default:
 				break;
 		}
@@ -241,6 +244,14 @@ export class StreamIndexer {
 
 		this.streams.set(event.streamId, entry);
 		this.addStreamToSenderRecipientMaps(entry);
+	}
+
+	private handleStreamClaimed(event: StreamEvent & { eventType: "stream-claimed" }): void {
+		if (event.streamId == null) return;
+		const entry = this.streams.get(event.streamId);
+		if (!entry) return;
+
+		entry.claimedAmount = event.claimedAmount;
 	}
 
 	private addStreamToSenderRecipientMaps(entry: StreamIndexEntry): void {
