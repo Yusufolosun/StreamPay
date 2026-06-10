@@ -77,3 +77,31 @@ describe('CORS middleware', () => {
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 });
+
+describe('Rate limiting middleware', () => {
+  it('should return 429 after exceeding rate limit', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    // Send requests until we hit a 429 (limit is 100/min, some may
+    // already have been consumed by prior tests sharing the singleton)
+    let got429 = false;
+    let totalSent = 0;
+    for (let i = 0; i < 110; i++) {
+      totalSent++;
+      const res = await request(app).get('/health');
+      if (res.status === 429) {
+        got429 = true;
+        expect(res.body.success).toBe(false);
+        expect(res.body.error.code).toBe('rate_limit_public_exceeded');
+        expect(typeof res.body.error.message).toBe('string');
+        break;
+      }
+    }
+    expect(got429).toBe(true);
+    // Verify we didn't hit it on the very first request (sanity check)
+    expect(totalSent).toBeGreaterThan(1);
+  });
+});
