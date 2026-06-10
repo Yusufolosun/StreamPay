@@ -56,3 +56,35 @@ describe('GET /api/streams/:id happy path', () => {
     expect(res.body.data.claimableBalance).toBeDefined();
   });
 });
+
+describe('GET /api/streams/:id error paths', () => {
+  it('should return 404 for a non-existent stream ID', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams/9999')
+      .expect('Content-Type', /json/)
+      .expect(404);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('stream_not_found');
+  });
+
+  it('should return 400 for an invalid stream ID format', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams/invalid')
+      .expect('Content-Type', /json/)
+      .expect(400);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('invalid_stream_id');
+  });
+});
