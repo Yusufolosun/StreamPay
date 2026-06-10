@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { createApp } from '../../src/app.js';
@@ -175,5 +175,58 @@ describe('POST /api/webhooks/subscribe authentication', () => {
     expect(res.body.error.code).toBe('INVALID_API_KEY');
   });
 });
+
+describe('DELETE /api/webhooks/:id', () => {
+  it('should delete (deactivate) an existing subscription', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const webhookService = new WebhookService(testWebhooksFile);
+    await webhookService.init();
+    vi.spyOn(webhookService, 'init').mockResolvedValue(undefined);
+
+    // Directly insert a sub using the service
+    const sub = await webhookService.createSubscription('https://example.com/webhook', ['stream-created']);
+
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer, webhookService);
+
+    // Call DELETE
+    const delRes = await request(app)
+      .delete(`/api/webhooks/${sub.id}`)
+      .set('Authorization', 'Bearer testkey-123')
+      .expect(200);
+
+    expect(delRes.body.success).toBe(true);
+    expect(delRes.body.deleted).toBe(true);
+
+    // Verify it is gone via GET
+    const getRes = await request(app)
+      .get(`/api/webhooks/${sub.id}`)
+      .set('Authorization', 'Bearer testkey-123')
+      .expect(404);
+
+    expect(getRes.body.success).toBe(false);
+    expect(getRes.body.error.code).toBe('subscription_not_found');
+  });
+
+  it('should return 404 for deleting a non-existent subscription', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const webhookService = new WebhookService(testWebhooksFile);
+    await webhookService.init();
+
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer, webhookService);
+
+    const res = await request(app)
+      .delete('/api/webhooks/sub_nonexistent')
+      .set('Authorization', 'Bearer testkey-123')
+      .expect(404);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('subscription_not_found');
+  });
+});
+
 
 
