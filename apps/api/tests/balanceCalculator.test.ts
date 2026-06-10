@@ -10,6 +10,8 @@ import {
 	calculateClaimableBalance,
 	projectBalance,
 	calculateMilestoneAmounts,
+	getLiveBalanceProjection,
+	setStreamIndexerForCalculator,
 } from "../src/services/balanceCalculator.js";
 
 describe("balanceCalculator utilities", () => {
@@ -184,6 +186,45 @@ describe("balanceCalculator utilities", () => {
 				isReleased: false,
 				releasedAt: null,
 			});
+		});
+	});
+
+	describe("getLiveBalanceProjection", () => {
+		const mockStream: StreamIndexEntry = {
+			id: 42,
+			sender: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
+			recipient: "ST2ST8J2J5370K6KKR0WGPPH8AHRW8XDXW2M5W16B",
+			tokenContract: "",
+			depositAmount: 1000000n,
+			ratePerBlock: 100n,
+			startBlock: 100,
+			endBlock: 20000,
+			claimedAmount: 0n,
+			pausedAtBlock: null,
+			cancelledAtBlock: null,
+			isPaused: false,
+			isCancelled: false,
+			createdAt: 100,
+		};
+
+		it("returns 0n if no indexer set", () => {
+			setStreamIndexerForCalculator(null);
+			expect(getLiveBalanceProjection(42, 50)).toBe(0n);
+		});
+
+		it("projects balance using registered indexer and block time", () => {
+			const mockIndexer = {
+				getStream: (id: number) => (id === 42 ? mockStream : undefined),
+				getCursor: () => 1000,
+			};
+			setStreamIndexerForCalculator(mockIndexer);
+			
+			// 50 seconds from now => 10 blocks.
+			// targetBlock = 1000 + 10 = 1010.
+			// elapsed from startBlock (100) = 910 blocks.
+			// balance = 910 * 100 = 91000n.
+			const projected = getLiveBalanceProjection(42, 50);
+			expect(projected).toBe(91000n);
 		});
 	});
 });
