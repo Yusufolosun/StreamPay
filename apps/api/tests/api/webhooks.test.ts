@@ -74,3 +74,60 @@ describe('POST /api/webhooks/subscribe happy path', () => {
     expect(typeof res.body.data.secret).toBe('string');
   });
 });
+
+describe('POST /api/webhooks/subscribe HTTPS and event validation', () => {
+  it('should reject non-HTTPS URLs in production environment', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const webhookService = new WebhookService(testWebhooksFile);
+    await webhookService.init();
+
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer, webhookService);
+
+    // Set production to enforce HTTPS-only
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    try {
+      const res = await request(app)
+        .post('/api/webhooks/subscribe')
+        .set('Authorization', 'Bearer testkey-123')
+        .send({
+          url: 'http://example.com/webhook',
+          events: ['stream-created'],
+        })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('invalid_url');
+      expect(res.body.error.message).toContain('HTTPS-only');
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
+  });
+
+  it('should reject invalid event types', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const webhookService = new WebhookService(testWebhooksFile);
+    await webhookService.init();
+
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer, webhookService);
+
+    const res = await request(app)
+      .post('/api/webhooks/subscribe')
+      .set('Authorization', 'Bearer testkey-123')
+      .send({
+        url: 'https://example.com/webhook',
+        events: ['invalid-event'],
+      })
+      .expect(400);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('invalid_event_type');
+    expect(res.body.error.message).toContain('not supported');
+  });
+});
+
