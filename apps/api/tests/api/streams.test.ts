@@ -295,3 +295,56 @@ describe('GET /api/stats global aggregate', () => {
     expect(res.body.data.isProtocolPaused).toBe(false);
   });
 });
+
+describe('All amount fields are strings assertion', () => {
+  it('should return all amount fields as strings in GET /api/streams/:id', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams/1')
+      .expect(200);
+
+    const stream = res.body.data.stream;
+    expect(typeof stream.ratePerBlock).toBe('string');
+    expect(typeof stream.fundedAmount).toBe('string');
+    expect(typeof stream.withdrawnAmount).toBe('string');
+    expect(typeof stream.balance.claimableAmount).toBe('string');
+    expect(typeof stream.balance.remainingAmount).toBe('string');
+    expect(typeof stream.balance.withdrawnAmount).toBe('string');
+    expect(typeof res.body.data.claimableBalance).toBe('string');
+  });
+
+  it('should return all amount fields as strings in GET /api/streams/:id/balance', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams/1/balance')
+      .expect(200);
+
+    const data = res.body.data;
+    expect(typeof data.claimable).toBe('string');
+    expect(typeof data.totalDeposited).toBe('string');
+    expect(typeof data.totalClaimed).toBe('string');
+    expect(typeof data.progress.totalStreamed).toBe('string');
+    expect(typeof data.progress.totalUnclaimed).toBe('string');
+  });
+
+  it('should return totalVolume as a string in GET /api/stats', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/stats')
+      .expect(200);
+
+    expect(typeof res.body.data.totalVolume).toBe('string');
+  });
+});
