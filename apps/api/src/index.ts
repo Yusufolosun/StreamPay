@@ -29,12 +29,19 @@ const bootstrap = async (): Promise<void> => {
 			stateFilePath,
 		);
 
-		const app = createApp(config, stacksService, streamIndexer);
+		const { WebhookService } = await import("./services/webhookService.js");
+		const webhookService = new WebhookService();
+		await webhookService.init();
+
+		const app = createApp(config, stacksService, streamIndexer, webhookService);
 		const server = createServer(app);
 
 		wsManager = new WebSocketServerManager(server);
 		streamIndexer.setOnStreamUpdate((streamId, event) => {
 			wsManager?.broadcastStreamUpdate(streamId, event);
+			webhookService.dispatch(event).catch((err) => {
+				logger.error("Failed to dispatch webhook event", { error: err });
+			});
 		});
 
 		wsManager.start();
