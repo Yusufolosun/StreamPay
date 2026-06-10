@@ -232,3 +232,45 @@ describe('GET /api/streams custom pagination limits', () => {
     expect(res.body.pagination.totalPages).toBe(3);
   });
 });
+
+describe('GET /api/streams/:id/balance projection', () => {
+  it('should return 200 with the detailed balance breakdown and progress projections', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams/1/balance')
+      .expect('Content-Type', /json/)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.claimable).toBeDefined();
+    expect(res.body.data.totalDeposited).toBe('10000');
+    expect(res.body.data.totalClaimed).toBe('100');
+    expect(typeof res.body.data.percentClaimed).toBe('number');
+    expect(res.body.data.progress).toBeDefined();
+    expect(typeof res.body.data.progress.percentComplete).toBe('number');
+    expect(typeof res.body.data.progress.blocksElapsed).toBe('number');
+    expect(typeof res.body.data.progress.blocksRemaining).toBe('number');
+    expect(typeof res.body.data.progress.estimatedEndDate).toBe('string');
+    expect(res.body.data.progress.totalStreamed).toBeDefined();
+    expect(res.body.data.progress.totalUnclaimed).toBeDefined();
+  });
+
+  it('should return 404 for balance request on non-existent stream ID', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams/9999/balance')
+      .expect(404);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('stream_not_found');
+  });
+});
