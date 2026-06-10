@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "echo \"TODO: start web dev server\"",
-    "build": "echo \"TODO: build web app\"",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "echo \"TODO: add web tests\"",
-    "lint": "echo \"TODO: add web lint\""
+    "lint": "next lint"
   },
   "dependencies": {
     "@stacks/common": "^7.3.1",
