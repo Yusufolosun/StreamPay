@@ -214,3 +214,35 @@ export const getLiveBalanceProjection = (streamId: number, secondsFromNow: numbe
 	const targetBlock = currentBlock + blocks;
 	return projectBalance(stream, targetBlock);
 };
+
+export const calculateStreamProgress = (stream: StreamIndexEntry, currentBlock: number): StreamProgress => {
+	const totalDuration = stream.endBlock - stream.startBlock;
+	const blocksElapsed = Math.max(0, Math.min(currentBlock - stream.startBlock, totalDuration));
+	const blocksRemaining = Math.max(0, stream.endBlock - currentBlock);
+	const percentComplete = totalDuration > 0 ? Number((blocksElapsed * 100) / totalDuration) : 100;
+
+	const input: StreamBalanceInput = {
+		startBlock: stream.startBlock,
+		currentBlock,
+		ratePerBlock: stream.ratePerBlock,
+		fundedAmount: stream.depositAmount,
+		withdrawnAmount: stream.claimedAmount,
+		pausedAtBlock: stream.pausedAtBlock,
+		cancelledAtBlock: stream.cancelledAtBlock,
+	};
+	const snapshot = calculateStreamBalance(input);
+
+	const estimatedEndDate = new Date(
+		Date.now() + blocksRemaining * 5 * 1000,
+	);
+
+	return {
+		percentComplete,
+		blocksElapsed,
+		blocksRemaining,
+		estimatedEndDate,
+		totalStreamed: snapshot.cappedAmount,
+		totalClaimed: stream.claimedAmount,
+		totalUnclaimed: snapshot.claimableAmount,
+	};
+};
