@@ -210,3 +210,25 @@ describe('GET /api/streams status filtering', () => {
     expect(res.body.error.code).toBe('invalid_status');
   });
 });
+
+describe('GET /api/streams custom pagination limits', () => {
+  it('should support custom page and limit parameters', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams')
+      .query({ page: 2, limit: 1 })
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].id).toBe('2'); // Stream ID 2 is the second stream
+    expect(res.body.pagination.page).toBe(2);
+    expect(res.body.pagination.limit).toBe(1);
+    expect(res.body.pagination.total).toBe(3);
+    expect(res.body.pagination.totalPages).toBe(3);
+  });
+});
