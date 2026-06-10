@@ -120,7 +120,7 @@ export const createStreamsRouter = (streamIndexer?: StreamIndexer): Router => {
         throw streamsNotReady();
       }
 
-      const streamId = parseStreamId(request.params.streamId);
+      const streamId = parseStreamId(request.params.streamId as string);
       if (streamId === null) {
         throw createApiError(
           400,
@@ -161,7 +161,7 @@ export const createStreamsRouter = (streamIndexer?: StreamIndexer): Router => {
         throw streamsNotReady();
       }
 
-      const streamId = parseStreamId(request.params.streamId);
+      const streamId = parseStreamId(request.params.streamId as string);
       if (streamId === null) {
         throw createApiError(
           400,
@@ -193,7 +193,7 @@ export const createStreamsRouter = (streamIndexer?: StreamIndexer): Router => {
         throw streamsNotReady();
       }
 
-      const streamId = parseStreamId(request.params.streamId);
+      const streamId = parseStreamId(request.params.streamId as string);
       if (streamId === null) {
         throw createApiError(
           400,

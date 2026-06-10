@@ -87,12 +87,12 @@ export const createWebhooksRouter = (webhookService?: WebhookService): Router =>
         throw createApiError(501, 'webhooks_not_ready', 'Webhook service is not connected yet.');
       }
 
-      const sub = webhookService.getSubscription(request.params.id);
+      const sub = webhookService.getSubscription(request.params.id as string);
       if (!sub) {
         throw createApiError(
           404,
           'subscription_not_found',
-          `Subscription with ID ${request.params.id} was not found.`,
+          `Subscription with ID ${request.params.id as string} was not found.`,
         );
       }
 
@@ -112,12 +112,12 @@ export const createWebhooksRouter = (webhookService?: WebhookService): Router =>
         throw createApiError(501, 'webhooks_not_ready', 'Webhook service is not connected yet.');
       }
 
-      const deleted = await webhookService.deleteSubscription(request.params.id);
+      const deleted = await webhookService.deleteSubscription(request.params.id as string);
       if (!deleted) {
         throw createApiError(
           404,
           'subscription_not_found',
-          `Subscription with ID ${request.params.id} was not found.`,
+          `Subscription with ID ${request.params.id as string} was not found.`,
         );
       }
 

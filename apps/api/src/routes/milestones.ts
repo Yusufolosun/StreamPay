@@ -122,7 +122,7 @@ export const createMilestonesRouter = (stacksService?: StacksService): Router =>
         throw milestonesNotReady();
       }
 
-      const milestoneStreamId = parseStreamId(request.params.milestoneStreamId);
+      const milestoneStreamId = parseStreamId(request.params.milestoneStreamId as string);
       if (milestoneStreamId === null) {
         throw createApiError(
           400,
@@ -162,7 +162,7 @@ export const createMilestonesRouter = (stacksService?: StacksService): Router =>
         throw milestonesNotReady();
       }
 
-      const id = parseStreamId(request.params.id);
+      const id = parseStreamId(request.params.id as string);
       if (id === null) {
         throw createApiError(
           400,
