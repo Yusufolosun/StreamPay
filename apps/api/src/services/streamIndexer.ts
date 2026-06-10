@@ -81,6 +81,7 @@ export class StreamIndexer {
 	private streams = new Map<number, StreamIndexEntry>();
 	private senderStreams = new Map<string, number[]>();
 	private recipientStreams = new Map<string, number[]>();
+	private streamHistory = new Map<number, StreamEvent[]>();
 	private protocolFee = 0;
 	private isProtocolPaused = false;
 	private isRunning = false;
@@ -163,6 +164,32 @@ export class StreamIndexer {
 
 	public getIsRunning(): boolean {
 		return this.isRunning;
+	}
+
+	public getStreamHistory(streamId: number): StreamEvent[] {
+		return this.streamHistory.get(streamId) || [];
+	}
+
+	public getStreamCount(): number {
+		return this.streams.size;
+	}
+
+	public getActiveStreamCount(): number {
+		let count = 0;
+		for (const entry of this.streams.values()) {
+			if (!entry.isPaused && !entry.isCancelled) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	public getTotalVolume(): bigint {
+		let total = 0n;
+		for (const entry of this.streams.values()) {
+			total += entry.depositAmount;
+		}
+		return total;
 	}
 
 	public async start(): Promise<void> {
@@ -266,6 +293,19 @@ export class StreamIndexer {
 	}
 
 	private async dispatchEvent(event: StreamEvent): Promise<void> {
+		if (event.streamId != null) {
+			const history = this.streamHistory.get(event.streamId) || [];
+			const exists = history.some((h) => h.txId === event.txId && h.eventIndex === event.eventIndex);
+			if (!exists) {
+				history.push(event);
+				history.sort((a, b) => {
+					if (a.blockHeight !== b.blockHeight) return a.blockHeight - b.blockHeight;
+					return a.eventIndex - b.eventIndex;
+				});
+				this.streamHistory.set(event.streamId, history);
+			}
+		}
+
 		try {
 			switch (event.eventType) {
 				case "stream-created":
@@ -446,6 +486,9 @@ export class StreamIndexer {
 						this.addStreamToSenderRecipientMaps(entry);
 					}
 				}
+				if (Array.isArray(parsed.streamHistory)) {
+					this.streamHistory = new Map<number, StreamEvent[]>(parsed.streamHistory);
+				}
 				if (typeof parsed.protocolFee === "number") {
 					this.protocolFee = parsed.protocolFee;
 				}
@@ -468,6 +511,7 @@ export class StreamIndexer {
 			const data = {
 				cursor: this.cursor,
 				streams: Array.from(this.streams.entries()),
+				streamHistory: Array.from(this.streamHistory.entries()),
 				protocolFee: this.protocolFee,
 				isProtocolPaused: this.isProtocolPaused,
 			};
