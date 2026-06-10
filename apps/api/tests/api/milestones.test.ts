@@ -144,3 +144,38 @@ describe('GET /api/milestones participant and arbiter filters', () => {
     expect(res.body.data.length).toBe(0);
   });
 });
+
+describe('GET /api/milestones/:id/releasable indices', () => {
+  it('should return releasable milestone indices', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/milestones/1/releasable')
+      .expect('Content-Type', /json/)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    // M1 is released, M2 is not released → index 1 should be releasable
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data).toContain(1);
+    expect(res.body.data).not.toContain(0);
+  });
+
+  it('should return 404 for releasable check on non-existent milestone stream', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/milestones/9999/releasable')
+      .expect(404);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('milestone_stream_not_found');
+  });
+});
+
