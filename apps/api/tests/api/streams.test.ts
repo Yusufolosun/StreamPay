@@ -88,3 +88,26 @@ describe('GET /api/streams/:id error paths', () => {
     expect(res.body.error.code).toBe('invalid_stream_id');
   });
 });
+
+describe('GET /api/streams listing and default pagination', () => {
+  it('should return 200 with list of streams and default pagination metadata', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams')
+      .expect('Content-Type', /json/)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBe(3); // Based on fixtures.ts mockStreams count
+    expect(res.body.pagination).toBeDefined();
+    expect(res.body.pagination.page).toBe(1);
+    expect(res.body.pagination.limit).toBe(20);
+    expect(res.body.pagination.total).toBe(3);
+    expect(res.body.pagination.totalPages).toBe(1);
+  });
+});
