@@ -131,3 +131,49 @@ describe('POST /api/webhooks/subscribe HTTPS and event validation', () => {
   });
 });
 
+describe('POST /api/webhooks/subscribe authentication', () => {
+  it('should reject request without API key', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const webhookService = new WebhookService(testWebhooksFile);
+    await webhookService.init();
+
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer, webhookService);
+
+    const res = await request(app)
+      .post('/api/webhooks/subscribe')
+      .send({
+        url: 'https://example.com/webhook',
+        events: ['stream-created'],
+      })
+      .expect(401);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('MISSING_API_KEY');
+  });
+
+  it('should reject request with invalid API key', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const webhookService = new WebhookService(testWebhooksFile);
+    await webhookService.init();
+
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer, webhookService);
+
+    const res = await request(app)
+      .post('/api/webhooks/subscribe')
+      .set('Authorization', 'Bearer invalid-key')
+      .send({
+        url: 'https://example.com/webhook',
+        events: ['stream-created'],
+      })
+      .expect(403);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('INVALID_API_KEY');
+  });
+});
+
+
