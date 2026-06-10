@@ -2,11 +2,14 @@ import request from 'supertest';
 import { describe, expect, it, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import http from 'node:http';
+import { createHmac } from 'node:crypto';
 import { createApp } from '../../src/app.js';
 import { loadConfig } from '../../src/config.js';
 import { MockStacksService, MockStreamIndexer } from '../../test/mocks/stacksService.js';
 import { WebhookService } from '../../src/services/webhookService.js';
 import { publicRateLimiter } from '../../src/middleware/rateLimiter.js';
+import { type StreamEvent } from '../../src/types/stacks.js';
 
 const originalEnv = { ...process.env };
 const testWebhooksFile = path.join(process.cwd(), 'data', 'webhooks-test.json');
@@ -225,6 +228,81 @@ describe('DELETE /api/webhooks/:id', () => {
 
     expect(res.body.success).toBe(false);
     expect(res.body.error.code).toBe('subscription_not_found');
+  });
+});
+
+describe('Webhook Delivery & Signature Verification', () => {
+  it('should deliver webhook with valid HMAC signature to a local HTTP server', async () => {
+    let resolveVerification: (value: any) => void;
+    const verificationPromise = new Promise((resolve) => {
+      resolveVerification = resolve;
+    });
+
+    const event: StreamEvent = {
+      eventType: 'stream-created',
+      txId: '0x1234567890abcdef',
+      blockHeight: 120,
+      timestamp: Date.now(),
+      data: {
+        streamId: 1,
+        sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV',
+        recipient: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R',
+        deposit: 10000n as any,
+        startBlock: 100,
+        stopBlock: 200,
+      },
+    };
+
+    let receivedHeaders: http.IncomingHttpHeaders | null = null;
+    let receivedBody = '';
+
+    const server = http.createServer((req, res) => {
+      receivedHeaders = req.headers;
+      
+      req.on('data', (chunk) => {
+        receivedBody += chunk;
+      });
+
+      req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK');
+        resolveVerification(true);
+      });
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    const port = (server.address() as any).port;
+    const localUrl = `http://127.0.0.1:${port}/webhook`;
+
+    try {
+      const webhookService = new WebhookService(testWebhooksFile);
+      await webhookService.init();
+      vi.spyOn(webhookService, 'init').mockResolvedValue(undefined);
+
+      const sub = await webhookService.createSubscription(localUrl, ['stream-created']);
+      await webhookService.dispatch(event);
+      await verificationPromise;
+
+      expect(receivedHeaders).toBeDefined();
+      expect(receivedHeaders!['content-type']).toBe('application/json');
+      expect(receivedHeaders!['user-agent']).toBe('StreamPay-Webhook/1.0');
+      
+      const signature = receivedHeaders!['x-streampay-signature'] as string;
+      expect(signature).toBeDefined();
+
+      const expectedPayload = JSON.stringify(event, (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      );
+      const hmac = createHmac('sha256', sub.secret);
+      hmac.update(expectedPayload);
+      const expectedSignature = `sha256=${hmac.digest('hex')}`;
+
+      expect(signature).toBe(expectedSignature);
+      expect(JSON.parse(receivedBody)).toEqual(JSON.parse(expectedPayload));
+      expect(sub.consecutiveFailures).toBe(0);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });
 
