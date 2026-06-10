@@ -306,5 +306,56 @@ describe('Webhook Delivery & Signature Verification', () => {
   });
 });
 
+describe('Webhook Delivery Failures & Auto-Deactivation', () => {
+  it('should auto-deactivate subscription after 10 consecutive delivery failures', async () => {
+    const webhookService = new WebhookService(testWebhooksFile);
+    await webhookService.init();
+
+    const sub = await webhookService.createSubscription('https://example.invalid/webhook', ['stream-created']);
+
+    // Mock fetch to reject (fail delivery)
+    const fetchSpy = vi.spyOn(global, 'fetch').mockRejectedValue(new Error('Network error'));
+    
+    // Mock setTimeout to fire immediately (skip retry delays)
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout').mockImplementation((cb: any) => {
+      cb();
+      return {} as any;
+    });
+
+    const event: StreamEvent = {
+      eventType: 'stream-created',
+      txId: '0x1234567890abcdef',
+      blockHeight: 120,
+      timestamp: Date.now(),
+      data: {
+        streamId: 1,
+        sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV',
+        recipient: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R',
+        deposit: 10000n as any,
+        startBlock: 100,
+        stopBlock: 200,
+      },
+    };
+
+    try {
+      // Run 9 times - should remain active
+      for (let i = 0; i < 9; i++) {
+        await (webhookService as any).deliverWithRetry(sub, event);
+        expect(sub.isActive).toBe(true);
+        expect(sub.consecutiveFailures).toBe(i + 1);
+      }
+
+      // Run 10th time - should deactivate
+      await (webhookService as any).deliverWithRetry(sub, event);
+      expect(sub.isActive).toBe(false);
+      expect(sub.consecutiveFailures).toBe(10);
+    } finally {
+      fetchSpy.mockRestore();
+      setTimeoutSpy.mockRestore();
+    }
+  });
+});
+
+
 
 
