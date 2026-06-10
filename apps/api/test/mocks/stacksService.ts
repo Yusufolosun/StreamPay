@@ -92,7 +92,7 @@ export class MockStreamIndexer {
       {
         eventType: 'stream-created',
         streamId,
-        caller: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK00SES79',
+        caller: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV',
         blockHeight: 100,
         txId: '0xtesttxid',
         eventIndex: 0,

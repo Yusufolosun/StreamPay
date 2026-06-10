@@ -4,9 +4,9 @@ import type { OnChainMilestoneStream } from '../src/types/stacks.js';
 export const mockStreams: StreamIndexEntry[] = [
   {
     id: 1,
-    sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK00SES79',
-    recipient: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-    tokenContract: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sip-010-token',
+    sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV',
+    recipient: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R',
+    tokenContract: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R.sip-010-token',
     depositAmount: 10000n,
     ratePerBlock: 10n,
     startBlock: 100,
@@ -20,9 +20,9 @@ export const mockStreams: StreamIndexEntry[] = [
   },
   {
     id: 2,
-    sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK00SES79',
-    recipient: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-    tokenContract: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sip-010-token',
+    sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV',
+    recipient: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R',
+    tokenContract: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R.sip-010-token',
     depositAmount: 5000n,
     ratePerBlock: 5n,
     startBlock: 200,
@@ -36,9 +36,9 @@ export const mockStreams: StreamIndexEntry[] = [
   },
   {
     id: 3,
-    sender: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-    recipient: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK00SES79',
-    tokenContract: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sip-010-token',
+    sender: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R',
+    recipient: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV',
+    tokenContract: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R.sip-010-token',
     depositAmount: 2000n,
     ratePerBlock: 2n,
     startBlock: 300,
@@ -54,11 +54,11 @@ export const mockStreams: StreamIndexEntry[] = [
 
 export const mockMilestoneStreams: Record<number, OnChainMilestoneStream> = {
   1: {
-    sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK00SES79',
-    recipient: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-    arbiter: 'SP2ANPCGYA3YB7SMYQ7JBS35S88349RADBFGG78Y4',
+    sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV',
+    recipient: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R',
+    arbiter: 'SP2ANPCGYA3YB7SMYQ7JBS35S88349RADBCQNJ92J',
     totalAmount: 10000n,
-    tokenContract: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sip-010-token',
+    tokenContract: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R.sip-010-token',
     milestones: [
       { label: 'M1', basisPoints: 3000, isReleased: true, releasedAt: 105 },
       { label: 'M2', basisPoints: 7000, isReleased: false, releasedAt: null },
