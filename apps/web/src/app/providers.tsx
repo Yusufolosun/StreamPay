@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppConfig, UserSession, authenticate } from "@stacks/connect";
-import { StacksMainnet, StacksTestnet, StacksMocknet } from "@stacks/network";
+import { createNetwork } from "@stacks/network";
 
 const queryClient = new QueryClient();
 
@@ -13,14 +13,12 @@ export const userSession = new UserSession({ appConfig });
 const networkName = process.env.NEXT_PUBLIC_STACKS_NETWORK || "devnet";
 const hiroApiUrl = process.env.NEXT_PUBLIC_HIRO_API_URL;
 
-let network: any;
-if (networkName === "mainnet") {
-  network = new StacksMainnet({ url: hiroApiUrl });
-} else if (networkName === "testnet") {
-  network = new StacksTestnet({ url: hiroApiUrl });
-} else {
-  network = new StacksMocknet({ url: hiroApiUrl || "http://localhost:3999" });
-}
+const network = createNetwork({
+  network: networkName === "mainnet" ? "mainnet" : networkName === "testnet" ? "testnet" : "mocknet",
+  client: {
+    baseUrl: hiroApiUrl || (networkName === "mainnet" ? "https://api.mainnet.hiro.so" : networkName === "testnet" ? "https://api.testnet.hiro.so" : "http://localhost:3999"),
+  },
+});
 
 interface StreamPayContextType {
   address: string | null;
