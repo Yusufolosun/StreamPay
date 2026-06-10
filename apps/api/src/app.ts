@@ -68,8 +68,8 @@ export const createApp = (
 	app.use("/streams", createStreamsRouter(actualStreamIndexer));
 	app.use("/api/streams", createStreamsRouter(actualStreamIndexer));
 	
-	app.use("/milestones", createMilestonesRouter());
-	app.use("/api/milestones", createMilestonesRouter());
+	app.use("/milestones", createMilestonesRouter(actualStacksService));
+	app.use("/api/milestones", createMilestonesRouter(actualStacksService));
 	
 	app.use("/stats", createStatsRouter(actualStreamIndexer));
 	app.use("/api/stats", createStatsRouter(actualStreamIndexer));

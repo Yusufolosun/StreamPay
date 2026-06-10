@@ -674,6 +674,32 @@ export class StacksService {
 		return stream;
 	}
 
+	public async getMilestoneStreamIdNonce(): Promise<number> {
+		const cacheKey = "milestone-stream-id-nonce";
+		const cached = this.cache.get<number>(cacheKey);
+		if (cached !== undefined) {
+			return cached;
+		}
+
+		const nonce = await withRetry(async () => {
+			const [contractAddress, contractName] = this.contractStreamConditions.split(".");
+			const resultHex = await this.callReadOnly(
+				contractAddress,
+				contractName,
+				"get-milestone-stream-id-nonce",
+				[],
+			);
+			const parsed = deserializeClarityHex(resultHex);
+			if (parsed === null) {
+				return 0;
+			}
+			return Number(parsed);
+		});
+
+		this.cache.set(cacheKey, nonce, 5_000);
+		return nonce;
+	}
+
 	public async getContractEvents(
 		contractId: string,
 		options: PaginationOptions = {},
