@@ -3,6 +3,7 @@
 StreamPay secures webhook deliveries by signing the payload with a secret key unique to each subscription. This ensures that the webhook requests received by your server actually originated from StreamPay and have not been tampered with.
 
 Every webhook request includes the `X-StreamPay-Signature` header, which contains the signature formatted as:
+
 ```http
 X-StreamPay-Signature: sha256=computed_hmac_hex_value
 ```
@@ -47,7 +48,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   // Compare securely using constant-time comparison
   const isValid = crypto.timingSafeEqual(
     Buffer.from(receivedSignature, 'utf8'),
-    Buffer.from(expectedSignature, 'utf8')
+    Buffer.from(expectedSignature, 'utf8'),
   );
 
   if (!isValid) {
@@ -67,6 +68,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
 ### Python (Flask & FastAPI)
 
 #### Flask Example
+
 ```python
 import hmac
 import hashlib
@@ -102,6 +104,7 @@ def webhook():
 ```
 
 #### FastAPI Example
+
 ```python
 import hmac
 import hashlib

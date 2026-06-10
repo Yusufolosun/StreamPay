@@ -2,7 +2,7 @@
 
 This folder stores StreamPay architecture decision records.
 
-TODO: Add new ADRs by copying docs/adr/_template.md and updating the index.
+TODO: Add new ADRs by copying docs/adr/\_template.md and updating the index.
 
 ## Index
 

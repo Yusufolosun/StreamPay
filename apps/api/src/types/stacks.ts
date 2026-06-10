@@ -6,15 +6,15 @@
  *   - `false` → 4xx client errors, parse failures, contract not found
  */
 export class StacksServiceError extends Error {
-	public constructor(
-		public readonly code: string,
-		message: string,
-		public readonly retryable: boolean,
-		public readonly cause?: unknown,
-	) {
-		super(message);
-		this.name = "StacksServiceError";
-	}
+  public constructor(
+    public readonly code: string,
+    message: string,
+    public readonly retryable: boolean,
+    public readonly cause?: unknown,
+  ) {
+    super(message);
+    this.name = 'StacksServiceError';
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,17 +25,17 @@ export class StacksServiceError extends Error {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type OnChainStream = {
-	sender: string;
-	recipient: string;
-	tokenContract: string | null;
-	depositAmount: bigint;
-	ratePerBlock: bigint;
-	startBlock: number;
-	endBlock: number;
-	claimedAmount: bigint;
-	isPaused: boolean;
-	isCancelled: boolean;
-	createdAt: number;
+  sender: string;
+  recipient: string;
+  tokenContract: string | null;
+  depositAmount: bigint;
+  ratePerBlock: bigint;
+  startBlock: number;
+  endBlock: number;
+  claimedAmount: bigint;
+  isPaused: boolean;
+  isCancelled: boolean;
+  createdAt: number;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,10 +44,10 @@ export type OnChainStream = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type OnChainMilestone = {
-	label: string;
-	basisPoints: number;
-	isReleased: boolean;
-	releasedAt: number | null;
+  label: string;
+  basisPoints: number;
+  isReleased: boolean;
+  releasedAt: number | null;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,14 +57,14 @@ export type OnChainMilestone = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type OnChainMilestoneStream = {
-	sender: string;
-	recipient: string;
-	arbiter: string | null;
-	totalAmount: bigint;
-	tokenContract: string | null;
-	milestones: OnChainMilestone[];
-	isCancelled: boolean;
-	createdAt: number;
+  sender: string;
+  recipient: string;
+  arbiter: string | null;
+  totalAmount: bigint;
+  tokenContract: string | null;
+  milestones: OnChainMilestone[];
+  isCancelled: boolean;
+  createdAt: number;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,114 +72,110 @@ export type OnChainMilestoneStream = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type StreamEventBase = {
-	eventType: string;
-	streamId: number | null;
-	caller: string;
-	blockHeight: number;
-	txId: string;
-	eventIndex: number;
+  eventType: string;
+  streamId: number | null;
+  caller: string;
+  blockHeight: number;
+  txId: string;
+  eventIndex: number;
 };
 
 export type StreamCreatedEvent = StreamEventBase & {
-	eventType: "stream-created";
-	streamId: number;
-	depositAmount: bigint;
-	feeAmount: bigint;
+  eventType: 'stream-created';
+  streamId: number;
+  depositAmount: bigint;
+  feeAmount: bigint;
 };
 
 export type StreamClaimedEvent = StreamEventBase & {
-	eventType: "stream-claimed";
-	streamId: number;
-	claimedAmount: bigint;
+  eventType: 'stream-claimed';
+  streamId: number;
+  claimedAmount: bigint;
 };
 
 export type StreamPausedEvent = StreamEventBase & {
-	eventType: "stream-paused";
-	streamId: number;
-	checkpointBalance: bigint;
+  eventType: 'stream-paused';
+  streamId: number;
+  checkpointBalance: bigint;
 };
 
 export type StreamResumedEvent = StreamEventBase & {
-	eventType: "stream-resumed";
-	streamId: number;
-	checkpointBalance: bigint;
+  eventType: 'stream-resumed';
+  streamId: number;
+  checkpointBalance: bigint;
 };
 
 export type StreamCancelledEvent = StreamEventBase & {
-	eventType: "stream-cancelled";
-	streamId: number;
-	recipientPaid: bigint;
-	senderRefunded: bigint;
+  eventType: 'stream-cancelled';
+  streamId: number;
+  recipientPaid: bigint;
+  senderRefunded: bigint;
 };
 
 export type SenderTransferredEvent = StreamEventBase & {
-	eventType: "sender-transferred";
-	streamId: number;
-	newSender: string;
+  eventType: 'sender-transferred';
+  streamId: number;
+  newSender: string;
 };
 
 export type FeeUpdatedEvent = StreamEventBase & {
-	eventType: "fee-updated";
-	streamId: null;
-	oldFee: number;
-	newFee: number;
+  eventType: 'fee-updated';
+  streamId: null;
+  oldFee: number;
+  newFee: number;
 };
 
 export type ProtocolPausedEvent = StreamEventBase & {
-	eventType: "protocol-paused";
-	streamId: null;
+  eventType: 'protocol-paused';
+  streamId: null;
 };
 
 export type ProtocolResumedEvent = StreamEventBase & {
-	eventType: "protocol-resumed";
-	streamId: null;
+  eventType: 'protocol-resumed';
+  streamId: null;
 };
 
 export type FeesWithdrawnEvent = StreamEventBase & {
-	eventType: "fees-withdrawn";
-	streamId: null;
-	amount: bigint;
-	recipient: string;
+  eventType: 'fees-withdrawn';
+  streamId: null;
+  amount: bigint;
+  recipient: string;
 };
 
 export type DisputeRaisedEvent = StreamEventBase & {
-	eventType: "dispute-raised";
-	streamId: number;
-	milestoneIndex: number;
+  eventType: 'dispute-raised';
+  streamId: number;
+  milestoneIndex: number;
 };
 
 export type StreamEvent =
-	| StreamCreatedEvent
-	| StreamClaimedEvent
-	| StreamPausedEvent
-	| StreamResumedEvent
-	| StreamCancelledEvent
-	| SenderTransferredEvent
-	| FeeUpdatedEvent
-	| ProtocolPausedEvent
-	| ProtocolResumedEvent
-	| FeesWithdrawnEvent
-	| DisputeRaisedEvent;
+  | StreamCreatedEvent
+  | StreamClaimedEvent
+  | StreamPausedEvent
+  | StreamResumedEvent
+  | StreamCancelledEvent
+  | SenderTransferredEvent
+  | FeeUpdatedEvent
+  | ProtocolPausedEvent
+  | ProtocolResumedEvent
+  | FeesWithdrawnEvent
+  | DisputeRaisedEvent;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pagination, Address streams, and Cache Entry Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type PaginationOptions = {
-	limit?: number;
-	offset?: number;
+  limit?: number;
+  offset?: number;
 };
 
 export type AddressStreams = {
-	sent: number[];
-	received: number[];
+  sent: number[];
+  received: number[];
 };
 
 export type CacheEntry<T> = {
-	value: T;
-	expiresAt: number;
+  value: T;
+  expiresAt: number;
 };
-
-
-
-
