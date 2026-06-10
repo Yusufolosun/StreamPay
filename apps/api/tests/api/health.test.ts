@@ -47,3 +47,33 @@ describe('API Health Endpoint', () => {
     expect(typeof res.body.uptime).toBe('number');
   });
 });
+
+describe('CORS middleware', () => {
+  it('should include CORS headers for allowed origin', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/health')
+      .set('Origin', 'http://localhost:3000')
+      .expect(200);
+
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+  });
+
+  it('should NOT include CORS headers for disallowed origin', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/health')
+      .set('Origin', 'http://evil.com')
+      .expect(200);
+
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+  });
+});
