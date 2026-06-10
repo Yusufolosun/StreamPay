@@ -95,3 +95,52 @@ describe('GET /api/milestones listing and pagination', () => {
     expect(res.body.pagination.total).toBe(1);
   });
 });
+
+describe('GET /api/milestones participant and arbiter filters', () => {
+  it('should filter milestones by participant address (sender match)', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/milestones')
+      .query({ participant: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV' })
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].sender).toBe('SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV');
+  });
+
+  it('should filter milestones by arbiter address', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/milestones')
+      .query({ arbiter: 'SP2ANPCGYA3YB7SMYQ7JBS35S88349RADBCQNJ92J' })
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].arbiter).toBe('SP2ANPCGYA3YB7SMYQ7JBS35S88349RADBCQNJ92J');
+  });
+
+  it('should return empty results for a participant not in any milestone stream', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/milestones')
+      .query({ participant: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM' })
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(0);
+  });
+});
