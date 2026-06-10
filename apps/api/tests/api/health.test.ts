@@ -1,8 +1,9 @@
 import request from 'supertest';
-import { describe, expect, it, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { loadConfig } from '../../src/config.js';
 import { MockStacksService, MockStreamIndexer } from '../../test/mocks/stacksService.js';
+import { publicRateLimiter } from '../../src/middleware/rateLimiter.js';
 
 const originalEnv = { ...process.env };
 
@@ -27,6 +28,13 @@ afterAll(() => {
     }
   }
   Object.assign(process.env, originalEnv);
+});
+
+beforeEach(() => {
+  if (publicRateLimiter && typeof publicRateLimiter.resetKey === 'function') {
+    publicRateLimiter.resetKey('::ffff:127.0.0.1');
+    publicRateLimiter.resetKey('127.0.0.1');
+  }
 });
 
 describe('API Health Endpoint', () => {
@@ -103,5 +111,43 @@ describe('Rate limiting middleware', () => {
     expect(got429).toBe(true);
     // Verify we didn't hit it on the very first request (sanity check)
     expect(totalSent).toBeGreaterThan(1);
+  });
+});
+
+describe('Standardized error handler', () => {
+  it('should return { success: false, error: { code, message }, timestamp } for thrown errors', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    // Request a non-existent stream to trigger a 404 error
+    const res = await request(app)
+      .get('/api/streams/9999')
+      .expect('Content-Type', /json/)
+      .expect(404);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBeDefined();
+    expect(typeof res.body.error.code).toBe('string');
+    expect(typeof res.body.error.message).toBe('string');
+    expect(typeof res.body.timestamp).toBe('number');
+  });
+
+  it('should return { success: false, error: { code, message } } for 400 errors', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams/invalid')
+      .expect('Content-Type', /json/)
+      .expect(400);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.code).toBe('invalid_stream_id');
+    expect(typeof res.body.error.message).toBe('string');
   });
 });
