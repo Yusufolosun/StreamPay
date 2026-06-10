@@ -111,3 +111,37 @@ describe('GET /api/streams listing and default pagination', () => {
     expect(res.body.pagination.totalPages).toBe(1);
   });
 });
+
+describe('GET /api/streams sender address filtering', () => {
+  it('should filter streams by sender address', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams')
+      .query({ sender: 'SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV' })
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(2);
+    expect(res.body.data[0].sender).toBe('SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV');
+    expect(res.body.data[1].sender).toBe('SP2C578R0AER8Q81143TFEWCWJHXGYT4AK1P4GYGV');
+  });
+
+  it('should return 400 for an invalid sender address format', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/streams')
+      .query({ sender: 'invalid-address-format' })
+      .expect(400);
+
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('invalid_sender');
+  });
+});
