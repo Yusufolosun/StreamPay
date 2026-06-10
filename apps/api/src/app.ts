@@ -14,11 +14,13 @@ import { createWebhooksRouter } from "./routes/webhooks.js";
 import { StacksService } from "./services/stacksService.js";
 import { StreamIndexer } from "./services/streamIndexer.js";
 import { setStreamIndexerForCalculator } from "./services/balanceCalculator.js";
+import { WebhookService } from "./services/webhookService.js";
 
 export const createApp = (
 	config: AppConfig,
 	stacksService?: StacksService,
 	streamIndexer?: StreamIndexer,
+	webhookService?: WebhookService,
 ): Express => {
 	const app = express();
 	app.set("json replacer", (key: string, value: any) => {
@@ -43,6 +45,11 @@ export const createApp = (
 
 	setStreamIndexerForCalculator(actualStreamIndexer);
 
+	const actualWebhookService = webhookService ?? new WebhookService();
+	actualWebhookService.init().catch((err) => {
+		console.error("Failed to initialize WebhookService:", err);
+	});
+
 	app.disable("x-powered-by");
 	app.use(helmet());
 	app.use(
@@ -55,9 +62,17 @@ export const createApp = (
 	app.use(requestLogger);
 	app.use(publicRateLimiter);
 	app.use("/health", createHealthRouter(actualStacksService, actualStreamIndexer));
+	
+	// Mount both non-prefixed and /api prefixed routes for robustness
 	app.use("/streams", createStreamsRouter(actualStreamIndexer));
+	app.use("/api/streams", createStreamsRouter(actualStreamIndexer));
+	
 	app.use("/milestones", createMilestonesRouter());
-	app.use("/webhooks", createWebhooksRouter());
+	app.use("/api/milestones", createMilestonesRouter());
+	
+	app.use("/webhooks", createWebhooksRouter(actualWebhookService));
+	app.use("/api/webhooks", createWebhooksRouter(actualWebhookService));
+
 	app.use(
 		createErrorHandler({
 			isProduction: config.nodeEnv === "production",
