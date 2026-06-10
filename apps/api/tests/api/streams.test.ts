@@ -274,3 +274,24 @@ describe('GET /api/streams/:id/balance projection', () => {
     expect(res.body.error.code).toBe('stream_not_found');
   });
 });
+
+describe('GET /api/stats global aggregate', () => {
+  it('should return 200 with the global aggregate statistics', async () => {
+    const stacksService = new MockStacksService() as any;
+    const streamIndexer = new MockStreamIndexer() as any;
+    const config = loadConfig();
+    const app = createApp(config, stacksService, streamIndexer);
+
+    const res = await request(app)
+      .get('/api/stats')
+      .expect('Content-Type', /json/)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.totalStreams).toBe(3);
+    expect(res.body.data.activeStreams).toBe(1); // active: 1, paused: 1, cancelled: 1
+    expect(res.body.data.totalVolume).toBe('17000'); // 10000 + 5000 + 2000
+    expect(res.body.data.isProtocolPaused).toBe(false);
+  });
+});
