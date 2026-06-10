@@ -11,6 +11,7 @@ import { createHealthRouter } from "./routes/health.js";
 import { createMilestonesRouter } from "./routes/milestones.js";
 import { createStreamsRouter } from "./routes/streams.js";
 import { createWebhooksRouter } from "./routes/webhooks.js";
+import { createStatsRouter } from "./routes/stats.js";
 import { StacksService } from "./services/stacksService.js";
 import { StreamIndexer } from "./services/streamIndexer.js";
 import { setStreamIndexerForCalculator } from "./services/balanceCalculator.js";
@@ -69,6 +70,9 @@ export const createApp = (
 	
 	app.use("/milestones", createMilestonesRouter());
 	app.use("/api/milestones", createMilestonesRouter());
+	
+	app.use("/stats", createStatsRouter(actualStreamIndexer));
+	app.use("/api/stats", createStatsRouter(actualStreamIndexer));
 	
 	app.use("/webhooks", createWebhooksRouter(actualWebhookService));
 	app.use("/api/webhooks", createWebhooksRouter(actualWebhookService));
