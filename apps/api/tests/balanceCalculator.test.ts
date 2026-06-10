@@ -12,7 +12,9 @@ import {
 	calculateMilestoneAmounts,
 	getLiveBalanceProjection,
 	setStreamIndexerForCalculator,
+	calculateStreamProgress,
 } from "../src/services/balanceCalculator.js";
+
 
 describe("balanceCalculator utilities", () => {
 	const currentBlock = 1000;
@@ -227,4 +229,63 @@ describe("balanceCalculator utilities", () => {
 			expect(projected).toBe(91000n);
 		});
 	});
+
+	describe("calculateStreamProgress", () => {
+		const mockStream: StreamIndexEntry = {
+			id: 1,
+			sender: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
+			recipient: "ST2ST8J2J5370K6KKR0WGPPH8AHRW8XDXW2M5W16B",
+			tokenContract: "",
+			depositAmount: 100000n, // 100,000
+			ratePerBlock: 10n,
+			startBlock: 100,
+			endBlock: 10100, // 10,000 blocks duration
+			claimedAmount: 2000n,
+			pausedAtBlock: null,
+			cancelledAtBlock: null,
+			isPaused: false,
+			isCancelled: false,
+			createdAt: 100,
+		};
+
+		it("calculates progress details correctly mid-stream", () => {
+			// At block 5100:
+			// totalDuration = 10000
+			// blocksElapsed = 5000 (from 100 to 5100)
+			// blocksRemaining = 5000 (from 5100 to 10100)
+			// percentComplete = 50
+			// streamedAmount = 5000 * 10 = 50000
+			// totalClaimed = 2000
+			// totalUnclaimed = 50000 - 2000 = 48000
+			const progress = calculateStreamProgress(mockStream, 5100);
+
+			expect(progress.percentComplete).toBe(50);
+			expect(progress.blocksElapsed).toBe(5000);
+			expect(progress.blocksRemaining).toBe(5000);
+			expect(progress.totalStreamed).toBe(50000n);
+			expect(progress.totalClaimed).toBe(2000n);
+			expect(progress.totalUnclaimed).toBe(48000n);
+			expect(progress.estimatedEndDate.getTime()).toBeGreaterThan(Date.now());
+		});
+
+		it("caps progress when stream is finished", () => {
+			// At block 11000 (past endBlock 10100):
+			// totalDuration = 10000
+			// blocksElapsed = 10000
+			// blocksRemaining = 0
+			// percentComplete = 100
+			// streamedAmount = 100000 (depositAmount)
+			// totalClaimed = 2000
+			// totalUnclaimed = 100000 - 2000 = 98000
+			const progress = calculateStreamProgress(mockStream, 11000);
+
+			expect(progress.percentComplete).toBe(100);
+			expect(progress.blocksElapsed).toBe(10000);
+			expect(progress.blocksRemaining).toBe(0);
+			expect(progress.totalStreamed).toBe(100000n);
+			expect(progress.totalClaimed).toBe(2000n);
+			expect(progress.totalUnclaimed).toBe(98000n);
+		});
+	});
 });
+
