@@ -5,13 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { WalletConnect } from "./WalletConnect";
 import { useBlockHeight } from "../hooks/useBlockHeight";
-import { Database, Send, Inbox, Landmark, Compass } from "lucide-react";
+import { Database, Send, Inbox, Landmark, Compass, LayoutDashboard } from "lucide-react";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const blockHeight = useBlockHeight();
 
   const navLinks = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Send", href: "/send", icon: Send },
     { name: "Receive", href: "/receive", icon: Inbox },
     { name: "Milestones", href: "/milestones", icon: Landmark },
