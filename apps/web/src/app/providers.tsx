@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastProvider } from "../components/Toast";
 import { AppConfig, UserSession, authenticate } from "@stacks/connect";
 import { createNetwork } from "@stacks/network";
 
@@ -140,7 +141,9 @@ export const useStreamPay = () => {
 export const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <StreamPayProvider>{children}</StreamPayProvider>
+      <StreamPayProvider>
+        <ToastProvider>{children}</ToastProvider>
+      </StreamPayProvider>
     </QueryClientProvider>
   );
 };
