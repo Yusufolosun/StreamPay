@@ -190,3 +190,34 @@ export function buildDisputeMilestone(
     functionArgs: [uintCV(milestoneStreamId), uintCV(milestoneIndex)],
   };
 }
+
+export function buildResolveDispute(
+  milestoneStreamId: number,
+  milestoneIndex: number,
+  releaseToRecipient: boolean,
+): ContractCallTransaction {
+  const { contractAddress, contractName } = splitContractId(STREAM_CONDITIONS);
+  return {
+    contractAddress,
+    contractName,
+    functionName: "resolve-dispute",
+    functionArgs: [
+      uintCV(milestoneStreamId),
+      uintCV(milestoneIndex),
+      boolCV(releaseToRecipient),
+    ],
+  };
+}
+
+export function buildCancelMilestoneStream(
+  milestoneStreamId: number,
+): ContractCallTransaction {
+  const { contractAddress, contractName } = splitContractId(STREAM_CONDITIONS);
+  return {
+    contractAddress,
+    contractName,
+    functionName: "cancel-milestone-stream",
+    functionArgs: [uintCV(milestoneStreamId)],
+  };
+}
+
