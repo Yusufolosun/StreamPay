@@ -24,6 +24,7 @@ export const createStatsRouter = (streamIndexer?: StreamIndexer): Router => {
           activeStreams: streamIndexer.getActiveStreamCount(),
           totalVolume: streamIndexer.getTotalVolume().toString(),
           isProtocolPaused: streamIndexer.getIsProtocolPaused(),
+          blockHeight: streamIndexer.getCursor(),
         },
         timestamp: Date.now(),
       });
