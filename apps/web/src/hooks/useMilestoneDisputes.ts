@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { callReadOnlyFunction, uintCV, cvToJSON } from "@stacks/transactions";
+import { fetchCallReadOnlyFunction, uintCV, cvToJSON } from "@stacks/transactions";
 import { useStreamPay } from "../app/providers";
 
 const STREAM_CONDITIONS =
@@ -20,7 +20,7 @@ export function useMilestoneDisputes(streamId: number | undefined, milestonesCou
 
       for (let i = 0; i < milestonesCount; i++) {
         try {
-          const responseCV = await callReadOnlyFunction({
+          const responseCV = await fetchCallReadOnlyFunction({
             contractAddress,
             contractName,
             functionName: "get-dispute",

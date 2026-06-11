@@ -281,6 +281,7 @@ describe('Streams, Milestones and Stats Routes', () => {
         activeStreams: 1,
         totalVolume: '6000',
         isProtocolPaused: false,
+        blockHeight: 120,
       });
     });
   });

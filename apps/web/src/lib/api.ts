@@ -38,6 +38,7 @@ export interface StreamView {
   cancelledAtBlock: number | null;
   status: "active" | "paused" | "cancelled" | "completed";
   balance: StreamBalanceSnapshot;
+  createdAt: number;
 }
 
 export interface StreamHistoryEvent {

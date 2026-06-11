@@ -123,6 +123,8 @@ export default function StreamDetailPage({ params }: StreamDetailPageProps) {
   const ratePerBlock = Number(stream.ratePerBlock || "0");
   const ratePerDay = ratePerBlock * 144;
   const progressPercent = funded > 0 ? Math.min(100, (claimed / funded) * 100) : 0;
+  const totalBlocks = ratePerBlock > 0 ? funded / ratePerBlock : 0;
+  const endBlock = Math.floor(stream.startBlock + totalBlocks);
 
   const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     active: { label: "Active", color: "bg-green-500/10 text-green-400 border-green-500/20" },
@@ -229,7 +231,7 @@ export default function StreamDetailPage({ params }: StreamDetailPageProps) {
               </div>
               <div className="space-y-1 border-t border-white/5 pt-3">
                 <span className="text-xs text-text-secondary">End Block</span>
-                <p className="font-mono font-semibold text-white">Block #{stream.endBlock}</p>
+                <p className="font-mono font-semibold text-white">Block #{endBlock}</p>
               </div>
               <div className="space-y-1 border-t border-white/5 pt-3">
                 <span className="text-xs text-text-secondary">Created Block Time</span>

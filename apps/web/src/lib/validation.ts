@@ -32,3 +32,19 @@ export function toMicroSTX(stx: number | string): bigint {
   if (isNaN(parsed) || parsed < 0) return 0n;
   return BigInt(Math.floor(parsed * 1_000_000));
 }
+
+/**
+ * Formats a timestamp (in seconds or milliseconds) to a human-readable date.
+ */
+export function formatDate(timestamp: number | string | Date): string {
+  if (!timestamp) return "N/A";
+  const date = new Date(typeof timestamp === "number" && timestamp < 1e11 ? timestamp * 1000 : timestamp);
+  if (isNaN(date.getTime())) return "Invalid Date";
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

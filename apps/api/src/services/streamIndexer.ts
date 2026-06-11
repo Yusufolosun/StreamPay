@@ -15,6 +15,7 @@ export type IndexedStreamRecord = StreamBalanceInput & {
   sender: string;
   recipient: string;
   tokenContract: string;
+  createdAt: number;
 };
 
 export type IndexedStreamView = IndexedStreamRecord & {
@@ -566,6 +567,7 @@ export class StreamIndexer {
       withdrawnAmount: entry.claimedAmount,
       pausedAtBlock: entry.pausedAtBlock,
       cancelledAtBlock: entry.cancelledAtBlock,
+      createdAt: entry.createdAt,
     };
 
     return summarizeStream(record);
@@ -587,6 +589,7 @@ export class StreamIndexer {
         withdrawnAmount: entry.claimedAmount,
         pausedAtBlock: entry.pausedAtBlock,
         cancelledAtBlock: entry.cancelledAtBlock,
+        createdAt: entry.createdAt,
       };
       return summarizeStream(record);
     });

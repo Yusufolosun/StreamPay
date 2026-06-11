@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Search, Filter, ArrowLeft, ArrowRight, Eye, RefreshCw, Layers } from "lucide-react";
+import { Search, Filter, ArrowLeft, ArrowRight, Eye, RefreshCw, Layers, Loader2 } from "lucide-react";
 import { fetchStreams } from "../../lib/api";
 import { truncateAddress, formatSTX } from "../../lib/validation";
 import { useBnsName } from "../../hooks/useBnsName";
