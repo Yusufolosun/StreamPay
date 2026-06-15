@@ -20,8 +20,8 @@ import {
 import { useWallet } from "../../../hooks/useWallet";
 import { useToast } from "../../../components/Toast";
 import { fetchMilestoneStream } from "../../../lib/api";
-import { truncateAddress, formatSTX, formatDate } from "../../../lib/validation";
-import { useBnsName } from "../../../hooks/useBnsName";
+import { formatSTX, formatDate } from "../../../lib/validation";
+import { AddressDisplay } from "../../../components/AddressDisplay";
 import { useContractCall } from "../../../hooks/useContractCall";
 import { useMilestoneDisputes } from "../../../hooks/useMilestoneDisputes";
 import {
@@ -61,9 +61,7 @@ export default function MilestoneDetailPage({ params }: MilestoneDetailPageProps
     stream?.milestones.length || 0
   );
 
-  const senderBns = useBnsName(stream?.sender);
-  const recipientBns = useBnsName(stream?.recipient);
-  const arbiterBns = useBnsName(stream?.arbiter);
+
 
   const tokenSymbol = stream?.tokenContract?.toLowerCase().includes("sbtc") ? "sBTC" : "STX";
 
@@ -196,25 +194,25 @@ export default function MilestoneDetailPage({ params }: MilestoneDetailPageProps
                 <span className="text-[10px] uppercase font-bold tracking-wider text-text-secondary block">
                   Client (Sender)
                 </span>
-                <span className="font-mono text-xs text-white block mt-1 font-semibold truncate" title={stream.sender}>
-                  {senderBns.data || truncateAddress(stream.sender)}
-                </span>
+                <div className="font-mono text-xs text-white mt-1 font-semibold">
+                  <AddressDisplay address={stream.sender} />
+                </div>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-text-secondary block">
                   Freelancer (Recipient)
                 </span>
-                <span className="font-mono text-xs text-white block mt-1 font-semibold truncate" title={stream.recipient}>
-                  {recipientBns.data || truncateAddress(stream.recipient)}
-                </span>
+                <div className="font-mono text-xs text-white mt-1 font-semibold">
+                  <AddressDisplay address={stream.recipient} />
+                </div>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-text-secondary block">
                   Designated Arbiter
                 </span>
-                <span className="font-mono text-xs text-white block mt-1 font-semibold truncate" title={stream.arbiter || ""}>
-                  {stream.arbiter ? (arbiterBns.data || truncateAddress(stream.arbiter)) : "None"}
-                </span>
+                <div className="font-mono text-xs text-white mt-1 font-semibold">
+                  {stream.arbiter ? <AddressDisplay address={stream.arbiter} /> : "None"}
+                </div>
               </div>
             </div>
 
