@@ -160,6 +160,10 @@ class ClarityDeserializer {
         return null;
       case 0x0a:
         return this.deserialize();
+      case 0x07: // response-ok
+        return this.deserialize();
+      case 0x08: // response-err
+        throw new Error(`Clarity response-err: ${JSON.stringify(this.deserialize())}`);
       case 0x0b: {
         const len = this.readUint32();
         const list: any[] = [];
