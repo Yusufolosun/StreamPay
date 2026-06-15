@@ -295,14 +295,14 @@ export default function AnalyticsPage() {
       const isSender = s.sender === address;
       const counterparty = isSender ? s.recipient : s.sender;
       const token = s.tokenContract?.toLowerCase().includes("sbtc") ? "sBTC" : "STX";
-      const amount = formatSTX(s.fundedAmount);
-      const rate = formatSTX(s.ratePerBlock);
+      const amount = formatSTX(Number(s.fundedAmount || 0));
+      const rate = formatSTX(Number(s.ratePerBlock || 0));
       const start = s.startBlock;
       const rateNum = Number(s.ratePerBlock || 0);
       const duration = rateNum > 0 ? Number(s.fundedAmount || 0) / rateNum : 0;
       const end = s.startBlock + Math.floor(duration);
       const status = s.status;
-      const claimed = formatSTX(s.balance?.withdrawnAmount || 0);
+      const claimed = formatSTX(Number(s.balance?.withdrawnAmount || 0));
 
       return [
         s.id,
@@ -633,7 +633,7 @@ export default function AnalyticsPage() {
                   {filteredTimeline.map((s) => {
                     const isSender = s.sender === address;
                     const date = s.createdAt ? new Date(s.createdAt * 1000).toLocaleDateString() : "N/A";
-                    const amt = formatSTX(s.fundedAmount);
+                    const amt = formatSTX(Number(s.fundedAmount || 0));
                     const tokenSymbol = s.tokenContract?.toLowerCase().includes("sbtc") ? "sBTC" : "STX";
 
                     return (
