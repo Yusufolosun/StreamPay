@@ -202,3 +202,16 @@ export async function fetchReleasableMilestones(id: number): Promise<number[]> {
 export async function fetchProtocolStats(): Promise<ProtocolStats> {
   return fetchJson<ProtocolStats>(`${API_URL}/api/stats`);
 }
+
+// ── Stream NFT Endpoints ───────────────────────────────────────────────
+
+export interface StreamNftInfo {
+  tokenId: number;
+  streamId: number;
+  receiptType: "SENDER" | "RECIPIENT";
+  mintedAt: number;
+}
+
+export async function fetchNfts(owner: string): Promise<StreamNftInfo[]> {
+  return fetchJson<StreamNftInfo[]>(`${API_URL}/api/nfts?owner=${owner}`);
+}
