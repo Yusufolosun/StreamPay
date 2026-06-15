@@ -36,3 +36,14 @@ export function useRecipientStreams(address: string | null) {
     enabled: !!address,
   });
 }
+
+export function useStream(streamId: number | null) {
+  return useQuery({
+    queryKey: ["stream", streamId],
+    queryFn: async () => {
+      if (streamId === null || isNaN(streamId)) return null;
+      return fetchStream(streamId);
+    },
+    enabled: streamId !== null && !isNaN(streamId),
+  });
+}
