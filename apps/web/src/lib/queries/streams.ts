@@ -143,3 +143,51 @@ export function useClaimStream() {
     },
   });
 }
+
+export function usePauseStream() {
+  const queryClient = useQueryClient();
+  const { network } = useStreamPay();
+
+  return useMutation({
+    mutationFn: async ({ streamId }: { streamId: number }) => {
+      const tx = buildPauseStream(streamId);
+      return new Promise<string>((resolve, reject) => {
+        openContractCall({
+          ...tx,
+          network,
+          onFinish: (data) => {
+            const txId = data?.txId || data?.txid || "";
+            resolve(txId);
+          },
+          onCancel: () => {
+            reject(new Error("Transaction cancelled by user"));
+          },
+        });
+      });
+    },
+    onMutate: async ({ streamId }) => {
+      await queryClient.cancelQueries({ queryKey: ["stream", streamId] });
+      const previousStream = queryClient.getQueryData(["stream", streamId]);
+      queryClient.setQueryData(["stream", streamId], (old: any) => {
+        if (!old || !old.stream) return old;
+        return {
+          ...old,
+          stream: {
+            ...old.stream,
+            status: "paused",
+            pausedAtBlock: old.stream.currentBlock || 1,
+          },
+        };
+      });
+      return { previousStream };
+    },
+    onError: (err, { streamId }, context: any) => {
+      if (context?.previousStream) {
+        queryClient.setQueryData(["stream", streamId], context.previousStream);
+      }
+    },
+    onSettled: (data, error, { streamId }) => {
+      queryClient.invalidateQueries({ queryKey: ["stream", streamId] });
+    },
+  });
+}
