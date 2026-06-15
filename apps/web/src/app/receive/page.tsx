@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Inbox,
   Download,
@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { useWallet } from "../../hooks/useWallet";
 import { useToast } from "../../components/Toast";
-import { fetchStreams, fetchMilestoneStreams } from "../../lib/api";
+import { useRecipientStreams } from "../../lib/queries/streams";
+import { useMilestonesByAddress } from "../../lib/queries/milestones";
 import { formatSTX } from "../../lib/validation";
 import { buildClaimStream } from "../../lib/transactions";
 import { useContractCall } from "../../hooks/useContractCall";
@@ -41,24 +42,15 @@ export default function ReceivePage() {
   const { execute: executeClaim, isLoading: isClaimingMultiple } = useContractCall();
 
   // Fetch standard streams where user is recipient
-  const {
-    data: incomingStreams,
-    isLoading: isStreamsLoading,
-    refetch: refetchIncomingStreams,
-  } = useQuery({
-    queryKey: ["recipientStreams", address],
-    queryFn: () => fetchStreams({ recipient: address || "" }).then((res) => res.data || []),
-    enabled: !!address,
-    refetchInterval: 30000,
-  });
+  const recipientStreamsQuery = useRecipientStreams(address);
+  const incomingStreams = recipientStreamsQuery.data?.data || [];
+  const isStreamsLoading = recipientStreamsQuery.isLoading;
+  const refetchIncomingStreams = recipientStreamsQuery.refetch;
 
   // Fetch milestone streams where user is recipient to know count (for tab count badge)
-  const { data: milestoneStreams, refetch: refetchMilestones } = useQuery({
-    queryKey: ["recipientMilestones", address],
-    queryFn: () => fetchMilestoneStreams({ recipient: address || "" }).then((res) => res.data || []),
-    enabled: !!address,
-    refetchInterval: 30000,
-  });
+  const milestonesQuery = useMilestonesByAddress(address, "recipient");
+  const milestoneStreams = milestonesQuery.data?.data || [];
+  const refetchMilestones = milestonesQuery.refetch;
 
   // Calculate live incrementing total claimable STX balance across all incoming active/paused streams
   useEffect(() => {
