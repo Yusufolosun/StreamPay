@@ -52,6 +52,15 @@ export default function ReceivePage() {
   const milestoneStreams = milestonesQuery.data?.data || [];
   const refetchMilestones = milestonesQuery.refetch;
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport client-side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMobile(window.innerWidth < 640);
+    }
+  }, []);
+
   // Calculate live incrementing total claimable STX balance across all incoming active/paused streams
   useEffect(() => {
     if (!incomingStreams || incomingStreams.length === 0) {
@@ -75,6 +84,9 @@ export default function ReceivePage() {
 
     if (activeStxStreams.length === 0) return;
 
+    const fps = isMobile ? 30 : 60;
+    const intervalMs = 1000 / fps;
+
     const startTime = Date.now();
     const interval = setInterval(() => {
       const secondsElapsed = (Date.now() - startTime) / 1000;
@@ -90,10 +102,10 @@ export default function ReceivePage() {
         extra += Math.min(projectedExtra, maxExtra);
       });
       setTotalLiveClaimable(initial + extra);
-    }, 1000);
+    }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [incomingStreams]);
+  }, [incomingStreams, isMobile]);
 
   // WebSocket implementation invalidating query caches on updates
   useEffect(() => {
@@ -280,8 +292,8 @@ export default function ReceivePage() {
           </div>
 
           <div className="my-2 z-10">
-            <h1 className="font-mono text-4xl sm:text-5xl font-black tracking-tight text-white tabular-nums">
-              {formatSTX(totalLiveClaimable, 6)} <span className="text-orange text-2xl sm:text-3xl">STX</span>
+            <h1 className="font-mono text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white tabular-nums">
+              {formatSTX(totalLiveClaimable, 6)} <span className="text-orange text-xl sm:text-2xl lg:text-3xl">STX</span>
             </h1>
           </div>
 
@@ -291,7 +303,8 @@ export default function ReceivePage() {
               <button
                 onClick={handleClaimAll}
                 disabled={isClaimingMultiple}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-gradient-to-r from-orange to-violet text-white font-semibold text-sm hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange/10 w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-gradient-to-r from-orange to-violet text-white font-semibold text-sm hover:opacity-90 active:scale-95 duration-100 transition-transform disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange/10 w-full sm:w-auto"
+                style={{ minHeight: 44 }}
               >
                 {claimProgress ? (
                   <>
