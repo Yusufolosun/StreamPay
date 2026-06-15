@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Search, Filter, ArrowLeft, ArrowRight, Eye, RefreshCw, Layers, Loader2 } from "lucide-react";
 import { useExplorerStreams } from "../../lib/queries/streams";
-import { truncateAddress, formatSTX } from "../../lib/validation";
-import { useBnsName } from "../../hooks/useBnsName";
+import { formatSTX } from "../../lib/validation";
+import { AddressDisplay } from "../../components/AddressDisplay";
 import { ProtocolStats } from "../../components/explorer/ProtocolStats";
 
 export default function ExplorerPage() {
@@ -319,10 +319,5 @@ export default function ExplorerPage() {
 
 // Sub-component to resolve and display BNS name inside cells
 function ParticipantCell({ address }: { address: string }) {
-  const { data: bnsName } = useBnsName(address);
-  return (
-    <span title={address}>
-      {bnsName || truncateAddress(address)}
-    </span>
-  );
+  return <AddressDisplay address={address} />;
 }
