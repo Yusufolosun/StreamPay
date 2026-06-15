@@ -19,8 +19,8 @@ import {
   CornerDownRight,
 } from "lucide-react";
 import { fetchStream, fetchStreamHistory } from "../../../../lib/api";
-import { truncateAddress, formatSTX, formatDate } from "../../../../lib/validation";
-import { useBnsName } from "../../../../hooks/useBnsName";
+import { formatSTX, formatDate } from "../../../../lib/validation";
+import { AddressDisplay } from "../../../../components/AddressDisplay";
 
 interface StreamDetailPageProps {
   params: {
@@ -52,8 +52,7 @@ export default function StreamDetailPage({ params }: StreamDetailPageProps) {
   const stream = streamData?.stream;
   const initialClaimable = Number(streamData?.claimableBalance || "0");
 
-  const senderBns = useBnsName(stream?.sender);
-  const recipientBns = useBnsName(stream?.recipient);
+
 
   const tokenSymbol = stream?.tokenContract?.toLowerCase().includes("sbtc") ? "sBTC" : "STX";
 
@@ -215,15 +214,15 @@ export default function StreamDetailPage({ params }: StreamDetailPageProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
               <div className="space-y-1">
                 <span className="text-xs text-text-secondary">Sender Address</span>
-                <p className="font-mono text-white text-xs bg-white/2 border border-white/5 p-2 rounded-lg break-all select-all">
-                  {senderBns.data || stream.sender}
-                </p>
+                <div className="font-mono text-white text-xs bg-white/2 border border-white/5 p-2 rounded-lg break-all">
+                  <AddressDisplay address={stream.sender} />
+                </div>
               </div>
               <div className="space-y-1">
                 <span className="text-xs text-text-secondary">Recipient Address</span>
-                <p className="font-mono text-white text-xs bg-white/2 border border-white/5 p-2 rounded-lg break-all select-all">
-                  {recipientBns.data || stream.recipient}
-                </p>
+                <div className="font-mono text-white text-xs bg-white/2 border border-white/5 p-2 rounded-lg break-all">
+                  <AddressDisplay address={stream.recipient} />
+                </div>
               </div>
               <div className="space-y-1 border-t border-white/5 pt-3">
                 <span className="text-xs text-text-secondary">Start Block</span>
