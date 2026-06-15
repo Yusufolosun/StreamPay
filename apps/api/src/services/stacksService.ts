@@ -436,6 +436,7 @@ export class StacksService {
     private readonly apiKey: string | null = null,
     private readonly contractStreamCore: string = '',
     private readonly contractStreamConditions: string = '',
+    private readonly contractStreamNFT: string = '',
   ) {}
 
   private async fetchJson<T>(path: string, options: RequestInit = {}): Promise<T> {
