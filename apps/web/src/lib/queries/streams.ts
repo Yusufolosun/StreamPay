@@ -191,3 +191,30 @@ export function usePauseStream() {
     },
   });
 }
+
+export function useResumeStream() {
+  const queryClient = useQueryClient();
+  const { network } = useStreamPay();
+
+  return useMutation({
+    mutationFn: async ({ streamId }: { streamId: number }) => {
+      const tx = buildResumeStream(streamId);
+      return new Promise<string>((resolve, reject) => {
+        openContractCall({
+          ...tx,
+          network,
+          onFinish: (data) => {
+            const txId = data?.txId || data?.txid || "";
+            resolve(txId);
+          },
+          onCancel: () => {
+            reject(new Error("Transaction cancelled by user"));
+          },
+        });
+      });
+    },
+    onSuccess: (data, { streamId }) => {
+      queryClient.invalidateQueries({ queryKey: ["stream", streamId] });
+    },
+  });
+}
