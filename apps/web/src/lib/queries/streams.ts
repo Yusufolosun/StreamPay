@@ -24,3 +24,15 @@ export function useSenderStreams(address: string | null) {
     enabled: !!address,
   });
 }
+
+export function useRecipientStreams(address: string | null) {
+  return useQuery({
+    queryKey: ["recipient-streams", address],
+    queryFn: async () => {
+      if (!address) return { data: [] as StreamView[], pagination: undefined };
+      const res = await fetchStreams({ recipient: address, limit: 100 });
+      return res;
+    },
+    enabled: !!address,
+  });
+}
