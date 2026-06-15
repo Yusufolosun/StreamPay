@@ -2,10 +2,10 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchMilestoneStream, fetchMilestoneStreams } from "../api";
+import type { MilestoneStream } from "../api";
 import { openContractCall } from "@stacks/connect";
 import { useStreamPay } from "../../app/providers";
 import { buildReleaseMilestone } from "../transactions";
-import type { MilestoneStream } from "../types";
 
 export function useMilestoneStream(id: number | null) {
   return useQuery({
@@ -42,7 +42,7 @@ export function useReleaseMilestone() {
           ...tx,
           network,
           onFinish: (data) => {
-            const txId = data?.txId || data?.txid || "";
+            const txId = data?.txId || "";
             resolve(txId);
           },
           onCancel: () => {

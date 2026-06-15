@@ -10,6 +10,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchStreams, fetchStream, fetchStreamHistory, fetchStreamBalance } from "../api";
+import type { StreamView } from "../api";
 import { openContractCall } from "@stacks/connect";
 import { useStreamPay } from "../../app/providers";
 import {
@@ -19,7 +20,7 @@ import {
   buildResumeStream,
   buildCancelStream,
 } from "../transactions";
-import type { StreamView, CreateStreamParams } from "../types";
+import type { CreateStreamParams } from "../types";
 
 export function useSenderStreams(address: string | null) {
   return useQuery({
@@ -105,7 +106,7 @@ export function useCreateStream() {
           ...tx,
           network,
           onFinish: (data) => {
-            const txId = data?.txId || data?.txid || "";
+            const txId = data?.txId || "";
             resolve(txId);
           },
           onCancel: () => {
@@ -132,7 +133,7 @@ export function useClaimStream() {
           ...tx,
           network,
           onFinish: (data) => {
-            const txId = data?.txId || data?.txid || "";
+            const txId = data?.txId || "";
             resolve(txId);
           },
           onCancel: () => {
@@ -178,7 +179,7 @@ export function usePauseStream() {
           ...tx,
           network,
           onFinish: (data) => {
-            const txId = data?.txId || data?.txid || "";
+            const txId = data?.txId || "";
             resolve(txId);
           },
           onCancel: () => {
@@ -226,7 +227,7 @@ export function useResumeStream() {
           ...tx,
           network,
           onFinish: (data) => {
-            const txId = data?.txId || data?.txid || "";
+            const txId = data?.txId || "";
             resolve(txId);
           },
           onCancel: () => {
@@ -253,7 +254,7 @@ export function useCancelStream() {
           ...tx,
           network,
           onFinish: (data) => {
-            const txId = data?.txId || data?.txid || "";
+            const txId = data?.txId || "";
             resolve(txId);
           },
           onCancel: () => {

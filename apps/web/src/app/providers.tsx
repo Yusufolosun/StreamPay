@@ -2,10 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../components/Toast";
 import { AppConfig, UserSession, authenticate } from "@stacks/connect";
 import { createNetwork } from "@stacks/network";
-
 import { QueryCache, MutationCache } from "@tanstack/react-query";
 import { ToastProvider, useToast } from "../components/Toast";
 
