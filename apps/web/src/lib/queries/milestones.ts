@@ -17,3 +17,15 @@ export function useMilestoneStream(id: number | null) {
     enabled: id !== null && !isNaN(id),
   });
 }
+
+export function useMilestonesByAddress(address: string | null, role: "sender" | "recipient") {
+  return useQuery({
+    queryKey: ["milestones-by-address", address, role],
+    queryFn: async () => {
+      if (!address) return { data: [] as MilestoneStream[], pagination: undefined };
+      const params = role === "sender" ? { sender: address } : { recipient: address };
+      return fetchMilestoneStreams(params);
+    },
+    enabled: !!address,
+  });
+}
