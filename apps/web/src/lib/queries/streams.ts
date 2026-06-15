@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * Tradeoffs of Optimistic Updates:
+ * Optimistic updates immediately update the React Query cache before on-chain confirmation.
+ * This yields an instant, responsive UI experience for actions like pause, claim, and cancel.
+ * However, if the Stacks wallet transaction is cancelled or fails, the UI might temporarily
+ * display incorrect states until the next automatic refetch or mutation rollback corrects it.
+ */
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchStreams, fetchStream, fetchStreamHistory, fetchStreamBalance } from "../api";
 import { openContractCall } from "@stacks/connect";
