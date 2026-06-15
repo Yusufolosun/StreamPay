@@ -9,8 +9,10 @@ import { useSenderStreams, useRecipientStreams } from "../../lib/queries/streams
 import { useContractCall } from "../../hooks/useContractCall";
 import { useToast } from "../../components/Toast";
 import { buildStreamNFTTransfer } from "../../lib/transactions";
-import { truncateAddress, formatSTX, isValidStacksAddress } from "../../lib/validation";
+import { formatSTX, isValidStacksAddress } from "../../lib/validation";
 import { BLOCKS_PER_DAY } from "../../lib/constants";
+import { AddressDisplay } from "../../components/AddressDisplay";
+import { AddressInput } from "../../components/AddressInput";
 
 export default function NftsPage() {
   const { address, isConnected, connect } = useWallet();
@@ -190,11 +192,11 @@ export default function NftsPage() {
                   {selectedNft.receiptType}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span>Counterparty:</span>
-                <span className="font-mono text-white">
-                  {selectedNft.counterparty ? truncateAddress(selectedNft.counterparty) : "N/A"}
-                </span>
+                <div className="font-mono text-white text-xs">
+                  {selectedNft.counterparty ? <AddressDisplay address={selectedNft.counterparty} /> : "N/A"}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span>Remaining Value:</span>
@@ -208,18 +210,12 @@ export default function NftsPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
                   Recipient Stacks Address
                 </label>
-                <input
-                  type="text"
+                <AddressInput
+                  id="recipient"
                   value={recipientInput}
-                  onChange={(e) => setRecipientInput(e.target.value)}
-                  onBlur={() => setRecipientTouched(true)}
-                  placeholder="SP... or ST..."
-                  className="w-full bg-dark-bg border border-border rounded-lg px-3 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:ring-1 focus:ring-orange/50 transition-all font-mono text-sm"
-                  style={{ minHeight: 44 }}
+                  onChange={setRecipientInput}
+                  placeholder="SP... or name.btc"
                 />
-                {recipientTouched && recipientInput && !recipientValid && (
-                  <p className="text-xs text-red-400 mt-1.5">Enter a valid Stacks address (SP... or ST...)</p>
-                )}
               </div>
             </div>
 
@@ -348,9 +344,9 @@ function NftCard({ nft, stream, accentColor, onTransfer }: NftCardProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-text-secondary">Counterparty:</span>
-            <span className="font-mono text-white text-xs font-semibold" title={counterparty || "N/A"}>
-              {counterparty ? truncateAddress(counterparty) : "N/A"}
-            </span>
+            <div className="font-mono text-white text-xs font-semibold">
+              {counterparty ? <AddressDisplay address={counterparty} /> : "N/A"}
+            </div>
           </div>
 
           <div className="flex items-center justify-between text-xs">
