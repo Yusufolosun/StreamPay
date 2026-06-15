@@ -766,6 +766,63 @@ export class StacksService {
     return events;
   }
 
+  public async getNftsByOwner(owner: string): Promise<Array<{
+    tokenId: number;
+    streamId: number;
+    receiptType: 'SENDER' | 'RECIPIENT';
+    mintedAt: number;
+  }>> {
+    if (!this.contractStreamNFT) return [];
+
+    const [contractAddress, contractName] = this.contractStreamNFT.split('.');
+
+    let lastTokenId = 0;
+    try {
+      const lastTokenIdHex = await this.callReadOnly(contractAddress, contractName, 'get-last-token-id', []);
+      lastTokenId = Number(deserializeClarityHex(lastTokenIdHex));
+    } catch (err) {
+      console.error('Failed to get last token ID:', err);
+      return [];
+    }
+
+    if (lastTokenId === 0) return [];
+
+    const nfts: Array<{
+      tokenId: number;
+      streamId: number;
+      receiptType: 'SENDER' | 'RECIPIENT';
+      mintedAt: number;
+    }> = [];
+
+    const tokenIds = Array.from({ length: lastTokenId }, (_, i) => i + 1);
+
+    const checkToken = async (tokenId: number) => {
+      try {
+        const ownerHex = await this.callReadOnly(contractAddress, contractName, 'get-owner', [serializeUint(tokenId)]);
+        const tokenOwner = deserializeClarityHex(ownerHex);
+
+        if (tokenOwner && tokenOwner.toLowerCase() === owner.toLowerCase()) {
+          const metadataHex = await this.callReadOnly(contractAddress, contractName, 'get-stream-for-token', [serializeUint(tokenId)]);
+          const metadata = deserializeClarityHex(metadataHex);
+          if (metadata) {
+            nfts.push({
+              tokenId,
+              streamId: Number(metadata['stream-id']),
+              receiptType: metadata['receipt-type'] as 'SENDER' | 'RECIPIENT',
+              mintedAt: Number(metadata['minted-at']),
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`Error checking token ${tokenId}:`, err);
+      }
+    };
+
+    await Promise.all(tokenIds.map(checkToken));
+
+    return nfts.sort((a, b) => a.tokenId - b.tokenId);
+  }
+
   public invalidateCache(key: string): void {
     this.cache.invalidate(key);
   }
