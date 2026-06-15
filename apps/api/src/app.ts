@@ -12,6 +12,7 @@ import { createMilestonesRouter } from './routes/milestones.js';
 import { createStreamsRouter } from './routes/streams.js';
 import { createWebhooksRouter } from './routes/webhooks.js';
 import { createStatsRouter } from './routes/stats.js';
+import { createNftsRouter } from './routes/nfts.js';
 import { StacksService } from './services/stacksService.js';
 import { StreamIndexer } from './services/streamIndexer.js';
 import { setStreamIndexerForCalculator } from './services/balanceCalculator.js';
@@ -37,6 +38,7 @@ export const createApp = (
       config.hiroApiKey,
       config.contractStreamCore,
       config.contractStreamConditions,
+      config.contractStreamNFT,
     );
 
   const stateFilePath = path.join(process.cwd(), 'data', 'indexer-state.json');
@@ -76,6 +78,9 @@ export const createApp = (
 
   app.use('/webhooks', createWebhooksRouter(actualWebhookService));
   app.use('/api/webhooks', createWebhooksRouter(actualWebhookService));
+
+  app.use('/nfts', createNftsRouter(actualStacksService));
+  app.use('/api/nfts', createNftsRouter(actualStacksService));
 
   app.use(
     createErrorHandler({
