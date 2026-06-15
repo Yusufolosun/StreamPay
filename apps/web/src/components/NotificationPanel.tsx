@@ -2,7 +2,8 @@
 
 import React, { useEffect } from "react";
 import { X, Check, Trash2, Coins, CheckCircle, AlertTriangle, Clock, XCircle, ExternalLink } from "lucide-react";
-import { useNotifications, NotificationEvent } from "../hooks/useNotifications";
+import { useNotifications } from "../hooks/useNotifications";
+import type { NotificationEvent } from "../hooks/useNotifications";
 import Link from "next/link";
 
 function getRelativeTime(timestamp: number) {
