@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { CheckCircle2, XCircle, ArrowRight, Info } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
 import type { ContinuousFormData } from "./page";
+import { AddressInput } from "../../components/AddressInput";
 
 interface ContinuousStreamFormProps {
   onSubmit: (data: ContinuousFormData) => void;
@@ -107,29 +108,12 @@ export const ContinuousStreamForm: React.FC<ContinuousStreamFormProps> = ({ onSu
         <label htmlFor="recipient" className="block text-sm font-semibold text-white mb-2">
           Recipient Address
         </label>
-        <div className="relative">
-          <input
-            id="recipient"
-            type="text"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-            onBlur={() => setTouched((t) => ({ ...t, recipient: true }))}
-            placeholder="SP... or ST..."
-            className="w-full bg-dark-bg border border-border rounded-lg px-4 py-3 text-white placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange/50 transition-all font-mono text-sm"
-          />
-          {touched.recipient && recipient && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {recipientValid ? (
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-              ) : (
-                <XCircle className="w-5 h-5 text-red-500" />
-              )}
-            </div>
-          )}
-        </div>
-        {touched.recipient && recipient && !recipientValid && (
-          <p className="text-xs text-red-400 mt-1.5">Enter a valid Stacks address (SP... or ST...)</p>
-        )}
+        <AddressInput
+          id="recipient"
+          value={recipient}
+          onChange={setRecipient}
+          placeholder="SP... or name.btc"
+        />
       </div>
 
       {/* Token Selector */}
