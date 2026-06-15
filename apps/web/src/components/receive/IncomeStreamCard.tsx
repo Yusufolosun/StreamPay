@@ -28,6 +28,8 @@ function IncomeStreamCardInner({ stream, onClaimSuccess }: IncomeStreamCardProps
   const toast = useToast();
   const [liveClaimable, setLiveClaimable] = useState(0);
   const [signingState, setSigningState] = useState<"idle" | "signing" | "confirming">("idle");
+  const [showDetails, setShowDetails] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const statusCfg = STATUS_CONFIG[stream.status] || STATUS_CONFIG.completed;
   const ratePerBlock = Number(stream.ratePerBlock || "0");
@@ -39,20 +41,30 @@ function IncomeStreamCardInner({ stream, onClaimSuccess }: IncomeStreamCardProps
 
   const tokenSymbol = stream.tokenContract?.toLowerCase().includes("sbtc") ? "sBTC" : "STX";
 
-  // Live incrementing claimable balance
+  // Detect mobile viewport client-side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMobile(window.innerWidth < 640);
+    }
+  }, []);
+
+  // Live incrementing claimable balance (60fps desktop, 30fps mobile)
   useEffect(() => {
     setLiveClaimable(claimable);
     if (stream.status !== "active" || ratePerBlock <= 0) return;
 
+    const fps = isMobile ? 30 : 60;
+    const intervalMs = 1000 / fps;
+
     const interval = setInterval(() => {
       setLiveClaimable((prev) => {
-        const increment = ratePerBlock / 600;
+        const increment = (ratePerBlock / 600) * (intervalMs / 1000);
         return Math.min(prev + increment, funded - claimed);
       });
-    }, 1000);
+    }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [stream.status, claimable, ratePerBlock, funded, claimed]);
+  }, [stream.status, claimable, ratePerBlock, funded, claimed, isMobile]);
 
   const handleClaim = useCallback(async () => {
     if (liveClaimable <= 0) return;
@@ -104,15 +116,24 @@ function IncomeStreamCardInner({ stream, onClaimSuccess }: IncomeStreamCardProps
         </div>
       </div>
 
+      {/* Details Toggle Button on Mobile */}
+      <button
+        onClick={() => setShowDetails(!showDetails)}
+        className="sm:hidden flex items-center justify-center gap-1 text-xs text-text-secondary hover:text-white mb-3 w-full border border-dashed border-border py-2.5 rounded-lg active:scale-95 duration-100 transition-transform font-semibold"
+        style={{ minHeight: 44 }}
+      >
+        {showDetails ? "Hide Details" : "Show Details"}
+      </button>
+
       {/* Progress bar */}
-      <div className="relative h-1.5 rounded-full bg-white/5 overflow-hidden mb-3">
+      <div className={`relative h-1.5 rounded-full bg-white/5 overflow-hidden mb-3 ${showDetails ? "block" : "hidden sm:block"}`}>
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-orange to-violet transition-all duration-1000"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
 
-      <div className="flex items-center justify-between text-xs text-text-secondary mb-4">
+      <div className={`flex items-center justify-between text-xs text-text-secondary mb-4 ${showDetails ? "flex" : "hidden sm:flex"}`}>
         <span>Total received: <span className="text-white font-mono">{formatSTX(claimed, 4)} {tokenSymbol}</span></span>
         <span className="flex items-center gap-1">
           <Zap className="w-3 h-3" />
@@ -125,7 +146,8 @@ function IncomeStreamCardInner({ stream, onClaimSuccess }: IncomeStreamCardProps
         onClick={handleClaim}
         disabled={liveClaimable <= 0 || isLoading}
         title="Exact amount confirmed by the blockchain — displayed amount is projected."
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-orange to-orange/80 text-white font-semibold text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] transition-all shadow-lg shadow-orange/15"
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-orange to-orange/80 text-white font-semibold text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-95 duration-100 transition-transform shadow-lg shadow-orange/15"
+        style={{ minHeight: 44 }}
       >
         {signingState === "signing" ? (
           <><Loader2 className="w-4 h-4 animate-spin" /> Signing...</>
