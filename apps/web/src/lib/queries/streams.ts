@@ -97,3 +97,49 @@ export function useCreateStream() {
     },
   });
 }
+
+export function useClaimStream() {
+  const queryClient = useQueryClient();
+  const { network, address } = useStreamPay();
+
+  return useMutation({
+    mutationFn: async ({ streamId }: { streamId: number }) => {
+      const tx = buildClaimStream(streamId);
+      return new Promise<string>((resolve, reject) => {
+        openContractCall({
+          ...tx,
+          network,
+          onFinish: (data) => {
+            const txId = data?.txId || data?.txid || "";
+            resolve(txId);
+          },
+          onCancel: () => {
+            reject(new Error("Transaction cancelled by user"));
+          },
+        });
+      });
+    },
+    onMutate: async ({ streamId }) => {
+      await queryClient.cancelQueries({ queryKey: ["stream-balance", streamId] });
+      const previousBalance = queryClient.getQueryData(["stream-balance", streamId]);
+      queryClient.setQueryData(["stream-balance", streamId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          claimable: "0",
+        };
+      });
+      return { previousBalance };
+    },
+    onError: (err, { streamId }, context: any) => {
+      if (context?.previousBalance) {
+        queryClient.setQueryData(["stream-balance", streamId], context.previousBalance);
+      }
+    },
+    onSettled: (data, error, { streamId }) => {
+      queryClient.invalidateQueries({ queryKey: ["stream-balance", streamId] });
+      queryClient.invalidateQueries({ queryKey: ["stream", streamId] });
+      queryClient.invalidateQueries({ queryKey: ["recipient-streams", address] });
+    },
+  });
+}
