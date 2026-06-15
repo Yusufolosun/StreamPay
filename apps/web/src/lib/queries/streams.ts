@@ -47,3 +47,14 @@ export function useStream(streamId: number | null) {
     enabled: streamId !== null && !isNaN(streamId),
   });
 }
+
+export function useStreamHistory(streamId: number | null) {
+  return useQuery({
+    queryKey: ["stream-history", streamId],
+    queryFn: async () => {
+      if (streamId === null || isNaN(streamId)) return [];
+      return fetchStreamHistory(streamId);
+    },
+    enabled: streamId !== null && !isNaN(streamId),
+  });
+}
