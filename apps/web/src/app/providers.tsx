@@ -6,7 +6,8 @@ import { ToastProvider } from "../components/Toast";
 import { AppConfig, UserSession, authenticate } from "@stacks/connect";
 import { createNetwork } from "@stacks/network";
 
-const queryClient = new QueryClient();
+import { QueryCache, MutationCache } from "@tanstack/react-query";
+import { ToastProvider, useToast } from "../components/Toast";
 
 const appConfig = new AppConfig(["store_write", "publish_data"]);
 export const userSession = new UserSession({ appConfig });
@@ -138,12 +139,42 @@ export const useStreamPay = () => {
   return context;
 };
 
+const QueryClientProviderWithToast: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { error: toastError } = useToast();
+  const [queryClient] = useState(() => new QueryClient({
+    queryCache: new QueryCache({
+      onError: (err) => {
+        toastError(err.message || "An error occurred fetching data");
+      }
+    }),
+    mutationCache: new MutationCache({
+      onError: (err) => {
+        toastError(err.message || "An error occurred performing mutation");
+      }
+    }),
+    defaultOptions: {
+      queries: {
+        staleTime: 10000,
+        retry: 2,
+        refetchOnWindowFocus: true,
+      },
+      mutations: {
+        retry: 0,
+      }
+    }
+  }));
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+};
+
 export const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <StreamPayProvider>
-        <ToastProvider>{children}</ToastProvider>
-      </StreamPayProvider>
-    </QueryClientProvider>
+    <ToastProvider>
+      <QueryClientProviderWithToast>
+        <StreamPayProvider>
+          {children}
+        </StreamPayProvider>
+      </QueryClientProviderWithToast>
+    </ToastProvider>
   );
 };
