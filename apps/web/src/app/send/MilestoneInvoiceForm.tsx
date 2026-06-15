@@ -2,8 +2,6 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  CheckCircle2,
-  XCircle,
   ArrowRight,
   Plus,
   Trash2,
@@ -11,6 +9,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import type { MilestoneFormData } from "./page";
+import { AddressInput } from "../../components/AddressInput";
 
 interface MilestoneInvoiceFormProps {
   onSubmit: (data: MilestoneFormData) => void;
@@ -117,31 +116,12 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
         >
           Recipient Address
         </label>
-        <div className="relative">
-          <input
-            id="ms-recipient"
-            type="text"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-            onBlur={() => setTouched((t) => ({ ...t, recipient: true }))}
-            placeholder="SP... or ST..."
-            className="w-full bg-dark-bg border border-border rounded-lg px-4 py-3 text-white placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange/50 transition-all font-mono text-sm"
-          />
-          {touched.recipient && recipient && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {recipientValid ? (
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-              ) : (
-                <XCircle className="w-5 h-5 text-red-500" />
-              )}
-            </div>
-          )}
-        </div>
-        {touched.recipient && recipient && !recipientValid && (
-          <p className="text-xs text-red-400 mt-1.5">
-            Enter a valid Stacks address (SP... or ST...)
-          </p>
-        )}
+        <AddressInput
+          id="ms-recipient"
+          value={recipient}
+          onChange={setRecipient}
+          placeholder="SP... or name.btc"
+        />
       </div>
 
       {/* Token + Total Amount row */}
@@ -227,26 +207,12 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
             )}
           </div>
         </div>
-        <div className="relative">
-          <input
-            id="ms-arbiter"
-            type="text"
-            value={arbiter}
-            onChange={(e) => setArbiter(e.target.value)}
-            onBlur={() => setTouched((t) => ({ ...t, arbiter: true }))}
-            placeholder="SP... (must be a registered arbiter)"
-            className="w-full bg-dark-bg border border-border rounded-lg px-4 py-3 text-white placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-violet/50 focus:border-violet/50 transition-all font-mono text-sm"
-          />
-          {touched.arbiter && arbiter && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {arbiterValid ? (
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-              ) : (
-                <XCircle className="w-5 h-5 text-red-500" />
-              )}
-            </div>
-          )}
-        </div>
+        <AddressInput
+          id="ms-arbiter"
+          value={arbiter}
+          onChange={setArbiter}
+          placeholder="SP... (must be a registered arbiter or .btc name)"
+        />
       </div>
 
       {/* Milestone Builder */}
