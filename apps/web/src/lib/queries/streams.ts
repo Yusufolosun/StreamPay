@@ -70,3 +70,30 @@ export function useStreamBalance(streamId: number | null) {
     refetchInterval: 10000,
   });
 }
+
+export function useCreateStream() {
+  const queryClient = useQueryClient();
+  const { network, address } = useStreamPay();
+
+  return useMutation({
+    mutationFn: async (params: CreateStreamParams) => {
+      const tx = buildCreateStream(params);
+      return new Promise<string>((resolve, reject) => {
+        openContractCall({
+          ...tx,
+          network,
+          onFinish: (data) => {
+            const txId = data?.txId || data?.txid || "";
+            resolve(txId);
+          },
+          onCancel: () => {
+            reject(new Error("Transaction cancelled by user"));
+          },
+        });
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sender-streams", address] });
+    },
+  });
+}
