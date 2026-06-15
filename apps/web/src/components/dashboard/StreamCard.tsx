@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useContractCall } from "../../hooks/useContractCall";
 import { useToast } from "../Toast";
-import { useBnsName } from "../../hooks/useBnsName";
+import { AddressDisplay } from "../AddressDisplay";
 import { BottomSheet } from "../ui/BottomSheet";
 import {
   buildPauseStream,
@@ -52,7 +52,6 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [liveStreamed, setLiveStreamed] = useState<number>(0);
   const [isMobile, setIsMobile] = useState(false);
-  const { data: bnsName } = useBnsName(stream.recipient);
   const { isLoading, execute, reset } = useContractCall();
   const toast = useToast();
 
@@ -141,12 +140,12 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
           <div className="flex items-center gap-3">
             {/* Avatar placeholder */}
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange/20 to-violet/20 flex items-center justify-center text-xs font-bold text-white">
-              {(bnsName || stream.recipient).charAt(0).toUpperCase()}
+              {stream.recipient.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="font-semibold text-white text-sm">
-                {bnsName || truncateAddress(stream.recipient)}
-              </p>
+              <div className="font-semibold text-white text-sm">
+                <AddressDisplay address={stream.recipient} />
+              </div>
               <div className="flex items-center gap-2 mt-1">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusCfg.color}`}>
                   {statusCfg.label}
@@ -289,9 +288,9 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-text-secondary text-xs">Recipient</p>
-              <p className="font-mono text-white text-xs truncate mt-1">
-                {bnsName || stream.recipient}
-              </p>
+              <div className="font-mono text-white text-xs mt-1">
+                <AddressDisplay address={stream.recipient} />
+              </div>
             </div>
             <div>
               <p className="text-text-secondary text-xs">Status</p>
