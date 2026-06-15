@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import { useWallet } from "../../hooks/useWallet";
 import { fetchMilestoneStreams, type MilestoneStream } from "../../lib/api";
-import { truncateAddress, formatSTX, formatDate } from "../../lib/validation";
-import { useBnsName } from "../../hooks/useBnsName";
+import { formatSTX, formatDate } from "../../lib/validation";
+import { AddressDisplay } from "../../components/AddressDisplay";
 
 export default function MilestonesPage() {
   const { address, isConnected, connect } = useWallet();
@@ -179,9 +179,6 @@ interface MilestoneContractCardProps {
 function MilestoneContractCardInner({ stream, role }: MilestoneContractCardProps) {
   const tokenSymbol = stream.tokenContract?.toLowerCase().includes("sbtc") ? "sBTC" : "STX";
   const partnerAddress = role === "client" ? stream.recipient : stream.sender;
-  const { data: partnerBns } = useBnsName(partnerAddress);
-
-  // Calculate stats
   const totalMilestones = stream.milestones.length;
   const releasedMilestones = stream.milestones.filter((m) => m.isReleased).length;
 
@@ -194,10 +191,10 @@ function MilestoneContractCardInner({ stream, role }: MilestoneContractCardProps
             <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">
               Milestone Stream #{stream.id}
             </span>
-            <h4 className="font-semibold text-white text-sm mt-0.5">
-              {role === "client" ? "To: " : "From: "}
-              {partnerBns || truncateAddress(partnerAddress)}
-            </h4>
+            <div className="font-semibold text-white text-sm mt-0.5 flex items-center gap-1">
+              <span>{role === "client" ? "To: " : "From: "}</span>
+              <AddressDisplay address={partnerAddress} />
+            </div>
           </div>
           <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${stream.isCancelled ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-green-500/10 text-green-400 border-green-500/20"}`}>
             {stream.isCancelled ? "Cancelled" : "Active"}
