@@ -56,23 +56,30 @@ export default function SendPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       {/* Step indicator */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
         {[1, 2, 3].map((s) => (
           <React.Fragment key={s}>
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                s === step
-                  ? "bg-gradient-to-r from-orange to-violet text-white shadow-lg shadow-orange/20"
-                  : s < step
-                  ? "bg-orange/20 text-orange"
-                  : "bg-card-bg border border-border text-text-secondary"
-              }`}
-            >
-              {s}
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shrink-0 ${
+                  s === step
+                    ? "bg-gradient-to-r from-orange to-violet text-white shadow-lg shadow-orange/20"
+                    : s < step
+                    ? "bg-orange/20 text-orange"
+                    : "bg-card-bg border border-border text-text-secondary"
+                }`}
+              >
+                {s}
+              </div>
+              <span className="text-xs font-semibold text-text-secondary sm:hidden">
+                {s === 1 && "Choose Stream Type"}
+                {s === 2 && "Configure Parameters"}
+                {s === 3 && "Review & Confirm"}
+              </span>
             </div>
             {s < 3 && (
               <div
-                className={`flex-1 h-0.5 transition-all ${
+                className={`w-0.5 h-6 sm:w-auto sm:h-0.5 sm:flex-1 ml-4 sm:ml-0 transition-all ${
                   s < step ? "bg-orange/40" : "bg-border"
                 }`}
               />
