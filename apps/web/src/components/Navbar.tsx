@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { WalletConnect } from "./WalletConnect";
 import { useBlockHeight } from "../hooks/useBlockHeight";
 import { Drawer } from "./ui/Drawer";
-import { Database, Send, Inbox, Landmark, Compass, LayoutDashboard, Menu } from "lucide-react";
+import { Database, Send, Inbox, Landmark, Compass, LayoutDashboard, Menu, BarChart2 } from "lucide-react";
+import { NotificationBell } from "./NotificationBell";
+import { NotificationPanel } from "./NotificationPanel";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -18,6 +20,7 @@ export const Navbar: React.FC = () => {
     { name: "Send", href: "/send", icon: Send },
     { name: "Receive", href: "/receive", icon: Inbox },
     { name: "Milestones", href: "/milestones", icon: Landmark },
+    { name: "Analytics", href: "/analytics", icon: BarChart2 },
     { name: "Explorer", href: "/explorer", icon: Compass },
   ];
 
@@ -68,6 +71,7 @@ export const Navbar: React.FC = () => {
                 <span className="font-mono text-white">{blockHeight}</span>
               </div>
             )}
+            <NotificationBell />
             <WalletConnect />
 
             {/* Hamburger Menu button */}
@@ -107,6 +111,7 @@ export const Navbar: React.FC = () => {
           })}
         </div>
       </Drawer>
+      <NotificationPanel />
     </nav>
   );
 };
