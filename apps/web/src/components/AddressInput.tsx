@@ -8,9 +8,9 @@ import { isValidStacksAddress } from "../lib/validation";
 interface AddressInputProps {
   id?: string;
   placeholder?: string;
-  value: string; // Parent-managed value
+  value: string; // Parent-managed resolved address
   onChange: (resolvedAddress: string) => void;
-  onRawValueChange?: (rawValue: string) => void; // Triggered on typing, so parent can hold the raw typed string
+  onRawValueChange?: (rawValue: string) => void; // Optional raw change callback
   disabled?: boolean;
 }
 
@@ -22,16 +22,26 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   onRawValueChange,
   disabled = false,
 }) => {
-  const [inputValue, setInputValue] = useState(value);
+  const [inputValue, setInputValue] = useState("");
   const [resolving, setResolving] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
 
-  // Synchronize internal state with parent-controlled value
+  // Smart synchronization: only overwrite input if the parent prop changes
+  // to a value that doesn't match our currently resolved address.
+  // This allows the input to keep displaying "alice.btc" even when the parent
+  // receives "SP3F...".
   useEffect(() => {
-    setInputValue(value);
-  }, [value]);
+    if (value !== resolvedAddress) {
+      setInputValue(value || "");
+      if (!value) {
+        setResolvedAddress(null);
+        setError(null);
+        setTouched(false);
+      }
+    }
+  }, [value, resolvedAddress]);
 
   const validateAndResolve = async (val: string) => {
     const trimmed = val.trim();
@@ -79,19 +89,16 @@ export const AddressInput: React.FC<AddressInputProps> = ({
     setInputValue(val);
     if (onRawValueChange) {
       onRawValueChange(val);
-    } else {
-      // If parent does not track raw value, pass it directly
-      onChange(val);
     }
 
-    // Immediately resolve standard Stacks addresses for fast feedback
     const trimmed = val.trim();
     if (isValidStacksAddress(trimmed)) {
       setResolvedAddress(trimmed);
       setError(null);
       onChange(trimmed);
     } else {
-      setResolvedAddress(null);
+      // Clear parent value while editing a BNS name until it blurs
+      onChange("");
     }
   };
 
