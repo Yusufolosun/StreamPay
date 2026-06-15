@@ -276,11 +276,25 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
           {milestones.map((milestone, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 p-3 bg-card-bg border border-border rounded-lg group"
+              className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-card-bg border border-border rounded-lg group"
             >
-              <span className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-text-secondary shrink-0">
-                {index + 1}
-              </span>
+              <div className="flex items-center justify-between w-full sm:w-auto">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-text-secondary shrink-0">
+                    {index + 1}
+                  </span>
+                  <span className="text-xs font-semibold text-text-secondary sm:hidden">Milestone #{index + 1}</span>
+                </div>
+                {/* Remove button for mobile */}
+                <button
+                  onClick={() => removeMilestone(index)}
+                  disabled={milestones.length <= MIN_MILESTONES}
+                  className="sm:hidden p-2 text-text-secondary hover:text-red-400 disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-150 active:scale-95 transition-transform"
+                  style={{ minHeight: 44, minWidth: 44 }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
 
               {/* Label */}
               <input
@@ -291,11 +305,12 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
                 }
                 placeholder="Milestone description"
                 maxLength={64}
-                className="flex-1 bg-dark-bg border border-border rounded-lg px-3 py-2 text-white placeholder:text-text-secondary/50 focus:outline-none focus:ring-1 focus:ring-orange/50 transition-all text-sm"
+                className="w-full sm:flex-1 bg-dark-bg border border-border rounded-lg px-3 py-2 text-white placeholder:text-text-secondary/50 focus:outline-none focus:ring-1 focus:ring-orange/50 transition-all text-sm"
+                style={{ minHeight: 44 }}
               />
 
               {/* Percentage slider + input */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center justify-between sm:justify-start gap-3 w-full sm:w-auto shrink-0 mt-1 sm:mt-0">
                 <input
                   type="range"
                   min="0"
@@ -308,7 +323,7 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
                       parseInt(e.target.value, 10),
                     )
                   }
-                  className="w-20 h-1.5 accent-orange bg-border rounded-full cursor-pointer"
+                  className="flex-1 sm:w-20 h-1.5 accent-orange bg-border rounded-full cursor-pointer"
                 />
                 <div className="relative">
                   <input
@@ -324,6 +339,7 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
                       )
                     }
                     className="w-16 bg-dark-bg border border-border rounded-lg px-2 py-1.5 text-white text-sm text-center font-mono focus:outline-none focus:ring-1 focus:ring-orange/50 transition-all"
+                    style={{ minHeight: 44 }}
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary text-xs pointer-events-none">
                     %
@@ -331,11 +347,12 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
                 </div>
               </div>
 
-              {/* Remove button */}
+              {/* Remove button for desktop */}
               <button
                 onClick={() => removeMilestone(index)}
                 disabled={milestones.length <= MIN_MILESTONES}
-                className="p-1.5 text-text-secondary hover:text-red-400 disabled:opacity-20 disabled:cursor-not-allowed transition-colors shrink-0"
+                className="hidden sm:block p-2 text-text-secondary hover:text-red-400 disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-150 active:scale-95 transition-transform shrink-0"
+                style={{ minHeight: 44, minWidth: 44 }}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -347,7 +364,8 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
         {milestones.length < MAX_MILESTONES && (
           <button
             onClick={addMilestone}
-            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 border border-dashed border-border rounded-lg text-sm text-text-secondary hover:text-white hover:border-orange/30 transition-all"
+            className="w-full mt-3 flex items-center justify-center gap-2 py-3 border border-dashed border-border rounded-lg text-sm text-text-secondary hover:text-white hover:border-orange/30 transition-all active:scale-95 duration-100 transition-transform"
+            style={{ minHeight: 44 }}
           >
             <Plus className="w-4 h-4" />
             Add Milestone ({milestones.length}/{MAX_MILESTONES})
@@ -407,7 +425,8 @@ export const MilestoneInvoiceForm: React.FC<MilestoneInvoiceFormProps> = ({
       <button
         onClick={handleSubmit}
         disabled={!canSubmit}
-        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet to-violet/80 text-white py-3.5 rounded-lg font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] transition-all shadow-lg shadow-violet/15"
+        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet to-violet/80 text-white py-3.5 rounded-lg font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-95 duration-100 transition-transform shadow-lg shadow-violet/15"
+        style={{ minHeight: 44 }}
       >
         Review Invoice
         <ArrowRight className="w-4 h-4" />
