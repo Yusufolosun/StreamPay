@@ -29,3 +29,30 @@ export function useMilestonesByAddress(address: string | null, role: "sender" | 
     enabled: !!address,
   });
 }
+
+export function useReleaseMilestone() {
+  const queryClient = useQueryClient();
+  const { network } = useStreamPay();
+
+  return useMutation({
+    mutationFn: async ({ milestoneStreamId, milestoneIndex }: { milestoneStreamId: number; milestoneIndex: number }) => {
+      const tx = buildReleaseMilestone(milestoneStreamId, milestoneIndex);
+      return new Promise<string>((resolve, reject) => {
+        openContractCall({
+          ...tx,
+          network,
+          onFinish: (data) => {
+            const txId = data?.txId || data?.txid || "";
+            resolve(txId);
+          },
+          onCancel: () => {
+            reject(new Error("Transaction cancelled by user"));
+          },
+        });
+      });
+    },
+    onSuccess: (data, { milestoneStreamId }) => {
+      queryClient.invalidateQueries({ queryKey: ["milestone-stream", milestoneStreamId] });
+    },
+  });
+}
