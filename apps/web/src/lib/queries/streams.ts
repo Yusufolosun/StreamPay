@@ -218,3 +218,48 @@ export function useResumeStream() {
     },
   });
 }
+
+export function useCancelStream() {
+  const queryClient = useQueryClient();
+  const { network, address } = useStreamPay();
+
+  return useMutation({
+    mutationFn: async ({ streamId }: { streamId: number }) => {
+      const tx = buildCancelStream(streamId);
+      return new Promise<string>((resolve, reject) => {
+        openContractCall({
+          ...tx,
+          network,
+          onFinish: (data) => {
+            const txId = data?.txId || data?.txid || "";
+            resolve(txId);
+          },
+          onCancel: () => {
+            reject(new Error("Transaction cancelled by user"));
+          },
+        });
+      });
+    },
+    onMutate: async ({ streamId }) => {
+      await queryClient.cancelQueries({ queryKey: ["sender-streams", address] });
+      const previousSenderStreams = queryClient.getQueryData(["sender-streams", address]);
+      queryClient.setQueryData(["sender-streams", address], (old: any) => {
+        if (!old || !old.data) return old;
+        return {
+          ...old,
+          data: old.data.filter((s: StreamView) => s.id !== streamId.toString()),
+        };
+      });
+      return { previousSenderStreams };
+    },
+    onError: (err, { streamId }, context: any) => {
+      if (context?.previousSenderStreams) {
+        queryClient.setQueryData(["sender-streams", address], context.previousSenderStreams);
+      }
+    },
+    onSettled: (data, error, { streamId }) => {
+      queryClient.invalidateQueries({ queryKey: ["sender-streams", address] });
+      queryClient.invalidateQueries({ queryKey: ["stream", streamId] });
+    },
+  });
+}
