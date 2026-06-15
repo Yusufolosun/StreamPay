@@ -1,11 +1,10 @@
 "use client";
 
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Send, Loader2, Inbox } from "lucide-react";
 import Link from "next/link";
 import { useWallet } from "../../hooks/useWallet";
-import { fetchStreams } from "../../lib/api";
+import { useSenderStreams } from "../../lib/queries/streams";
 import { StatsCards } from "../../components/dashboard/StatsCards";
 import { StreamCard } from "../../components/dashboard/StreamCard";
 import type { StreamView } from "../../lib/api";
@@ -18,16 +17,7 @@ export default function DashboardPage() {
     isLoading,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["sender-streams", address],
-    queryFn: async () => {
-      if (!address) return { data: [] as StreamView[], pagination: undefined };
-      const res = await fetchStreams({ sender: address, limit: 100 });
-      return res;
-    },
-    enabled: !!address,
-    refetchInterval: 30_000,
-  });
+  } = useSenderStreams(address);
 
   const streams: StreamView[] = data?.data || [];
 
