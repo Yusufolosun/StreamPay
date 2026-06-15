@@ -136,7 +136,7 @@ export default function ExplorerPage() {
       {/* Streams Table */}
       <div className="rounded-2xl border border-border bg-card-bg overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm text-text-secondary">
+          <table className="hidden sm:table w-full border-collapse text-left text-sm text-text-secondary">
             <thead className="bg-white/2 text-white border-b border-border text-xs uppercase tracking-wider font-semibold">
               <tr>
                 <th className="px-6 py-4 font-semibold">Stream ID</th>
@@ -209,7 +209,8 @@ export default function ExplorerPage() {
                       <td className="px-6 py-4 text-right">
                         <Link
                           href={`/explorer/streams/${stream.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-orange hover:text-orange/80 bg-orange/5 hover:bg-orange/10 px-2.5 py-1.5 rounded-lg border border-orange/10 hover:border-orange/20 transition-all active:scale-95"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-orange hover:text-orange/80 bg-orange/5 hover:bg-orange/10 px-2.5 py-1.5 rounded-lg border border-orange/10 hover:border-orange/20 transition-all active:scale-95 duration-100 transition-transform"
+                          style={{ minHeight: 44 }}
                         >
                           <Eye className="w-3.5 h-3.5" />
                           View
@@ -221,6 +222,70 @@ export default function ExplorerPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Card list for Mobile */}
+        <div className="block sm:hidden divide-y divide-border/60">
+          {isLoading ? (
+            <div className="px-6 py-12 text-center text-text-secondary">
+              <Loader2 className="w-6 h-6 animate-spin text-orange mx-auto mb-2" />
+              <span>Loading streams list...</span>
+            </div>
+          ) : filteredStreams.length === 0 ? (
+            <div className="px-6 py-12 text-center text-text-secondary flex flex-col items-center gap-2 justify-center">
+              <Layers className="w-8 h-8 opacity-45" />
+              <span>No matching payment streams found.</span>
+            </div>
+          ) : (
+            filteredStreams.map((stream) => {
+              const statusCfg = STATUS_CONFIG[stream.status] || STATUS_CONFIG.completed;
+              const tokenSymbol = stream.tokenContract?.toLowerCase().includes("sbtc") ? "sBTC" : "STX";
+              const total = Number(stream.fundedAmount || "0");
+              const ratePerBlock = Number(stream.ratePerBlock || "0");
+              const startBlock = stream.startBlock;
+              // End block calculation: funded / ratePerBlock + startBlock
+              const totalBlocks = ratePerBlock > 0 ? total / ratePerBlock : 0;
+              const endBlock = startBlock + totalBlocks;
+              const currentBlock = stream.currentBlock;
+              const blocksRemaining = Math.max(0, endBlock - currentBlock);
+              const daysRemaining = blocksRemaining / 144; // 144 blocks per day
+
+              return (
+                <div key={stream.id} className="p-4 hover:bg-white/2 transition-colors flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-white text-base">#{stream.id}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusCfg.color}`}>
+                      {statusCfg.label}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <p className="text-text-secondary">Amount</p>
+                      <p className="font-semibold text-white font-mono mt-0.5">{formatSTX(total, 6)} {tokenSymbol}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-secondary">End Date</p>
+                      <p className="text-white font-mono mt-0.5">
+                        {blocksRemaining > 0 ? `~${daysRemaining.toFixed(1)} days left` : "Ended"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end mt-1">
+                    <Link
+                      href={`/explorer/streams/${stream.id}`}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-orange/5 hover:bg-orange/10 border border-orange/10 text-xs font-semibold text-orange active:scale-95 duration-100 transition-transform"
+                      style={{ minHeight: 44 }}
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Stream
+                    </Link>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Pagination Controls */}
