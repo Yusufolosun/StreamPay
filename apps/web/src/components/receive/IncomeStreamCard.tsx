@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Download, Loader2, Zap } from "lucide-react";
-import { useBnsName } from "../../hooks/useBnsName";
+import { AddressDisplay } from "../AddressDisplay";
 import { useContractCall } from "../../hooks/useContractCall";
 import { useToast } from "../Toast";
 import { buildClaimStream } from "../../lib/transactions";
@@ -23,7 +23,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 function IncomeStreamCardInner({ stream, onClaimSuccess }: IncomeStreamCardProps) {
-  const { data: bnsName } = useBnsName(stream.sender);
   const { isLoading, execute, reset } = useContractCall();
   const toast = useToast();
   const [liveClaimable, setLiveClaimable] = useState(0);
@@ -90,12 +89,13 @@ function IncomeStreamCardInner({ stream, onClaimSuccess }: IncomeStreamCardProps
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet/20 to-orange/20 flex items-center justify-center text-xs font-bold text-white">
-            {(bnsName || stream.sender).charAt(0).toUpperCase()}
+            {stream.sender.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="font-semibold text-white text-sm">
-              From: {bnsName || truncateAddress(stream.sender)}
-            </p>
+            <div className="font-semibold text-white text-sm flex items-center gap-1">
+              <span>From:</span>
+              <AddressDisplay address={stream.sender} />
+            </div>
             <div className="flex items-center gap-2 mt-1">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusCfg.color}`}>
                 {statusCfg.label}
