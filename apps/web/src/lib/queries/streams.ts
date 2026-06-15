@@ -79,6 +79,20 @@ export function useStreamBalance(streamId: number | null) {
   });
 }
 
+export function useExplorerStreams(params: {
+  address?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}) {
+  return useQuery({
+    queryKey: ["explorer-streams", params],
+    queryFn: () => fetchStreams(params),
+    placeholderData: (previousData) => previousData,
+    refetchInterval: 30000,
+  });
+}
+
 export function useCreateStream() {
   const queryClient = useQueryClient();
   const { network, address } = useStreamPay();
