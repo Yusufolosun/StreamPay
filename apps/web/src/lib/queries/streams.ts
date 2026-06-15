@@ -58,3 +58,15 @@ export function useStreamHistory(streamId: number | null) {
     enabled: streamId !== null && !isNaN(streamId),
   });
 }
+
+export function useStreamBalance(streamId: number | null) {
+  return useQuery({
+    queryKey: ["stream-balance", streamId],
+    queryFn: async () => {
+      if (streamId === null || isNaN(streamId)) return null;
+      return fetchStreamBalance(streamId);
+    },
+    enabled: streamId !== null && !isNaN(streamId),
+    refetchInterval: 10000,
+  });
+}
