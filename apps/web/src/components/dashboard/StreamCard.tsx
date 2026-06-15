@@ -14,6 +14,7 @@ import {
 import { useContractCall } from "../../hooks/useContractCall";
 import { useToast } from "../Toast";
 import { useBnsName } from "../../hooks/useBnsName";
+import { BottomSheet } from "../ui/BottomSheet";
 import {
   buildPauseStream,
   buildResumeStream,
@@ -48,7 +49,9 @@ function getTokenBadge(tokenContract: string) {
 
 function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [liveStreamed, setLiveStreamed] = useState<number>(0);
+  const [isMobile, setIsMobile] = useState(false);
   const { data: bnsName } = useBnsName(stream.recipient);
   const { isLoading, execute, reset } = useContractCall();
   const toast = useToast();
@@ -71,7 +74,14 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
 
   const progressPercent = funded > 0 ? Math.min(100, (claimed / funded) * 100) : 0;
 
-  // Live counter: project streamed balance every second for active streams
+  // Detect mobile viewport client-side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMobile(window.innerWidth < 640);
+    }
+  }, []);
+
+  // Live counter: project streamed balance every second for active streams (60fps desktop, 30fps mobile)
   useEffect(() => {
     if (stream.status !== "active") {
       setLiveStreamed(claimed);
@@ -80,17 +90,19 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
 
     setLiveStreamed(claimed);
 
+    const fps = isMobile ? 30 : 60;
+    const intervalMs = 1000 / fps;
+
     const interval = setInterval(() => {
       setLiveStreamed((prev) => {
-        // Each second ≈ 1/10 of a block (blocks ~10 min each)
-        const increment = ratePerBlock / 600;
+        const increment = (ratePerBlock / 600) * (intervalMs / 1000);
         const next = prev + increment;
         return Math.min(next, funded);
       });
-    }, 1000);
+    }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [stream.status, claimed, ratePerBlock, funded]);
+  }, [stream.status, claimed, ratePerBlock, funded, isMobile]);
 
   const handleAction = useCallback(
     async (action: "pause" | "resume" | "cancel") => {
@@ -112,6 +124,14 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
     },
     [stream.id, execute, reset, toast, onActionSuccess]
   );
+
+  const handleToggleDetails = () => {
+    if (window.innerWidth < 640) {
+      setBottomSheetOpen(true);
+    } else {
+      setExpanded(!expanded);
+    }
+  };
 
   return (
     <div className="group rounded-xl border border-border bg-card-bg hover:border-orange/20 transition-all duration-300">
@@ -172,8 +192,9 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
               : "Ended"}
           </span>
           <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-text-secondary hover:text-white transition-colors"
+            onClick={handleToggleDetails}
+            className="flex items-center gap-1 text-text-secondary hover:text-white transition-colors active:scale-95 duration-100 transition-transform"
+            style={{ minHeight: 44, minWidth: 44 }}
           >
             {expanded ? "Less" : "Details"}
             {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -181,9 +202,9 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
         </div>
       </div>
 
-      {/* Expanded details & actions */}
+      {/* Expanded details & actions (Desktop/Tablet inline accordion) */}
       {expanded && (
-        <div className="border-t border-border px-5 py-4 space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
+        <div className="hidden sm:block border-t border-border px-5 py-4 space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
               <p className="text-text-secondary">Stream ID</p>
@@ -209,7 +230,8 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
               <button
                 onClick={() => handleAction("pause")}
                 disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-sm font-semibold hover:bg-yellow-500/10 disabled:opacity-40 transition-all"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-sm font-semibold hover:bg-yellow-500/10 disabled:opacity-40 transition-all active:scale-95 duration-100 transition-transform"
+                style={{ minHeight: 44 }}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pause className="w-4 h-4" />}
                 Pause
@@ -217,7 +239,8 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
               <button
                 onClick={() => handleAction("cancel")}
                 disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-semibold hover:bg-red-500/10 disabled:opacity-40 transition-all"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-semibold hover:bg-red-500/10 disabled:opacity-40 transition-all active:scale-95 duration-100 transition-transform"
+                style={{ minHeight: 44 }}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                 Cancel
@@ -230,7 +253,8 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
               <button
                 onClick={() => handleAction("resume")}
                 disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-green-500/20 bg-green-500/5 text-green-400 text-sm font-semibold hover:bg-green-500/10 disabled:opacity-40 transition-all"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-green-500/20 bg-green-500/5 text-green-400 text-sm font-semibold hover:bg-green-500/10 disabled:opacity-40 transition-all active:scale-95 duration-100 transition-transform"
+                style={{ minHeight: 44 }}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 Resume
@@ -238,7 +262,8 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
               <button
                 onClick={() => handleAction("cancel")}
                 disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-semibold hover:bg-red-500/10 disabled:opacity-40 transition-all"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-semibold hover:bg-red-500/10 disabled:opacity-40 transition-all active:scale-95 duration-100 transition-transform"
+                style={{ minHeight: 44 }}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                 Cancel
@@ -253,6 +278,125 @@ function StreamCardInner({ stream, onActionSuccess }: StreamCardProps) {
           )}
         </div>
       )}
+
+      {/* Slide-up Actions BottomSheet on Mobile */}
+      <BottomSheet
+        isOpen={bottomSheetOpen}
+        onClose={() => setBottomSheetOpen(false)}
+        title={`Stream #${stream.id}`}
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-text-secondary text-xs">Recipient</p>
+              <p className="font-mono text-white text-xs truncate mt-1">
+                {bnsName || stream.recipient}
+              </p>
+            </div>
+            <div>
+              <p className="text-text-secondary text-xs">Status</p>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border mt-1 ${statusCfg.color}`}>
+                {statusCfg.label}
+              </span>
+            </div>
+            <div>
+              <p className="text-text-secondary text-xs">Start Block</p>
+              <p className="font-mono text-white mt-1">{stream.startBlock}</p>
+            </div>
+            <div>
+              <p className="text-text-secondary text-xs">End Block</p>
+              <p className="font-mono text-white mt-1">{endBlock}</p>
+            </div>
+            <div>
+              <p className="text-text-secondary text-xs">Total Funded</p>
+              <p className="font-mono text-white mt-1">{formatSTX(funded)} STX</p>
+            </div>
+            <div>
+              <p className="text-text-secondary text-xs">Total Claimed</p>
+              <p className="font-mono text-white mt-1">{formatSTX(claimed)} STX</p>
+            </div>
+            <div>
+              <p className="text-text-secondary text-xs">Rate</p>
+              <p className="font-mono text-white mt-1">
+                {formatSTX(ratePerBlock, 6)}/block
+              </p>
+            </div>
+            <div>
+              <p className="text-text-secondary text-xs">Remaining</p>
+              <p className="font-mono text-white mt-1">
+                {formatSTX(Math.max(0, funded - liveStreamed), 4)} STX
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons inside BottomSheet */}
+          <div className="pt-2">
+            {stream.status === "active" && (
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    handleAction("pause");
+                    setBottomSheetOpen(false);
+                  }}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-yellow-400 text-sm font-semibold hover:bg-yellow-500/10 disabled:opacity-40 transition-all active:scale-95 duration-100 transition-transform"
+                  style={{ minHeight: 44 }}
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pause className="w-4 h-4" />}
+                  Pause Stream
+                </button>
+                <button
+                  onClick={() => {
+                    handleAction("cancel");
+                    setBottomSheetOpen(false);
+                  }}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-semibold hover:bg-red-500/10 disabled:opacity-40 transition-all active:scale-95 duration-100 transition-transform"
+                  style={{ minHeight: 44 }}
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                  Cancel Stream
+                </button>
+              </div>
+            )}
+
+            {stream.status === "paused" && (
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    handleAction("resume");
+                    setBottomSheetOpen(false);
+                  }}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-green-500/20 bg-green-500/5 text-green-400 text-sm font-semibold hover:bg-green-500/10 disabled:opacity-40 transition-all active:scale-95 duration-100 transition-transform"
+                  style={{ minHeight: 44 }}
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                  Resume Stream
+                </button>
+                <button
+                  onClick={() => {
+                    handleAction("cancel");
+                    setBottomSheetOpen(false);
+                  }}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-sm font-semibold hover:bg-red-500/10 disabled:opacity-40 transition-all active:scale-95 duration-100 transition-transform"
+                  style={{ minHeight: 44 }}
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                  Cancel Stream
+                </button>
+              </div>
+            )}
+
+            {(stream.status === "cancelled" || stream.status === "completed") && (
+              <p className="text-xs text-text-secondary text-center py-2">
+                This stream has {stream.status === "cancelled" ? "been cancelled" : "expired"}. No actions available.
+              </p>
+            )}
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   );
 }
