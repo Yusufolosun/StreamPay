@@ -35,6 +35,10 @@ const STREAM_CONDITIONS =
   process.env.NEXT_PUBLIC_STREAM_CONDITIONS_ADDRESS ??
   "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.stream-conditions";
 
+const STREAM_NFT =
+  process.env.NEXT_PUBLIC_STREAM_NFT_ADDRESS ??
+  "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.stream-nft";
+
 function splitContractId(contractId: string): {
   contractAddress: string;
   contractName: string;
@@ -218,6 +222,24 @@ export function buildCancelMilestoneStream(
     contractName,
     functionName: "cancel-milestone-stream",
     functionArgs: [uintCV(milestoneStreamId)],
+  };
+}
+
+export function buildStreamNFTTransfer(
+  tokenId: number,
+  sender: string,
+  recipient: string,
+): ContractCallTransaction {
+  const { contractAddress, contractName } = splitContractId(STREAM_NFT);
+  return {
+    contractAddress,
+    contractName,
+    functionName: "transfer",
+    functionArgs: [
+      uintCV(tokenId),
+      principalCV(sender),
+      principalCV(recipient),
+    ],
   };
 }
 
