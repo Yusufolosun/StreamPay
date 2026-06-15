@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Search, Filter, ArrowLeft, ArrowRight, Eye, RefreshCw, Layers, Loader2 } from "lucide-react";
-import { fetchStreams } from "../../lib/api";
+import { useExplorerStreams } from "../../lib/queries/streams";
 import { truncateAddress, formatSTX } from "../../lib/validation";
 import { useBnsName } from "../../hooks/useBnsName";
 import { ProtocolStats } from "../../components/explorer/ProtocolStats";
@@ -28,17 +27,11 @@ export default function ExplorerPage() {
   }, [search]);
 
   // Query streams with filters
-  const { data, isLoading, isPlaceholderData, refetch } = useQuery({
-    queryKey: ["explorerStreams", debouncedSearch, statusFilter, page],
-    queryFn: () =>
-      fetchStreams({
-        address: debouncedSearch || undefined,
-        status: statusFilter === "all" ? undefined : statusFilter,
-        page,
-        limit,
-      }),
-    placeholderData: (previousData) => previousData,
-    refetchInterval: 30000, // Refresh list every 30s
+  const { data, isLoading, isPlaceholderData, refetch } = useExplorerStreams({
+    address: debouncedSearch || undefined,
+    status: statusFilter === "all" ? undefined : statusFilter,
+    page,
+    limit,
   });
 
   const streams = data?.data || [];
