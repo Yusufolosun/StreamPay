@@ -6,6 +6,7 @@ import { AppConfig, UserSession, authenticate } from "@stacks/connect";
 import { createNetwork } from "@stacks/network";
 import { QueryCache, MutationCache } from "@tanstack/react-query";
 import { ToastProvider, useToast } from "../components/Toast";
+import { NotificationProvider } from "../hooks/useNotifications";
 
 const appConfig = new AppConfig(["store_write", "publish_data"]);
 export const userSession = new UserSession({ appConfig });
@@ -170,7 +171,9 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     <ToastProvider>
       <QueryClientProviderWithToast>
         <StreamPayProvider>
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
         </StreamPayProvider>
       </QueryClientProviderWithToast>
     </ToastProvider>
