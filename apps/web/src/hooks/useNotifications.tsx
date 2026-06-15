@@ -1,7 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
-import { useWallet } from "./useWallet";
+import { useStreamPay } from "../app/providers";
+import { fetchStreams } from "../lib/api";
+import type { StreamView } from "../lib/api";
 
 export interface NotificationEvent {
   id: string;
@@ -28,7 +30,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { address, isConnected, blockHeight } = useWallet();
+  const { address, isConnected, blockHeight } = useStreamPay();
   const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
   const [isWsConnected, setIsWsConnected] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -100,8 +102,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (newNotif.type === "dispute_raised" || newNotif.type === "milestone_released") {
         shouldPush = true;
       } else if (newNotif.type === "stream_claimable") {
-        // Parse message or check amount if available.
-        // For claimable > 0.001 sBTC / STX (100,000 micro-units, which is > 0.1 STX or sBTC equivalent)
         shouldPush = true;
       }
 
@@ -148,18 +148,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // Fetch current active streams to subscribe to them
         fetchStreams({ address, limit: 100 })
-          .then((res) => {
-            const activeStreamIds = res.data
-              .filter((s) => s.status === "active")
-              .map((s) => parseInt(s.id, 10));
+          .then((res: any) => {
+            const activeStreamIds = (res.data || [])
+              .filter((s: StreamView) => s.status === "active")
+              .map((s: StreamView) => parseInt(s.id, 10));
 
-            activeStreamIds.forEach((id) => {
+            activeStreamIds.forEach((id: number) => {
               if (socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({ type: "subscribe", streamId: id }));
               }
             });
           })
-          .catch((err) => console.error("Error subscribing to streams", err));
+          .catch((err: any) => console.error("Error subscribing to streams", err));
       };
 
       socket.onmessage = (event) => {
@@ -228,9 +228,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const pollInterval = setInterval(async () => {
       try {
         const res = await fetchStreams({ recipient: address, limit: 100 });
-        const incomingStreams = res.data;
+        const incomingStreams = res.data || [];
 
-        incomingStreams.forEach((stream) => {
+        incomingStreams.forEach((stream: StreamView) => {
           const streamId = stream.id;
           const currentClaimable = stream.balance?.claimableAmount || "0";
           const prevClaimable = prevBalancesRef.current[streamId];
@@ -267,9 +267,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const checkExpiry = async () => {
       try {
         const res = await fetchStreams({ address, limit: 100 });
-        const streams = res.data;
+        const streams = res.data || [];
 
-        streams.forEach((stream) => {
+        streams.forEach((stream: StreamView) => {
           if (stream.status !== "active") return;
 
           const startBlock = Number(stream.startBlock || 0);
