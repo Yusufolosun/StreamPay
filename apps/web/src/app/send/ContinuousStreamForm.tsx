@@ -155,6 +155,11 @@ export const ContinuousStreamForm: React.FC<ContinuousStreamFormProps> = ({ onSu
           placeholder="0.00"
           className="w-full bg-dark-bg border border-border rounded-lg px-4 py-3 text-white placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-orange/50 focus:border-orange/50 transition-all font-mono text-sm"
         />
+        {touched.amount && (amountMicro < MIN_AMOUNT) && (
+          <p className="text-xs text-red-400 font-medium mt-1">
+            Minimum amount is {(Number(MIN_AMOUNT) / 1_000_000).toFixed(3)} {selectedToken.symbol}
+          </p>
+        )}
         {amount && parseFloat(amount) > 0 && (
           <p className="text-xs text-text-secondary mt-1.5">
             ≈ ${(parseFloat(amount) * 0.45).toFixed(2)} USD estimate
