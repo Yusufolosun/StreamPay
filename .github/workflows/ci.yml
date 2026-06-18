@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Run linting
+        run: npm run lint:all || npm run lint --workspaces --if-present
+
+      - name: Run type checking
+        run: npm run typecheck --workspaces --if-present
+
+      - name: Run API tests
+        run: npm run test -w apps/api
+
+      - name: Run Web frontend tests
+        run: npm run test -w apps/web
