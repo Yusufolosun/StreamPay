@@ -7,12 +7,14 @@ import type { AppConfig } from './config.js';
 import { createErrorHandler } from './middleware/errorHandler.js';
 import { publicRateLimiter } from './middleware/rateLimiter.js';
 import { requestLogger } from './middleware/requestLogger.js';
+import { requireJsonContentType, sanitizeQueryParams, enforcePaginationCap } from './middleware/inputValidation.js';
 import { createHealthRouter } from './routes/health.js';
 import { createMilestonesRouter } from './routes/milestones.js';
 import { createStreamsRouter } from './routes/streams.js';
 import { createWebhooksRouter } from './routes/webhooks.js';
 import { createStatsRouter } from './routes/stats.js';
 import { createNftsRouter } from './routes/nfts.js';
+import { createAdminRouter } from './routes/admin.js';
 import { StacksService } from './services/stacksService.js';
 import { StreamIndexer } from './services/streamIndexer.js';
 import { setStreamIndexerForCalculator } from './services/balanceCalculator.js';
@@ -54,7 +56,29 @@ export const createApp = (
   });
 
   app.disable('x-powered-by');
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
+          imgSrc: ["'self'"],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      frameguard: { action: 'deny' },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    }),
+  );
+  // Permissions-Policy header (not covered by helmet)
+  app.use((_req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    next();
+  });
   app.use(
     cors({
       origin: config.corsOrigins,
@@ -62,6 +86,9 @@ export const createApp = (
     }),
   );
   app.use(express.json({ limit: '100kb' }));
+  app.use(sanitizeQueryParams);
+  app.use(enforcePaginationCap);
+  app.use(requireJsonContentType);
   app.use(requestLogger);
   app.use(publicRateLimiter);
   app.use('/health', createHealthRouter(actualStacksService, actualStreamIndexer));
@@ -81,6 +108,8 @@ export const createApp = (
 
   app.use('/nfts', createNftsRouter(actualStacksService));
   app.use('/api/nfts', createNftsRouter(actualStacksService));
+
+  app.use('/admin', createAdminRouter());
 
   app.use(
     createErrorHandler({
