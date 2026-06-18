@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "audit": "npm audit --audit-level=high"
   },
   "dependencies": {
     "c32check": "^2.0.0",
