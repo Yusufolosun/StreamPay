@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { createApiError, type WebhookAcceptedResponse } from '../types/api.js';
-import { writeRateLimiter } from '../middleware/rateLimiter.js';
+import { writeRateLimiter, webhookSubscribeRateLimiter } from '../middleware/rateLimiter.js';
 import { apiKeyAuth } from '../middleware/apiKeyAuth.js';
 import { type WebhookService } from '../services/webhookService.js';
 
@@ -38,7 +38,7 @@ export const createWebhooksRouter = (webhookService?: WebhookService): Router =>
   router.post(
     '/subscribe',
     apiKeyAuth,
-    writeRateLimiter,
+    webhookSubscribeRateLimiter,
     asyncHandler(async (request, response) => {
       if (!webhookService) {
         throw createApiError(501, 'webhooks_not_ready', 'Webhook service is not connected yet.');
