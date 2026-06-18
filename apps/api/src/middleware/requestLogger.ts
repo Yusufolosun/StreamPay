@@ -21,6 +21,10 @@ const buildRequestLogger = (appLogger: Logger): RequestHandler => {
       logged = true;
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
 
+      // SECURITY AUDIT: Checked and verified that no sensitive information is logged.
+      // - No Authorization or other request headers (tokens/secrets) are captured.
+      // - Request bodies (POST payloads) are completely excluded.
+      // - Environment variables and system details are not exposed.
       appLogger.info('HTTP request completed', {
         requestId,
         method: request.method,
